@@ -1,0 +1,51 @@
+{
+  "name": "lightdb",
+  "version": "1.0.0",
+  "description": "It's a simaple socks5 proxy tool which based on lightsocks",
+  "preferGlobal": true,
+  "scripts": {
+    "start": "ts-node bin/localdb-singal.ts ",
+    "test": "mocha -r ts-node/register 'test/**/*.ts' ",
+    "lint": "./node_modules/.bin/eslint ./lib --fix",
+    "build": "webpack  --display-error-details  --env.production  --config ./.build/webpack.main.js",
+    "format": "run-s format:**",
+    "format:src": "prettier --write \"lib/**/*.ts\"  \"bin/**/*.ts\"  \"src/**/*.json\""
+  },
+  "engines": {
+    "node": ">=8.0.0"
+  },
+  "keywords": [
+    "socks",
+    "socks5",
+    "proxy"
+  ],
+  "repository": "https://github.com/chrisyer/lightsocks-nodejs",
+  "license": "MIT",
+  "dependencies": {
+    "@types/node": "^13.1.0",
+    "cron": "^1.8.2",
+    "leveldown": "^5.6.0",
+    "levelup": "^4.4.0",
+    "log4js": "^5.3.0",
+    "node-machine-id": "^1.1.12"
+  },
+  "devDependencies": {
+    "@types/mocha": "^8.2.2",
+    "babel-eslint": "^8.2.2",
+    "clean-webpack-plugin": "^3.0.0",
+    "commander": "^4.0.1",
+    "copy-webpack-plugin": "^6.0.1",
+    "eslint": "^4.19.1",
+    "eslint-config-alloy": "^1.4.1",
+    "merge-deep": "^3.0.2",
+    "mocha": "^9.0.0",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^1.19.1",
+    "ts-loader": "^6.2.1",
+    "ts-node-dev": "^1.0.0-pre.44",
+    "tslint-config-prettier": "^1.18.0",
+    "typescript": "^3.7.4",
+    "webpack": "^4.41.4",
+    "webpack-cli": "^3.3.10"
+  }
+}
