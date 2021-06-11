@@ -51,8 +51,8 @@ if (program.remote) {
 } */
 //
 
-import {LightDB} from "../src";
-let localdb = new LightDB(path.join(os.homedir(), "ligdb-dev"));
+import LionDB from "../src";
+let localdb = new LionDB(path.join(os.homedir(), "ligdb-dev"));
 (async()=>{
 
   let list: any[] = [];

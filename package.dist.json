@@ -1,0 +1,21 @@
+{
+    "name": "liondb",
+    "version": "1.0.0",
+    "preferGlobal": true,
+    "scripts": {
+      "start": "node ./index.js"
+    },
+    "engines": {
+      "node": ">=8.0.0"
+    },
+    "keywords": [
+
+    ],
+    "repository": "",
+    "license": "MIT",
+    "dependencies": {
+    },
+    "devDependencies": {
+    }
+  }
+  

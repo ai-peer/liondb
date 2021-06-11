@@ -1,6 +1,7 @@
 import assert from "assert";
 import LionDB from "../src/index";
-let db = new LionDB("./a.db");
+import path from "path";
+let db = new LionDB(path.resolve("/_local"));
 
 beforeEach(async function() {
   await db.del("aa");
@@ -12,5 +13,4 @@ describe("比较取值", function() {
     const vv = await db.get("aa");
     assert.deepStrictEqual(vv.name, "li lei");
   });
- 
 });

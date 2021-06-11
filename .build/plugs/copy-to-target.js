@@ -17,7 +17,7 @@ class CopyToTargetPlugin {
         //callback && callback();  
       }); */
       compiler.plugin('done', function() {
-        console.log('Hello World!', self.options.patterns,  fs.existsSync(self.options.patterns));
+        //console.log('Hello World!', self.options.patterns,  fs.existsSync(self.options.patterns));
         (self.options.patterns || []).forEach((item, i)=>{
           let from = item.from,
           to=item.to;

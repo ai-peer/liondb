@@ -2,8 +2,7 @@ const path = require("path");
 const baseConfig = require("./webpack.base");
 const merge = require("merge-deep");
 const CopyPlugin = require("copy-webpack-plugin");
-const fs = require("fs");
-const CopyToTargetPlugin = require("./plugs/copy-to-target");
+
 
 module.exports = (env) => {
   return merge({}, baseConfig, {
