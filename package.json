@@ -1,5 +1,5 @@
 {
-  "name": "lightdb",
+  "name": "liondb",
   "version": "1.0.0",
   "description": "It's a simaple socks5 proxy tool which based on lightsocks",
   "preferGlobal": true,
