@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "It's a simaple socks5 proxy tool which based on lightsocks",
   "preferGlobal": true,
+  "main": "src/index.ts",
+  "author": "jacker",
+  "license": "MIT",
   "scripts": {
     "start": "ts-node bin/localdb-singal.ts ",
     "test": "mocha -r ts-node/register 'test/**/*.ts' ",
