@@ -1,8 +1,7 @@
 import assert from "assert";
 import LionDB from "../src/index";
 import path from "path";
-let db = new LionDB(path.resolve("_local"));
-console.info(">>>", path.resolve("_local"));
+let db = new LionDB(path.resolve("_local/1"));
 
 beforeEach(async function() {
    await wait(1000);
