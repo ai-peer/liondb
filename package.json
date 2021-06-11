@@ -1,5 +1,5 @@
 {
-  "name": "liondb",
+  "name": "@ai-lion/liondb",
   "version": "1.0.0",
   "description": "It's a simaple socks5 proxy tool which based on lightsocks",
   "preferGlobal": true,
@@ -22,8 +22,7 @@
     "socks5",
     "proxy"
   ],
-  "repository": "https://github.com/chrisyer/lightsocks-nodejs",
-  "license": "MIT",
+  "repository": "https://github.com/ai-lion/liondb",
   "dependencies": {
     "@types/node": "^13.1.0",
     "cron": "^1.8.2",
