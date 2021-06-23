@@ -102,10 +102,24 @@ class LionDB {
    db;
    static cluster = clusterThread;
    constructor(filename) {
-      if (cluster.isMaster) {
-         this.db = new levelup(leveldown(filename));
-         this.db.open(DefaultOptions);
-      }
+      let _this = this;
+      /*   if (cluster.isMaster) {
+         
+         //if(!this.db.isOpen())this.db.open(DefaultOptions, ()=>console.info("ok"));
+      } */
+      /*     this.db = new levelup(leveldown(filename), {}, (err, db) => {
+         if (err) console.error("liondb open error", err.message);
+      }); */
+      /*   levelup(leveldown(filename), {}, (err, db) => {
+         if (err) throw err;
+         _this.db = db;
+      }); */
+      this.db = new levelup(leveldown(filename), {}, (err, db) => {
+         if (err){
+            console.error("liondb open error", err.message);
+            throw err;
+         }
+      });
    }
    /**
     * 设置值
