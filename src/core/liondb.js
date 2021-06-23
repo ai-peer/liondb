@@ -101,7 +101,7 @@ function clusterThread({
 class LionDB {
    db;
    static cluster = clusterThread;
-   constructor(filename) {
+   constructor(filename, callback) {
       let _this = this;
       /*   if (cluster.isMaster) {
          
@@ -115,10 +115,8 @@ class LionDB {
          _this.db = db;
       }); */
       this.db = new levelup(leveldown(filename), {}, (err, db) => {
-         if (err){
-            console.error("liondb open error", err.message);
-            throw err;
-         }
+         err && console.error("liondb open error", err.message);
+         callback && callback(err, _this);
       });
    }
    /**
