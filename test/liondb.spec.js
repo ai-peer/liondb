@@ -10,11 +10,38 @@ beforeEach(async function() {
    console.info(">>>>aa", await db.get("aa"));
    await db.set("a1", { name: "a1" });
 
-   await db.set("a2", { name: "a2" });
+   /*    await db.set("a2", { name: "a2" });
    await db.set("a3", { name: "a3" });
    await db.set("a4", { name: "a4" });
    await db.set("b1", { name: "b1" });
-   await db.set("b2", { name: "b2" });
+   await db.set("b2", { name: "b2" }); */
+   await db.batch([
+      {
+         type: "put",
+         key: "a2",
+         value: { name: "a2" },
+      },
+      {
+         type: "put",
+         key: "a3",
+         value: { name: "a3" },
+      },
+      {
+         type: "put",
+         key: "a4",
+         value: { name: "a4" },
+      },
+      {
+         type: "put",
+         key: "b1",
+         value: { name: "b1" },
+      },
+      {
+         type: "put",
+         key: "b2",
+         value: { name: "b2" },
+      },
+   ]);
 });
 
 describe("比较取值", function() {

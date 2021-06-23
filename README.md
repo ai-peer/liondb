@@ -4,10 +4,10 @@
 
 ```
     //单个：
-    let liondb = new LionDB("path");
+    let liondb = lionDB("path");
     //cluster 集群环境
     //const isMaster = cluster.isMaster;
-    //let liondb = LionDB.cluster({filename:  ‘path’, env: "cluster", isMaster: cluster.isMaster, thread: cluster.isMaster ? cluster : cluster.worker  });
+    //let liondb = lionDB.clusterThread({filename:  'path', env: "cluster", isMaster: cluster.isMaster, thread: cluster.isMaster ? cluster : cluster.worker  });
 
 
 

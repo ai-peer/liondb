@@ -90,7 +90,7 @@ function clusterThread({
       },
    }).executor;
 }
-
+levelup.prototype.set = levelup.prototype.put;
 /**
  * https://github.com/Level/levelup
  *
@@ -142,7 +142,7 @@ class LionDB {
     * @param ttl 过期时间, 默认=0表示不过期,单位s(秒)
     */
    async put(key, value, ttl = 0) {
-      let val = Buffer.from([]);
+      /*       let val = Buffer.from([]);
       let type = Type.Object;
 
       if (typeof value === "string") {
@@ -162,8 +162,32 @@ class LionDB {
       ttl = Math.min(ttl, Math.pow(2, 32));
       let ttlAt = Buffer.from(int2Bit(ttl, 4));
       let startAt = Buffer.from(int2Bit(Math.floor(Date.now() / 1000), 5));
-      val = Buffer.concat([Buffer.from([type]), startAt, ttlAt, val]);
+      val = Buffer.concat([Buffer.from([type]), startAt, ttlAt, val]); */
+      let val = this.toValue(value, ttl);
       return this.db.put(key, val, DefaultOptions);
+   }
+   toValue(value, ttl = 0) {
+      let val = Buffer.from([]);
+      let type = Type.Object;
+      if (typeof value === "string") {
+         type = Type.String;
+         val = Buffer.from(value);
+      } else if (typeof value === "number") {
+         type = Type.Number;
+         val = Buffer.from(int2Bit(value));
+      } else if (value instanceof Buffer) {
+         type = Type.Buffer;
+         val = value;
+      } else {
+         type = Type.Object;
+         val = Buffer.from(JSON.stringify(value));
+      }
+      ttl = ttl <= 0 ? 0 : ttl;
+      ttl = Math.min(ttl, Math.pow(2, 32));
+      let ttlAt = Buffer.from(int2Bit(ttl, 4));
+      let startAt = Buffer.from(int2Bit(Math.floor(Date.now() / 1000), 5));
+      val = Buffer.concat([Buffer.from([type]), startAt, ttlAt, val]);
+      return val;
    }
    async getSet(key, value, ttl = 0) {
       let value0 = await this.get(key);
@@ -276,10 +300,23 @@ class LionDB {
       }
    }
    /**
-    * 批量操作
-    * @param ops
+    * 
+    * @param {
+    *  {  type : 'del' | 'put' ,  key : string  } , 
+    {  type : 'put' ,  key : 'name' ,  value : 'Yuri Irsenovich Kim'  } , 
+    {  type : 'put' ,  key : ' dob' ,  value : '16 February 1941'  } , 
+    {  type : 'put' ,  key : 'spouse' , 价值: 'Kim Young-sook'  } , 
+    {  type : 'put' ,  key : 'occupation' ,  value : 'Clown'  } 
+    * } ops 
+    * @returns 
     */
    async batch(ops) {
+      if (ops instanceof Array) {
+         ops = ops.map((v) => {
+            v.value = this.toValue(v.value, v.ttl);
+            return v;
+         });
+      }
       return this.db.batch(ops, DefaultOptions);
    }
    async clear(ops) {
