@@ -1,7 +1,7 @@
-import assert from "assert";
-import LionDB from "../src/index";
-import path from "path";
-import cluster from 'cluster';
+const assert = require( "assert");
+const LionDB  = require( "../src/index");
+const path  = require( "path");
+const cluster  = require( 'cluster');
 
 let db = LionDB.cluster({filename:  path.resolve("_local/2"), env: "cluster", isMaster: true, thread: cluster });
 console.info(">>>", path.resolve("_local"));

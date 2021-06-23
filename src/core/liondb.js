@@ -1,9 +1,15 @@
-import levelup from "levelup";
-import leveldown from "leveldown";
-import { bit2Int, int2Bit } from "../utils";
-import cluster from "cluster";
-import TcFactor from "./tcfactor";
-
+const levelup = require("levelup");
+const leveldown = require("leveldown");
+const { bit2Int, int2Bit } = require("../utils");
+const cluster = require("cluster");
+const TcFactor = require("./tcfactor");
+const Type = {
+   String: 1,
+   Number: 2,
+   Object: 3,
+   Buffer: 4,
+};
+/* 
 enum Type {
    String = 1,
    Number = 2,
@@ -12,17 +18,17 @@ enum Type {
 }
 export interface BatchOption {
    type: "del" | "put";
-   key: string | number;
+   key;
    value?: any;
 }
 export interface QueryOption {
-   key: string | number;
+   key;
    lt?;
    lte?;
    gt?;
    gte?;
    limit?: number;
-}
+} */
 /**
  * options: 
  *  struct Options {
@@ -50,25 +56,25 @@ const DefaultOptions = {
  * 以多进程/线程模式运行存储
  * @param options
  */
-export function clusterThread(options: {
+function clusterThread({
    /** 数据库文件名 */
-   filename: string;
-   app?: string;
+   filename,
+   app,
    /** 运行环境, cluster集群, electron, browser:流星器 */
-   env: "cluster" | "electron";
+   env, //: "cluster" | "electron";
    /** 是否是主线程 */
-   isMaster: boolean;
+   isMaster,
    /** 当前线程 */
-   thread;
-}): LionDB {
+   thread,
+} = {}) {
    return new TcFactor({
-      app: options.app || "localdb",
-      env: options.env,
-      isMaster: options.isMaster,
-      thread: options.thread,
+      app: app || "localdb",
+      env: env,
+      isMaster: isMaster,
+      thread: thread,
       executor: () => {
-         if (options.isMaster) {
-            return new LionDB(options.filename);
+         if (isMaster) {
+            return new LionDB(filename);
          } else {
             let res = {};
             for (let key in LionDB.prototype) {
@@ -93,9 +99,9 @@ export function clusterThread(options: {
  *
  */
 class LionDB {
-   protected db;
+   db;
    static cluster = clusterThread;
-   constructor(filename: string) {
+   constructor(filename) {
       if (cluster.isMaster) {
          this.db = new levelup(leveldown(filename));
          this.db.open(DefaultOptions);
@@ -107,7 +113,7 @@ class LionDB {
     * @param value 值
     * @param ttl 过期时间, 默认=0表示不过期,单位s(秒)
     */
-   async set(key: string | number, value: any, ttl: number = 0): Promise<void> {
+   async set(key, value, ttl = 0) {
       this.put(key, value, ttl);
    }
    /**
@@ -116,7 +122,7 @@ class LionDB {
     * @param value 值
     * @param ttl 过期时间, 默认=0表示不过期,单位s(秒)
     */
-   async put(key: string | number, value: any, ttl: number = 0): Promise<void> {
+   async put(key, value, ttl = 0) {
       let val = Buffer.from([]);
       let type = Type.Object;
 
@@ -140,35 +146,35 @@ class LionDB {
       val = Buffer.concat([Buffer.from([type]), startAt, ttlAt, val]);
       return this.db.put(key, val, DefaultOptions);
    }
-   async getSet(key: string | number, value: any, ttl?: number): Promise<any> {
+   async getSet(key, value, ttl = 0) {
       let value0 = await this.get(key);
       await this.set(key, value, ttl);
       return value0;
    }
-   async getIntSet(key: string | number, value: number, ttl?: number): Promise<number> {
+   async getIntSet(key, value, ttl = 0) {
       let value0 = await this.getInt(key);
       await this.set(key, value, ttl);
       return value0;
    }
-   async getStringSet(key: string | number, value: string, ttl?: number): Promise<string> {
+   async getStringSet(key, value, ttl = 0) {
       let value0 = await this.getString(key);
       await this.set(key, value, ttl);
       return value0;
    }
-   async getFloatSet(key: string | number, value: number, ttl?: number): Promise<number> {
+   async getFloatSet(key, value, ttl = 0) {
       let value0 = await this.getFloat(key);
       await this.set(key, value, ttl);
       return value0;
    }
-   async getString(key: string | number, extension: boolean = false): Promise<string> {
+   async getString(key, extension = false) {
       let value = await this.get(key, extension);
       return JSON.stringify(value);
    }
-   async getInt(key: string | number, extension: boolean = false): Promise<number> {
+   async getInt(key, extension = false) {
       let value = await this.get(key, extension);
       return parseInt(value);
    }
-   async getFloat(key: string | number, extension: boolean = false): Promise<number> {
+   async getFloat(key, extension = false) {
       let value = await this.get(key, extension);
       return parseFloat(value);
    }
@@ -177,8 +183,8 @@ class LionDB {
     * @param key
     * @param extension 是否自动延期(默认false, 如果在put时,设置的过期时间, 才会起作用)
     */
-   async get(key: string | number, extension: boolean = false): Promise<any> {
-      let buffer: Buffer | undefined = await this.db.get(key).catch((e) => undefined);
+   async get(key, extension = false) {
+      let buffer = await this.db.get(key).catch((e) => undefined);
       if (buffer) {
          let res = analyzeValue(buffer);
          if (res) {
@@ -204,7 +210,7 @@ class LionDB {
     * @param key
     * @param ttl
     */
-   async expire(key: string | number, ttl: number): Promise<void> {
+   async expire(key, ttl = 0) {
       ttl = Math.floor(ttl);
       if (ttl < 1) return;
       let value = this.get(key);
@@ -215,8 +221,8 @@ class LionDB {
     * @param key
     * @param increment 增量,默认为1
     */
-   async increment(key: string | number, increment: number = 1, ttl: number = 0): Promise<number> {
-      let v: number = (await this.get(key)) || 0;
+   async increment(key, increment = 1, ttl = 0) {
+      let v = (await this.get(key)) || 0;
       v += increment;
       await this.put(key, v, ttl);
       return v;
@@ -225,11 +231,11 @@ class LionDB {
     * 删除
     * @param key
     */
-   async del(key: string | number): Promise<{ key: string }[]> {
+   async del(key) {
       if (key === undefined || key === null) return Promise.resolve([]);
       key = String(key);
       if (key.indexOf("*") >= 0) {
-         let batchs: any[] = [];
+         let batchs = [];
          await this.iterator(
             {
                key: key,
@@ -254,34 +260,29 @@ class LionDB {
     * 批量操作
     * @param ops
     */
-   async batch(ops: BatchOption[]): Promise<void> {
+   async batch(ops) {
       return this.db.batch(ops, DefaultOptions);
    }
-   async clear(ops: QueryOption): Promise<void> {
+   async clear(ops) {
       return this.db.clear(ops);
    }
-   async close(): Promise<void> {
+   async close() {
       return this.db.close();
    }
-   async find(key: string | { key: string; limit?: number }) {
-      let list: any = [];
+   async find(key) {
+      //: string | { key: string; limit?: number }
+      let list = [];
       let opt = typeof key === "string" ? { key: key } : key;
       await this.iterator(opt, (key, value) => {
          list.push(value);
       });
       return list;
    }
-   async iterator(
-      options: {
-         key: string | number;
-         limit?: number;
-      },
-      callback,
-   ): Promise<void> {
-      let searchKey = String(options.key).trim();
+   async iterator({ key, limit } = {}, callback) {
+      let searchKey = String(key).trim();
       let isFuzzy = searchKey.endsWith("*");
       searchKey = searchKey.replace(/^\*|\*$/g, "");
-      options = Object.assign({}, options, { gte: searchKey, limit: -1 });
+      let options = Object.assign({}, { key, limit }, { gte: searchKey, limit: -1 });
       let iterator = this.db.iterator(options);
       return new Promise((resolve, reject) => {
          iterator.seek(searchKey);
@@ -306,7 +307,7 @@ class LionDB {
                      }
                   }
 
-                  let res: any = analyzeValue(v);
+                  let res = analyzeValue(v);
                   let curTime = Math.ceil(Date.now() / 1000);
                   //console.log("ite==>>", key, res.ttl > 0, res.startAt + res.ttl < curTime, res.ttl, res.startAt, curTime )
                   if (res.ttl > 0 && res.startAt + res.ttl < curTime) {
@@ -324,12 +325,12 @@ class LionDB {
       });
    }
 }
-function analyzeValue(value: Buffer): { ttl: number; startAt: number; buffer: Buffer; value: Function; type: Type } | undefined {
+function analyzeValue(value) {
    try {
       let type = value[0];
       let startAt = bit2Int(value.slice(1, 6));
       let ttl = bit2Int(value.slice(6, 10));
-      let val: Buffer = value.slice(10);
+      let val = value.slice(10);
 
       if (String(startAt).startsWith("63")) {
          startAt = Math.floor(Date.now() / 1000) - 1;
@@ -339,7 +340,7 @@ function analyzeValue(value: Buffer): { ttl: number; startAt: number; buffer: Bu
       return {
          ttl,
          value: () => {
-            let result: any;
+            let result;
             switch (type) {
                case Type.String:
                   result = val.toString();
@@ -365,4 +366,5 @@ function analyzeValue(value: Buffer): { ttl: number; startAt: number; buffer: Bu
    }
 }
 
-export default LionDB;
+module.exports = LionDB;
+exports.clusterThread = clusterThread;
