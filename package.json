@@ -3,7 +3,7 @@
   "version": "1.1.0",
   "description": "lion",
   "preferGlobal": true,
-  "main": "src/index.ts",
+  "main": "src/index.js",
   "author": "jacker",
   "license": "MIT",
   "scripts": {
