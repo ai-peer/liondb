@@ -345,7 +345,7 @@ class LionDB {
       return new Promise((resolve, reject) => {
          iterator.seek(searchKey);
          (function next() {
-            iterator.next((error, k, v) => {
+            iterator.next(async(error, k, v) => {
                if (!k) {
                   //callback && callback();
                   iterator.end((err) => err && console.error("err", err.message));
@@ -371,7 +371,7 @@ class LionDB {
                   if (res.ttl > 0 && res.startAt + res.ttl < curTime) {
                      this.del(key);
                   } else {
-                     callback && callback(key, res.value());
+                     callback && await callback(key, res.value());
                   }
                   next();
                } catch (err) {
