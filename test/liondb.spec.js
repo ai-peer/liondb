@@ -1,7 +1,7 @@
 const assert = require("assert");
-const LionDB = require("../src/index");
+const lionDB = require("../src/index");
 const path = require("path");
-let db = new LionDB(path.resolve("_local/1"));
+let db = lionDB(path.resolve("_local/1"));
 
 beforeEach(async function() {
    await wait(1000);

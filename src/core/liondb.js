@@ -114,8 +114,15 @@ class LionDB {
          if (err) throw err;
          _this.db = db;
       }); */
-      this.db = new levelup(leveldown(filename), {}, (err, db) => {
-         err && console.error("liondb open error", err.message);
+      let ldb = leveldown(filename);
+      this.db = new levelup(ldb, {}, async (err, db) => {
+         if (err && /LockFile/i.test(err.message)) {
+            await _this.close();
+            _this.db = new levelup(ldb);
+            callback && callback(err, _this);
+         } else {
+            err && console.error("liondb open error", err.stack);
+         }
          callback && callback(err, _this);
       });
    }
@@ -279,7 +286,9 @@ class LionDB {
       return this.db.clear(ops);
    }
    async close() {
-      return this.db.close();
+      return new Promise((resolve) => {
+         this.db.close(() => setTimeout(() => resolve(), 150));
+      });
    }
    async find(key) {
       //: string | { key: string; limit?: number }
@@ -378,5 +387,11 @@ function analyzeValue(value) {
    }
 }
 
-module.exports = LionDB;
-exports.clusterThread = clusterThread;
+function makeLionDB(filename, callback) {
+   let liondb = new LionDB(filename, async (err, db) => {
+      callback && callback(liondb);
+   });
+   return liondb;
+}
+makeLionDB.clusterThread = clusterThread;
+module.exports = makeLionDB;

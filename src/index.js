@@ -1,5 +1,4 @@
-const LionDB = require("./core/liondb")
+const liondb = require("./core/liondb")
 
-//global['LionDB'] = LionDB;
 
-module.exports = LionDB;
+module.exports = liondb;

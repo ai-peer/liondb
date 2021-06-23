@@ -1,9 +1,9 @@
 const assert = require( "assert");
-const LionDB  = require( "../src/index");
+const lionDB  = require( "../src/index");
 const path  = require( "path");
 const cluster  = require( 'cluster');
 
-let db = LionDB.cluster({filename:  path.resolve("_local/2"), env: "cluster", isMaster: true, thread: cluster });
+let db = lionDB.clusterThread({filename:  path.resolve("_local/2"), env: "cluster", isMaster: true, thread: cluster });
 console.info(">>>", path.resolve("_local"));
 
 beforeEach(async function() {
