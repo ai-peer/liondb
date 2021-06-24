@@ -313,7 +313,7 @@ class LionDB {
    async batch(ops) {
       if (ops instanceof Array) {
          ops = ops.map((v) => {
-            v.value = this.toValue(v.value, v.ttl);
+            if(v.type=="put")v.value = this.toValue(v.value, v.ttl);
             return v;
          });
       }
