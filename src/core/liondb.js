@@ -313,7 +313,7 @@ class LionDB {
    async batch(ops) {
       if (ops instanceof Array) {
          ops = ops.map((v) => {
-            if(v.type=="put")v.value = this.toValue(v.value, v.ttl);
+            if (v.type == "put") v.value = this.toValue(v.value, v.ttl);
             return v;
          });
       }
@@ -331,46 +331,48 @@ class LionDB {
       let list = [];
       let opt = typeof key === "string" ? { key: key } : key;
       await this.iterator(opt, (key, value) => {
-         list.push({key, value});
+         list.push({ key, value });
       });
       return list;
    }
-   async iterator({ key, limit } = {}, callback) {
+   async iterator({ key, limit = 100 } = {}, callback) {
       let searchKey = String(key).trim();
       let isFuzzy = searchKey.endsWith("*");
       searchKey = searchKey.replace(/^\*|\*$/g, "");
-      let options = Object.assign({}, { key, limit }, { gte: searchKey, limit: -1 });
+      let options = Object.assign({}, { key, limit }, { gte: searchKey });
       let iterator = this.db.iterator(options);
       return new Promise((resolve, reject) => {
+         let itSize = 0;
          iterator.seek(searchKey);
          (function next() {
-            iterator.next(async(error, k, v) => {
+            iterator.next(async (error, k, v) => {
                if (!k) {
                   //callback && callback();
                   iterator.end((err) => err && console.error("err", err.message));
                   return resolve();
                }
                try {
-                  let key = String(k);
+                  let sKey = String(k);
                   if (!isFuzzy) {
-                     if (key != searchKey) {
+                     if (sKey != searchKey) {
                         iterator.end((err) => err && console.error("err", err.message));
                         return resolve();
                      }
                   } else {
-                     if (!key || !key.startsWith(searchKey)) {
+                     //console.info("========>>>>", key, sKey, searchKey, limit, itSize, !sKey || !sKey.startsWith(searchKey) || (limit > 0 && itSize >= limit));
+                     if (!sKey || !sKey.startsWith(searchKey) || (limit > 0 && itSize >= limit)) {
                         iterator.end((err) => err && console.error("err", err.message));
                         return resolve();
                      }
                   }
-
+                  itSize++;
                   let res = analyzeValue(v);
                   let curTime = Math.ceil(Date.now() / 1000);
                   //console.log("ite==>>", key, res.ttl > 0, res.startAt + res.ttl < curTime, res.ttl, res.startAt, curTime )
                   if (res.ttl > 0 && res.startAt + res.ttl < curTime) {
-                     this.del(key);
+                     this.del(sKey);
                   } else {
-                     callback && await callback(key, res.value());
+                     callback && (await callback(sKey, res.value()));
                   }
                   next();
                } catch (err) {

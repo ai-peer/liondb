@@ -40,6 +40,25 @@ beforeEach(async function() {
          type: "put",
          key: "b2",
          value: { name: "b2" },
+      },  {
+         type: "put",
+         key: "b3",
+         value: { name: "b3" },
+      },
+      {
+         type: "put",
+         key: "b4",
+         value: { name: "b4" },
+      },
+      {
+         type: "put",
+         key: "bc1",
+         value: { name: "bc1" },
+      },
+      {
+         type: "put",
+         key: "bc2",
+         value: { name: "bc2" },
       },
    ]);
 });
@@ -54,7 +73,7 @@ describe("比较取值", function() {
       db.iterator({ key: "a*" }, (key, value) => {
          console.log("v", key, value);
       });
-      let bb = await db.find("b*");
+      let bb = await db.find({key: "b*", limit: 2});
       console.log(">>>>bb", bb);
 
       let list = await db.find("a1");
