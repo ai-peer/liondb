@@ -328,11 +328,10 @@ class LionDB {
       });
    }
    async find(key) {
-      //: string | { key: string; limit?: number }
       let list = [];
       let opt = typeof key === "string" ? { key: key } : key;
       await this.iterator(opt, (key, value) => {
-         list.push(value);
+         list.push({key, value});
       });
       return list;
    }
