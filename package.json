@@ -18,9 +18,8 @@
     "node": ">=8.0.0"
   },
   "keywords": [
-    "socks",
-    "socks5",
-    "proxy"
+    "liondb",
+    "leveldb"
   ],
   "repository": "https://github.com/ai-lion/liondb",
   "dependencies": {
