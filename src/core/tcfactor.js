@@ -32,7 +32,7 @@ function makeSendFromWorkerFun(env, event) {
       case "browser":
          return function(data) {
             //send(data);
-            global["self"]?.postMessage(data, "");
+            global["self"] && global["self"].postMessage(data, "");
          };
    }
 }
