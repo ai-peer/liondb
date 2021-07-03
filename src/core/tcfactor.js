@@ -46,12 +46,12 @@ function makeSendFromMainFun(env, thread) {
       case "cluster":
          return function(data) {
             //send(data);
-            thread?.send?.apply(thread, [data]);
+            thread.send && thread.send.apply(thread, [data]);
          };
       case "browser":
          return function(data) {
             //send(data);
-            global["self"]?.postMessage(data, "");
+            global["self"] && global["self"].postMessage(data, "");
          };
    }
 }
