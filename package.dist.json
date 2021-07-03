@@ -1,6 +1,6 @@
 {
     "name": "liondb",
-    "version": "1.9.2",
+    "version": "1.9.3",
     "preferGlobal": true,
     "scripts": {
       "start": "node ./index.js"

@@ -120,7 +120,7 @@ class TCFactor extends EventEmitter {
             } else if (this.env == "cluster") {
                data = args[0];
             } else {
-               data = args[0]?.data;
+               data = args[0] ? args[0].data : {};
             }
             let { app, task, code, value, key } = data;
             //console.log("<<<<<<<<<<<<<view ", key, code, task);
