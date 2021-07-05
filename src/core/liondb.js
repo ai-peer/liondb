@@ -51,21 +51,14 @@ const DefaultOptions = {
    infoLog: "error",
    errorIfExists: false,
 };
-class AB {
-   name() {
-      return "name";
-   }
-}
-/**
- * 以多进程/线程模式运行存储
- * @param options
- */
+
+
 function clusterThread({
    /** 数据库文件名 */
    filename,
    app,
    /** 运行环境, cluster集群, electron, browser:流星器 */
-   env, //: "cluster" | "electron";
+   env, //: "cluster" | "electron" | "egg";
    /** 是否是主线程 */
    isMaster,
    /** 当前线程 */

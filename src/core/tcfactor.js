@@ -29,6 +29,11 @@ function makeSendFromWorkerFun(env, event) {
             //process?.send?.apply(process, [data]);
             event.send(data);
          };
+      case "egg":
+         return function(data) {
+            //process?.send?.apply(process, [data]);
+            event.send(data);
+         };
       case "browser":
          return function(data) {
             //send(data);
@@ -48,6 +53,11 @@ function makeSendFromMainFun(env, thread) {
             //send(data);
             thread.send && thread.send.apply(thread, [data]);
          };
+      case "egg":
+         return function(data) {
+            //send(data);
+            thread.sendMessage(data);
+         };
       case "browser":
          return function(data) {
             //send(data);
@@ -59,7 +69,7 @@ function makeSendFromMainFun(env, thread) {
  * 装饰主副线程(进程)通信, 把应用封装进来, 让api使用都感觉不到主副线程的差异,<br/> 可以像正常使用api一样使用(否则就会涉及到主进程有api,子进程没有)
  *
   app: string;
-  env: "cluster" | "electron" | "browser";
+  env: "cluster" | "electron" | "browser" | "egg";
   thread;
   isMaster: boolean;
   executor: Function;
@@ -92,8 +102,14 @@ class TCFactor extends EventEmitter {
       if (!thread) throw new Error("工作线程或进程都不存在");
       if (this.isMaster) {
          let executor = this.executor;
-         thread.on("message", async (event, { app, task, method, args }) => {
+         thread.on("message", async (event, data) => {
+            let { app, task, method, args, pid } = data || event;
             if (app != this.app) return;
+            if (this.env == "egg") {
+               event = {
+                  send: (datax) => thread.sendTo(pid, "message", datax),
+               };
+            }
             //let send = this.env == 'electron' ? event.reply : this.env == 'cluster' ? event.send : self.postMessage;
             let send = makeSendFromWorkerFun(this.env, event);
             if (args[args.length - 1] === "[function]") {
@@ -112,12 +128,18 @@ class TCFactor extends EventEmitter {
             send ? send({ app, task: task, code: 1, value }) : console.warn(`主线程环境${this.env}不存在发送方法`);
          });
       } else {
+         if (this.env == "egg") {
+            thread.sendMessage = (data) => {
+               data.pid = thread.pid;
+               thread.sendToAgent("message", data);
+            };
+         }
          thread.on("message", async (...args) => {
             //{ task, code, value }
             let data = {};
             if (this.env == "electron") {
                data = args[1];
-            } else if (this.env == "cluster") {
+            } else if (this.env == "cluster" || this.env == "egg") {
                data = args[0];
             } else {
                data = args[0] ? args[0].data : {};
