@@ -62,7 +62,7 @@ let localdb = new LionDB(path.join(os.homedir(), "ligdb-dev"));
       });
    }
 
-   await localdb.set("aa_77", { name: "li" }, 5);
+   await localdb.set("aa_77", { name: "li" }, 7);
    await localdb.set("aa_78", { name: "zhang" });
    await localdb.set("aa_79", { name: "li79" });
    await localdb.set("bb_79", { name: "bb_79" });

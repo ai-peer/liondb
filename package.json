@@ -7,7 +7,7 @@
   "author": "jacker",
   "license": "MIT",
   "scripts": {
-    "start": "ts-node bin/localdb-singal.ts ",
+    "start": "node bin/localdb-singal.js ",
     "test": "mocha -r ts-node/register 'test/**/*.js' ",
     "lint": "./node_modules/.bin/eslint ./lib --fix",
     "build": "webpack  --display-error-details  --env.production  --config ./.build/webpack.main.js",

@@ -51,7 +51,11 @@ const DefaultOptions = {
    infoLog: "error",
    errorIfExists: false,
 };
-
+class AB {
+   name() {
+      return "name";
+   }
+}
 /**
  * 以多进程/线程模式运行存储
  * @param options
@@ -77,7 +81,26 @@ function clusterThread({
             return new LionDB(filename);
          } else {
             let res = {};
-            for (let key in LionDB.prototype) {
+            for (let key of [
+               "set",
+               "get",
+               "put",
+               "getSet",
+               "getIntSet",
+               "getStringSet",
+               "getFloatSet",
+               "getString",
+               "getInt",
+               "getFloat",
+               "expire",
+               "increment",
+               "del",
+               "batch",
+               "clear",
+               "close",
+               "find",
+               "iterator",
+            ]) {
                let target = LionDB.prototype[key];
                if (key.startsWith("_")) continue;
                if (target instanceof Function) {
