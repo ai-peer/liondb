@@ -63,7 +63,7 @@ beforeEach(async function() {
    ]);
 });
 
-describe("比较取值", function() {
+describe("多进程比较取值", function() {
    it("比较取值是否相等", async function() {
       const vv = await db.get("aa");
       console.info(">>>vv2", vv);

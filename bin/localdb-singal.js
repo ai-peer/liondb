@@ -71,12 +71,11 @@ let localdb = new LionDB(path.join(os.homedir(), "ligdb-dev"));
    await localdb.set("NetService_net_user_91_getNetListByUserIdExpired", list);
 
    console.log(">>>>>>>s1 ");
-   await localdb.iterator({ key: "NetService_net_user_91*" }, (skey, val) => {
+   localdb.iterator({ key: "aa_*" }, async (skey, val) => {
+      await wait(2000);
       console.log("...0", skey);
    });
-   setTimeout(async () => {
-      console.log("...set get ", await localdb.get("aa_77"));
-   }, 5000);
+   console.log("...set get ", await localdb.get("aa_77"));
    //
    /*  console.log(">>>>>>>s2 del after");
   await localdb.iterator({key: 'aa*'}, (skey, val)=>{
@@ -84,3 +83,6 @@ let localdb = new LionDB(path.join(os.homedir(), "ligdb-dev"));
   });
   console.log(">>>>>>>s3 end"); */
 })();
+async function wait(ttl) {
+   return new Promise((resolve) => setTimeout(() => resolve(), ttl));
+}

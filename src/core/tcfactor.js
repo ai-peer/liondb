@@ -16,32 +16,32 @@ const { EventEmitter } = require("events");
 //   /** 获取方法创建实体对象 */
 //   executor: Function;
 // }
-function makeSendFromWorkerFun(env, event) {
+function makeSend2WorkerFun(env, event) {
    //let send = this.env == 'electron' ? event.reply : this.env == 'cluster' ? event.send : self.postMessage;
    switch (env) {
       case "electron":
-         return function(data) {
+         return function(data, callback) {
             event.reply("message", data);
          };
       case "cluster":
-         return function(data) {
+         return function(data, callback) {
             //send(data);
             //process?.send?.apply(process, [data]);
             event.send(data);
          };
       case "egg":
-         return function(data) {
+         return function(data, callback) {
             //process?.send?.apply(process, [data]);
             event.send(data);
          };
       case "browser":
-         return function(data) {
+         return function(data, callback) {
             //send(data);
             global["self"] && global["self"].postMessage(data, "");
          };
    }
 }
-function makeSendFromMainFun(env, thread) {
+function makeSend2MainFun(env, thread) {
    //let send = this.env == 'electron' ? this.options.workerThread.send : this.env == 'cluster' ? process.send : self.postMessage;
    switch (env) {
       case "electron":
@@ -66,16 +66,16 @@ function makeSendFromMainFun(env, thread) {
    }
 }
 /**
- * 装饰主副线程(进程)通信, 把应用封装进来, 让api使用都感觉不到主副线程的差异,<br/> 可以像正常使用api一样使用(否则就会涉及到主进程有api,子进程没有)
- *
-  app: string;
-  env: "cluster" | "electron" | "browser" | "egg";
-  thread;
-  isMaster: boolean;
-  executor: Function;
- *
- *
- */
+  * 装饰主副线程(进程)通信, 把应用封装进来, 让api使用都感觉不到主副线程的差异,<br/> 可以像正常使用api一样使用(否则就会涉及到主进程有api,子进程没有)
+  *
+   app: string;
+   env: "cluster" | "electron" | "browser" | "egg";
+   thread;
+   isMaster: boolean;
+   executor: Function;
+  *
+  *
+  */
 class TCFactor extends EventEmitter {
    isMaster; //: boolean;
    env; //: "cluster" | "electron" | "browser";
@@ -103,19 +103,31 @@ class TCFactor extends EventEmitter {
       if (this.isMaster) {
          let executor = this.executor;
          thread.on("message", async (event, data) => {
-            let { app, task, method, args, pid } = data || event;
+            let { app, task, method, args, pid, isCallback } = data || event;
             if (app != this.app) return;
             if (this.env == "egg") {
                event = {
                   send: (datax) => thread.sendTo(pid, "message", datax),
                };
             }
+            if (isCallback == true) {
+               _this.emit(task);
+               return;
+            }
             //let send = this.env == 'electron' ? event.reply : this.env == 'cluster' ? event.send : self.postMessage;
-            let send = makeSendFromWorkerFun(this.env, event);
-            if (args[args.length - 1] === "[function]") {
+            let send = makeSend2WorkerFun(this.env, event);
+            let isLastCallback = args[args.length - 1] === "[function]";
+            if (isLastCallback) {
                //最后一位是回调函数
-               args[args.length - 1] = (key, value) => {
-                  send ? send({ app, task: task, code: 2, key, value }) : console.warn(`主线程环境${this.env}不存在发送方法`);
+               args[args.length - 1] = async (key, value) => {
+                  if (key) {
+                     return new Promise((resolve) => {
+                        send({ app, task: task, code: 2, key, value });
+                        _this.once(task, () => resolve());
+                     });
+                  } else {
+                     send({ app, task: task, code: 1, key: undefined, value: undefined });
+                  }
                };
             }
             let target = executor[method];
@@ -125,7 +137,7 @@ class TCFactor extends EventEmitter {
             } else {
                value = target;
             }
-            send ? send({ app, task: task, code: 1, value }) : console.warn(`主线程环境${this.env}不存在发送方法`);
+            if (!isCallback) send ? send({ app, task: task, code: 1, value }) : console.warn(`主线程环境${this.env}不存在发送方法`);
          });
       } else {
          if (this.env == "egg") {
@@ -145,7 +157,6 @@ class TCFactor extends EventEmitter {
                data = args[0] ? args[0].data : {};
             }
             let { app, task, code, value, key } = data;
-            //console.log("<<<<<<<<<<<<<view ", key, code, task);
             this.emit(task, { code, value, key });
          });
          for (let key in this.executor) {
@@ -166,7 +177,7 @@ class TCFactor extends EventEmitter {
       if (this.isMaster) {
          return this.executor[method].apply(this.executor, args);
       }
-
+      let send = makeSend2MainFun(this.env, this.thread);
       return new Promise((resolve, reject) => {
          let task = "task-" + Math.floor(Math.random() * 9999999999);
          if (args[args.length - 1] instanceof Function) {
@@ -174,12 +185,13 @@ class TCFactor extends EventEmitter {
             this.taskCallback[task] = args[args.length - 1];
             args[args.length - 1] = "[function]"; //标记最后一位是任务回调
          }
-         this.on(task, ({ code, value, key, message }) => {
+         this.on(task, async ({ code, value, key, message }) => {
             if (code == 1) {
                this.removeAllListeners(task);
                resolve(value);
             } else if (code == 2) {
-               this.taskCallback[task](key, value);
+               await this.taskCallback[task](key, value);
+               send({ app: this.app, task, isCallback: true });
             } else {
                reject(new Error(message));
             }
@@ -189,9 +201,7 @@ class TCFactor extends EventEmitter {
          //send = makeSendFun(this.env, process.send);
          //process.send?.apply(process, [{ task, method: method, args: args }]);
          //send({app: this.app, task, method: method, args: args });
-         let send = makeSendFromMainFun(this.env, this.thread);
-
-         send ? send({ app: this.app, task, method: method, args: args }) : console.warn(`子线程环境${this.env}不存在发送方法`);
+         send({ app: this.app, task, method: method, args: args });
       });
    }
 }
