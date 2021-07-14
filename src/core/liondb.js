@@ -138,16 +138,16 @@ class LionDB {
          } else {
             err && console.error("liondb open error", err.stack);
          }
-         setTimeout(async () => {
+         /*         setTimeout(async () => {
             while (true) {
                //自动清理过期内容
                try {
-                  await _this.iterator({ key: "*", limit: 0 }, async (key, value) => await wait(10));
+                  await _this.iterator({ key: "*", limit: 0 }, async (key, value) => await wait(50));
                } finally {
                   await wait(1 * 60 * 60); //暂停1小时
                }
             }
-         }, 2000);
+         }, 2000); */
          callback && callback(err, _this);
       });
    }
@@ -352,31 +352,42 @@ class LionDB {
          this.db.close(() => setTimeout(() => resolve(), 150));
       });
    }
-   async find(key) {
+   async find({ key, limit = 100, start = 0 } = {}) {
       let list = [];
-      let opt = typeof key === "string" ? { key: key } : key;
-      await this.iterator(opt, (key, value) => {
-         list.push({ key, value });
+      //let opt = typeof key === "string" ? { key: key } : key;
+      console.info("limit ", key, limit, start);
+      await this.iterator({ key, limit, start }, (skey, svalue) => {
+         list.push({ key: skey, value: svalue });
       });
       return list;
    }
-   async iterator({ key, limit = 100 } = {}, callback) {
+   async iterator({ key, limit = 100, start = 0 } = {}, callback) {
       let searchKey = String(key).trim();
       let isFuzzy = searchKey.endsWith("*");
-      searchKey = searchKey == "*" ? searchKey : searchKey.replace(/^\*|\*$/g, "");
-      let options = Object.assign({}, { key, limit }, { gte: searchKey });
+      searchKey = searchKey === "*" ? searchKey : searchKey.replace(/^\*|\*$/g, "");
+      let options = Object.assign({}, { key, limit: start + limit }, { gte: searchKey });
       let iterator = this.db.iterator(options);
+      //let type = Object.prototype.toString.call(callback);
       return new Promise((resolve, reject) => {
          let itSize = 0;
+         let itIndex = -1;
          if (!iterator) return resolve();
          iterator.seek(searchKey);
          (function next() {
+            //console.info("next====");
             iterator.next(async (error, k, v) => {
                if (!k) {
                   //callback && callback();
                   iterator.end((err) => err && console.error("err", err.message));
                   return resolve();
                }
+               itIndex++;
+               //console.info("=====", start, itIndex, start > itIndex);
+               if (start > itIndex) {
+                  next();
+                  return;
+               }
+
                try {
                   let sKey = String(k);
                   if (!isFuzzy) {
@@ -385,7 +396,7 @@ class LionDB {
                         return resolve();
                      }
                   } else {
-                     //console.info("========>>>>", key, sKey, searchKey, limit, itSize, !sKey || !sKey.startsWith(searchKey) || (limit > 0 && itSize >= limit));
+                     //console.info("========>>>>", key, sKey, searchKey, limit, itIndex, itSize, !sKey || !sKey.startsWith(searchKey) || (limit > 0 && itSize >= limit));
                      if (!sKey || !sKey.startsWith(searchKey) || (limit > 0 && itSize >= limit)) {
                         iterator.end((err) => err && console.error("err", err.message));
                         return resolve();
@@ -394,15 +405,25 @@ class LionDB {
                   itSize++;
                   let res = analyzeValue(v);
                   let curTime = Math.ceil(Date.now() / 1000);
-                  //console.log("ite==>>", key, res.ttl > 0, res.startAt + res.ttl < curTime, res.ttl, res.startAt, curTime
+                  //console.log("ite==>>", key, res.ttl > 0 && res.startAt + res.ttl < curTime, res.ttl, !!callback);
                   if (res.ttl > 0 && res.startAt + res.ttl < curTime) {
                      this.del(sKey);
                      await wait(5);
                   } else {
-                     callback && (await callback(sKey, res.value()));
+                     if (!!callback) {
+                        let callbackResult;
+                        /*       if (type === "[object AsyncFunction]") res = await callback(sKey, res.value());
+                        else callbackResult = callback(sKey, res.value()); */
+                        res = await callback(sKey, res.value());
+                        if (callbackResult === "break") {
+                           iterator.end((err) => err && console.error("err break", err.message));
+                           return resolve();
+                        }
+                     }
                   }
                   next();
                } catch (err) {
+                  console.info("err", err.stack);
                   iterator.end((err) => err && console.error("err", err.message));
                   resolve();
                }

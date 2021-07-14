@@ -61,8 +61,9 @@ let localdb = new LionDB(path.join(os.homedir(), "ligdb-dev"));
          let: "xxxxxx_" + i,
       });
    }
-
-   await localdb.set("aa_77", { name: "li" }, 7);
+   await localdb.set("aa_75", { name: "li 75" });
+   await localdb.set("aa_76", { name: "li 76" });
+   await localdb.set("aa_77", { name: "li" });
    await localdb.set("aa_78", { name: "zhang" });
    await localdb.set("aa_79", { name: "li79" });
    await localdb.set("bb_79", { name: "bb_79" });
@@ -70,12 +71,14 @@ let localdb = new LionDB(path.join(os.homedir(), "ligdb-dev"));
    //await localdb.del('NetService_net_user_91*');
    await localdb.set("NetService_net_user_91_getNetListByUserIdExpired", list);
 
-   console.log(">>>>>>>s1 ");
-   localdb.iterator({ key: "aa_*" }, async (skey, val) => {
-      await wait(2000);
-      console.log("...0", skey);
+   console.log("get ", await localdb.get("aa_75"));
+   localdb.iterator({ key: "aa_*" }, (skey, val) => {
+      console.log("...--iterator", skey);
    });
-   console.log("...set get ", await localdb.get("aa_77"));
+
+   let list1 = await localdb.find({ key: "aa_*", start: 2, limit: 2 });
+   console.info("list ", list1);
+
    //
    /*  console.log(">>>>>>>s2 del after");
   await localdb.iterator({key: 'aa*'}, (skey, val)=>{

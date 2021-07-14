@@ -18,7 +18,7 @@ if (cluster.isMaster) {
       await db.set("a-13", "v13");
       await db.set("a-14", "v14");
    })();
-/*    cluster.on("exit", (worker, code, signal) => {
+   /*    cluster.on("exit", (worker, code, signal) => {
       console.log(`worker ${worker.process.pid} died`);
    }); */
 } else {
@@ -30,9 +30,13 @@ if (cluster.isMaster) {
       console.info("v1", v1);
 
       await db.iterator({ key: "a*" }, async (key, value) => {
-         await wait(2000);
+         await wait(100);
          console.info("worker iterator ", key, value);
       });
+
+      let list1 = await db.find({ key: "a*", start: 2, limit: 2 });
+      console.info("list ", list1);
+
       console.info("iterator end");
    })();
    console.log(`Worker ${process.pid} started`);
