@@ -48,6 +48,7 @@ export interface QueryOption {
     };
  */
 const DefaultOptions = {
+   sync: false,
    infoLog: "error",
    errorIfExists: false,
 };
@@ -138,16 +139,16 @@ class LionDB {
          } else {
             err && console.error("liondb open error", err.stack);
          }
-         /*         setTimeout(async () => {
+         setTimeout(async () => {
             while (true) {
                //自动清理过期内容
                try {
-                  await _this.iterator({ key: "*", limit: 0 }, async (key, value) => await wait(50));
+                  await _this.iterator({ key: "*", limit: 0 }, async (key, value) => await wait(100));
                } finally {
                   await wait(1 * 60 * 60); //暂停1小时
                }
             }
-         }, 2000); */
+         }, 2000);
          callback && callback(err, _this);
       });
    }
@@ -189,7 +190,7 @@ class LionDB {
       let startAt = Buffer.from(int2Bit(Math.floor(Date.now() / 1000), 5));
       val = Buffer.concat([Buffer.from([type]), startAt, ttlAt, val]); */
       let val = this.toValue(value, ttl);
-      return this.db.put(key, val, DefaultOptions);
+      return this.db.put(key, val, DefaultOptions, (err) => {});
    }
    toValue(value, ttl = 0) {
       let val = Buffer.from([]);

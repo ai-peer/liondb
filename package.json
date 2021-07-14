@@ -1,6 +1,6 @@
 {
   "name": "@ai-lion/liondb",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "lion",
   "preferGlobal": true,
   "main": "src/index.js",
