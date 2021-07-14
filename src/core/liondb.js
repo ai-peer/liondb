@@ -338,7 +338,10 @@ class LionDB {
    async batch(ops) {
       if (ops instanceof Array) {
          ops = ops.map((v) => {
-            if (v.type == "put") v.value = this.toValue(v.value, v.ttl);
+            if (v.type == "put") {
+               v.value = this.toValue(v.value, v.ttl);
+               delete v.ttl;
+            }
             return v;
          });
       }
@@ -362,6 +365,7 @@ class LionDB {
       return list;
    }
    async iterator({ key, limit = 100, start = 0 } = {}, callback) {
+      let _this = this;
       let searchKey = String(key).trim();
       let isFuzzy = searchKey.endsWith("*");
       searchKey = searchKey === "*" ? searchKey : searchKey.replace(/^\*|\*$/g, "");
@@ -407,7 +411,7 @@ class LionDB {
                   let curTime = Math.ceil(Date.now() / 1000);
                   //console.log("ite==>>", key, res.ttl > 0 && res.startAt + res.ttl < curTime, res.ttl, !!callback);
                   if (res.ttl > 0 && res.startAt + res.ttl < curTime) {
-                     this.del(sKey);
+                     _this.del(sKey);
                      await wait(5);
                   } else {
                      if (!!callback) {
