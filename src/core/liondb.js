@@ -358,7 +358,6 @@ class LionDB {
    async find({ key, limit = 100, start = 0 } = {}) {
       let list = [];
       //let opt = typeof key === "string" ? { key: key } : key;
-      console.info("limit ", key, limit, start);
       await this.iterator({ key, limit, start }, (skey, svalue) => {
          list.push({ key: skey, value: svalue });
       });
