@@ -52,7 +52,6 @@ const DefaultOptions = {
    errorIfExists: false,
 };
 
-
 function clusterThread({
    /** 数据库文件名 */
    filename,
@@ -139,6 +138,16 @@ class LionDB {
          } else {
             err && console.error("liondb open error", err.stack);
          }
+         setTimeout(async () => {
+            while (true) {
+               //自动清理过期内容
+               try {
+                  await _this.iterator({ key: "*", limit: 0 }, async (key, value) => await wait(10));
+               } finally {
+                  await wait(1 * 60 * 60); //暂停1小时
+               }
+            }
+         }, 2000);
          callback && callback(err, _this);
       });
    }
@@ -354,11 +363,12 @@ class LionDB {
    async iterator({ key, limit = 100 } = {}, callback) {
       let searchKey = String(key).trim();
       let isFuzzy = searchKey.endsWith("*");
-      searchKey = searchKey.replace(/^\*|\*$/g, "");
+      searchKey = searchKey == "*" ? searchKey : searchKey.replace(/^\*|\*$/g, "");
       let options = Object.assign({}, { key, limit }, { gte: searchKey });
       let iterator = this.db.iterator(options);
       return new Promise((resolve, reject) => {
          let itSize = 0;
+         if (!iterator) return resolve();
          iterator.seek(searchKey);
          (function next() {
             iterator.next(async (error, k, v) => {
@@ -384,9 +394,10 @@ class LionDB {
                   itSize++;
                   let res = analyzeValue(v);
                   let curTime = Math.ceil(Date.now() / 1000);
-                  //console.log("ite==>>", key, res.ttl > 0, res.startAt + res.ttl < curTime, res.ttl, res.startAt, curTime )
+                  //console.log("ite==>>", key, res.ttl > 0, res.startAt + res.ttl < curTime, res.ttl, res.startAt, curTime
                   if (res.ttl > 0 && res.startAt + res.ttl < curTime) {
                      this.del(sKey);
+                     await wait(5);
                   } else {
                      callback && (await callback(sKey, res.value()));
                   }
@@ -440,7 +451,9 @@ function analyzeValue(value) {
       return undefined;
    }
 }
-
+async function wait(ttl = 100) {
+   return new Promise((resolve) => setTimeout(() => resolve(), ttl));
+}
 function makeLionDB(filename, callback) {
    let liondb = new LionDB(filename, async (err, db) => {
       callback && callback(liondb);
