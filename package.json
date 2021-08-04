@@ -1,52 +1,54 @@
 {
-  "name": "@ai-lion/liondb",
-  "version": "2.0.1",
-  "description": "lion",
-  "preferGlobal": true,
-  "main": "src/index.js",
-  "author": "jacker",
+  "name": "my-webpack-project",
+  "version": "1.0.0",
+  "main": "dist/lib.js",
   "license": "MIT",
+  "bin": {
+    "cli": "dist/cli.js"
+  },
+  "types": "typings/src/index.d.ts",
   "scripts": {
-    "start": "node bin/localdb-singal.js ",
-    "test": "mocha -r ts-node/register 'test/**/*.js' ",
-    "lint": "./node_modules/.bin/eslint ./lib --fix",
-    "build": "webpack  --display-error-details  --env.production  --config ./.build/webpack.main.js",
-    "format": "run-s format:**",
-    "format:src": "prettier --write \"lib/**/*.js\"  \"bin/**/*.ts\"  \"src/**/*.json\""
+    "build": "webpack --mode=production --node-env=production",
+    "build:dev": "webpack --mode=development",
+    "build:prod": "webpack --mode=production --node-env=production",
+    "test": "mocha 'tests/**/*.ts' ",
+    "watch": "webpack --watch",
+    "serve": "webpack serve",
+    "format": "run-s format:*",
+    "format:js": " prettier --write   \"src/**/*.ts\"  "
   },
-  "engines": {
-    "node": ">=8.0.0"
-  },
-  "keywords": [
-    "liondb",
-    "leveldb"
-  ],
-  "repository": "https://github.com/ai-lion/liondb",
   "dependencies": {
-    "@types/node": "^13.1.0",
-    "cron": "^1.8.2",
     "leveldown": "^5.6.0",
     "levelup": "^4.4.0",
     "log4js": "^5.3.0",
     "node-machine-id": "^1.1.12"
   },
   "devDependencies": {
-    "@types/mocha": "^8.2.2",
-    "babel-eslint": "^8.2.2",
-    "clean-webpack-plugin": "^3.0.0",
-    "commander": "^4.0.1",
-    "copy-webpack-plugin": "^6.0.1",
-    "eslint": "^4.19.1",
-    "eslint-config-alloy": "^1.4.1",
-    "merge-deep": "^3.0.2",
+    "@types/mocha": "^9.0.0",
+    "@types/node": "^16.4.2",
+    "@webpack-cli/generators": "^2.2.0",
+    "autoprefixer": "^10.3.1",
+    "copy-webpack-plugin": "^9.0.1",
     "mocha": "^9.0.0",
     "npm-run-all": "^4.1.5",
-    "prettier": "^1.19.1",
-    "ts-loader": "^6.2.1",
-    "ts-node-dev": "^1.0.0-pre.44",
+    "postcss": "^8.3.6",
+    "postcss-loader": "^6.1.1",
+    "prettier": "^2.3.2",
+    "style-loader": "^3.2.1",
+    "ts-loader": "^9.2.4",
+    "ts-node": "^10.1.0",
     "tslint-config-prettier": "^1.18.0",
-    "typescript": "^3.7.4",
-    "webpack": "^4.41.4",
-    "webpack-cli": "^3.3.10"
+    "typescript": "^4.3.5",
+    "webpack": "^5.46.0",
+    "webpack-cli": "^4.7.2",
+    "webpack-dev-server": "^3.11.2",
+    "workbox-webpack-plugin": "^6.1.5"
+  },
+  "description": "My webpack project",
+  "mocha": {
+    "require": [
+      "ts-node/register"
+    ],
+    "ui": "bdd"
   }
 }

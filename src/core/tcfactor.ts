@@ -3,7 +3,8 @@
  * 前后台封装
  *
  */
-const { EventEmitter } = require("events");
+import { EventEmitter } from "events";
+//const { EventEmitter } = require("events");
 // interface Options {
 //   /** 应用标记, 防止冲突 */
 //   app: string;
@@ -20,24 +21,26 @@ function makeSend2WorkerFun(env, event) {
    //let send = this.env == 'electron' ? event.reply : this.env == 'cluster' ? event.send : self.postMessage;
    switch (env) {
       case "electron":
-         return function(data, callback) {
+         return function (data, callback?) {
             event.reply("message", data);
          };
-      case "cluster":
-         return function(data, callback) {
-            //send(data);
-            //process?.send?.apply(process, [data]);
-            event.send(data);
-         };
+
       case "egg":
-         return function(data, callback) {
+         return function (data, callback?) {
             //process?.send?.apply(process, [data]);
             event.send(data);
          };
       case "browser":
-         return function(data, callback) {
+         return function (data, callback?) {
             //send(data);
             global["self"] && global["self"].postMessage(data, "");
+         };
+      case "cluster":
+      default:
+         return function (data, callback?) {
+            //send(data);
+            //process?.send?.apply(process, [data]);
+            event.send(data);
          };
    }
 }
@@ -45,23 +48,25 @@ function makeSend2MainFun(env, thread) {
    //let send = this.env == 'electron' ? this.options.workerThread.send : this.env == 'cluster' ? process.send : self.postMessage;
    switch (env) {
       case "electron":
-         return function(data) {
+         return function (data) {
             thread.send("message", data);
          };
-      case "cluster":
-         return function(data) {
-            //send(data);
-            thread.send && thread.send.apply(thread, [data]);
-         };
+
       case "egg":
-         return function(data) {
+         return function (data) {
             //send(data);
             thread.sendMessage(data);
          };
       case "browser":
-         return function(data) {
+         return function (data) {
             //send(data);
             global["self"] && global["self"].postMessage(data, "");
+         };
+      case "cluster":
+      default:
+         return function (data) {
+            //send(data);
+            thread.send && thread.send.apply(thread, [data]);
          };
    }
 }
@@ -76,7 +81,7 @@ function makeSend2MainFun(env, thread) {
   *
   *
   */
-class TCFactor extends EventEmitter {
+class TCFactor<T> extends EventEmitter {
    isMaster; //: boolean;
    env; //: "cluster" | "electron" | "browser";
    app; //: string;
@@ -84,7 +89,7 @@ class TCFactor extends EventEmitter {
    executor; //: any;
    static ___apps = {};
    taskCallback = {}; //任务回调
-   constructor({ app, thread, isMaster, executor, env } = {}) {
+   constructor({ app, thread, isMaster, executor, env }: { app: string; isMaster: boolean; env: "cluster" | "electron" | "egg"; thread: any; executor: Function }) {
       super();
       this.setMaxListeners(9999);
       this.env = env;
@@ -123,7 +128,7 @@ class TCFactor extends EventEmitter {
                   if (key) {
                      return new Promise((resolve) => {
                         send({ app, task: task, code: 2, key, value });
-                        _this.once(task, () => resolve());
+                        _this.once(task, () => resolve(undefined));
                      });
                   } else {
                      send({ app, task: task, code: 1, key: undefined, value: undefined });
@@ -148,7 +153,7 @@ class TCFactor extends EventEmitter {
          }
          thread.on("message", async (...args) => {
             //{ task, code, value }
-            let data = {};
+            let data: any = {};
             if (this.env == "electron") {
                data = args[1];
             } else if (this.env == "cluster" || this.env == "egg") {
@@ -164,7 +169,7 @@ class TCFactor extends EventEmitter {
             let targetFun = this.executor[key];
             if (targetFun instanceof Function) {
                this.executor[key] = new Proxy(this.executor[key], {
-                  apply: function(target, thisArg, args) {
+                  apply: function (target, thisArg, args) {
                      targetFun.bind(target)(...args);
                      return _this.execute(key, ...args);
                   },
@@ -173,7 +178,7 @@ class TCFactor extends EventEmitter {
          }
       }
    }
-   execute(method, ...args) {
+   execute(method, ...args): Promise<T> {
       if (this.isMaster) {
          return this.executor[method].apply(this.executor, args);
       }
@@ -205,4 +210,4 @@ class TCFactor extends EventEmitter {
       });
    }
 }
-module.exports = TCFactor;
+export default TCFactor;

@@ -1,5 +1,5 @@
-const { Transform } = require("stream");
-
+//const { Transform } = require("stream");
+import {Transform} from "stream";
 /**
  * stream pipi使用
  * @param {Function} callback (chunk, encoding, callback)

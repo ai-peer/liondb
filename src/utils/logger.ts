@@ -12,7 +12,7 @@
 }
  * 
  */
-const { configure, getLogger, ConsoleAppender, Logger } = require("log4js");
+import { configure, getLogger, ConsoleAppender, Logger } from "log4js";
 
 const isDev = process.env.NODE_ENV == "development";
 

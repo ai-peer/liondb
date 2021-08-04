@@ -1,8 +1,8 @@
-const levelup = require("levelup");
-const leveldown = require("leveldown");
-const { bit2Int, int2Bit } = require("../utils");
-const cluster = require("cluster");
-const TcFactor = require("./tcfactor");
+import levelup from "levelup";
+import leveldown from "leveldown";
+import { bit2Int, int2Bit } from "../utils";
+//import cluster from "cluster";
+import TcFactor from "./tcfactor";
 const Type = {
    String: 1,
    Number: 2,
@@ -53,7 +53,7 @@ const DefaultOptions = {
    errorIfExists: false,
 };
 
-function clusterThread({
+export function clusterThread({
    /** 数据库文件名 */
    filename,
    app,
@@ -63,8 +63,14 @@ function clusterThread({
    isMaster,
    /** 当前线程 */
    thread,
-} = {}) {
-   return new TcFactor({
+}: {
+   filename: string;
+   app: string;
+   env: "cluster" | "electron" | "egg";
+   isMaster: boolean;
+   thread: any;
+}) {
+   return new TcFactor<LionDB>({
       app: app || "localdb",
       env: env,
       isMaster: isMaster,
@@ -116,8 +122,8 @@ levelup.prototype.set = levelup.prototype.put;
  */
 class LionDB {
    db;
-   static cluster = clusterThread;
-   constructor(filename, callback) {
+   static clusterThread = clusterThread;
+   constructor(filename: string, callback?: Function) {
       let _this = this;
       /*   if (cluster.isMaster) {
          
@@ -230,18 +236,18 @@ class LionDB {
       await this.set(key, value, ttl);
       return value0;
    }
-   async getFloatSet(key, value, ttl = 0) {
+   async getFloatSet(key, value, ttl = 0): Promise<number> {
       let value0 = await this.getFloat(key);
       await this.set(key, value, ttl);
       return value0;
    }
-   async getString(key, extension = false) {
+   async getString(key, extension = false): Promise<string> {
       let value = await this.get(key, extension);
       return JSON.stringify(value);
    }
-   async getInt(key, extension = false) {
+   async getInt(key, extension = false): Promise<number> {
       let value = await this.get(key, extension);
-      return parseInt(value);
+      return parseInt(value) || 0;
    }
    async getFloat(key, extension = false) {
       let value = await this.get(key, extension);
@@ -252,7 +258,7 @@ class LionDB {
     * @param key
     * @param extension 是否自动延期(默认false, 如果在put时,设置的过期时间, 才会起作用)
     */
-   async get(key, extension = false) {
+   async get(key, extension = false): Promise<any> {
       let buffer = await this.db.get(key).catch((e) => undefined);
       if (buffer) {
          let res = analyzeValue(buffer);
@@ -304,7 +310,7 @@ class LionDB {
       if (key === undefined || key === null) return Promise.resolve([]);
       key = String(key);
       if (key.indexOf("*") >= 0) {
-         let batchs = [];
+         let batchs: { type: "del"; key: string; value?: any }[] = [];
          await this.iterator(
             {
                key: key,
@@ -317,8 +323,11 @@ class LionDB {
          //console.info("del key b",key, batchs);
          await this.batch(batchs);
          return batchs.map((v) => {
-            delete v.type;
-            return v;
+            //delete v.type;
+            return {
+               key: v.key,
+               value: v.value,
+            };
          });
       } else {
          await this.db.del(key, DefaultOptions);
@@ -336,7 +345,7 @@ class LionDB {
     * } ops 
     * @returns 
     */
-   async batch(ops) {
+   async batch(ops: { type: "del" | "put"; key: string; value?: any; ttl?: number }[]) {
       if (ops instanceof Array) {
          ops = ops.map((v) => {
             if (v.type == "put") {
@@ -353,18 +362,23 @@ class LionDB {
    }
    async close() {
       return new Promise((resolve) => {
-         this.db.close(() => setTimeout(() => resolve(), 150));
+         this.db.close(() => setTimeout(() => resolve(undefined), 150));
       });
    }
-   async find({ key, limit = 100, start = 0 } = {}) {
-      let list = [];
+   async count(key: string): Promise<number> {
+      let count = 0;
+      await this.iterator({ key: key, start: 0, limit: -1 }, () => count++);
+      return count;
+   }
+   async find({ key, limit = 100, start = 0 }: { key: string; limit?: number; start?: number }): Promise<{ key: string; value: any }[]> {
+      let list: { key: string; value: any }[] = [];
       //let opt = typeof key === "string" ? { key: key } : key;
       await this.iterator({ key, limit, start }, (skey, svalue) => {
          list.push({ key: skey, value: svalue });
       });
       return list;
    }
-   async iterator({ key, limit = 100, start = 0 } = {}, callback) {
+   async iterator({ key, limit = 100, start = 0 }: { key: string; limit?: number; start?: number }, callback) {
       let _this = this;
       let searchKey = String(key).trim();
       let isFuzzy = searchKey.endsWith("*");
@@ -375,7 +389,7 @@ class LionDB {
       return new Promise((resolve, reject) => {
          let itSize = 0;
          let itIndex = -1;
-         if (!iterator) return resolve();
+         if (!iterator) return resolve(undefined);
          iterator.seek(searchKey);
          (function next() {
             //console.info("next====");
@@ -383,7 +397,7 @@ class LionDB {
                if (!k) {
                   //callback && callback();
                   iterator.end((err) => err && console.error("err", err.message));
-                  return resolve();
+                  return resolve(undefined);
                }
                itIndex++;
                //console.info("=====", start, itIndex, start > itIndex);
@@ -397,17 +411,17 @@ class LionDB {
                   if (!isFuzzy) {
                      if (sKey != searchKey) {
                         iterator.end((err) => err && console.error("err", err.message));
-                        return resolve();
+                        return resolve(undefined);
                      }
                   } else {
                      //console.info("========>>>>", key, sKey, searchKey, limit, itIndex, itSize, !sKey || !sKey.startsWith(searchKey) || (limit > 0 && itSize >= limit));
                      if (!sKey || !sKey.startsWith(searchKey) || (limit > 0 && itSize >= limit)) {
                         iterator.end((err) => err && console.error("err", err.message));
-                        return resolve();
+                        return resolve(undefined);
                      }
                   }
                   itSize++;
-                  let res = analyzeValue(v);
+                  let res: any = analyzeValue(v);
                   let curTime = Math.ceil(Date.now() / 1000);
                   //console.log("ite==>>", key, res.ttl > 0 && res.startAt + res.ttl < curTime, res.ttl, !!callback);
                   if (res.ttl > 0 && res.startAt + res.ttl < curTime) {
@@ -421,7 +435,7 @@ class LionDB {
                         res = await callback(sKey, res.value());
                         if (callbackResult === "break") {
                            iterator.end((err) => err && console.error("err break", err.message));
-                           return resolve();
+                           return resolve(undefined);
                         }
                      }
                   }
@@ -429,7 +443,7 @@ class LionDB {
                } catch (err) {
                   console.info("err", err.stack);
                   iterator.end((err) => err && console.error("err", err.message));
-                  resolve();
+                  resolve(undefined);
                }
             });
          })();
@@ -477,13 +491,14 @@ function analyzeValue(value) {
    }
 }
 async function wait(ttl = 100) {
-   return new Promise((resolve) => setTimeout(() => resolve(), ttl));
+   return new Promise((resolve) => setTimeout(() => resolve(undefined), ttl));
 }
-function makeLionDB(filename, callback) {
+/* function makeLionDB(filename, callback): LionDB {
    let liondb = new LionDB(filename, async (err, db) => {
       callback && callback(liondb);
    });
    return liondb;
 }
-makeLionDB.clusterThread = clusterThread;
-module.exports = makeLionDB;
+makeLionDB.clusterThread = clusterThread; */
+
+export default LionDB;

@@ -1,5 +1,5 @@
 const assert = require( "assert");
-const lionDB  = require( "../src/index");
+const lionDB  = require( "../src");
 const path  = require( "path");
 const cluster  = require( 'cluster');
 
@@ -12,7 +12,7 @@ beforeEach(async function() {
    await db.set("aa", { name: "li lei" });
 });
 
-describe("比较取值", function() {
+describe("多进程比较取值", function() {
    it("比较取值是否相等", async function() {
       const vv = await db.get("aa");
       assert.deepStrictEqual(vv.name, "li lei");

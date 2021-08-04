@@ -1,33 +1,33 @@
-const crypto = require("crypto");
-const { machineId, machineIdSync } = require("node-machine-id");
+import crypto from "crypto";
+import { machineId, machineIdSync } from "node-machine-id";
 
 /**
  * md5
  * @param {string} value
  * @returns
  */
-exports.md5 = function md5(value) {
+export function md5(value): string {
    var md5 = crypto.createHash("md5");
    var result = md5.update(value.toString()).digest("hex");
    return result.toUpperCase();
-};
+}
 
 /**
  * 创建机器编码
  */
-exports.device = function device() {
+export function device() {
    return md5(machineIdSync());
-};
-exports.string2Bit = function string2Bit(value, length = 6) {
+}
+export function string2Bit(value, length = 6) {
    value = value.substring(0, length);
    return value.split("").map((v) => v.charCodeAt(0));
-};
+}
 /**
  * 整型转字节
  * @param {number} value 值
  * @param length 长度,单位字节, 最大为6,
  */
-exports.int2Bit = function int2Bit(value, length = 6) {
+export function int2Bit(value, length = 6) {
    const max = 6;
    let s = Array(max);
    value = Math.floor(value % 281474976710656); //  Math.pow(2, 48)
@@ -47,14 +47,14 @@ exports.int2Bit = function int2Bit(value, length = 6) {
   s[4] = (low >> 8) & 0xff;
   s[5] = (low >> 0) & 0xff; */
    return s.slice(max - Math.min(length, max));
-};
+}
 
 /**
  *
  * @param {Buffer | Array<number>} value
  * @returns
  */
-exports.bit2Int = function bit2Int(value) {
+export function bit2Int(value) {
    let max = 6;
    value = value.slice(Math.max(value.length - max, 0));
    let result = 0;
@@ -71,17 +71,17 @@ exports.bit2Int = function bit2Int(value) {
    }
    result = high + low;
    return result;
-};
+}
 /**
  *
  * @param {number} max
  * @returns
  */
-exports.random2Int = function random2Int(max) {
+export function random2Int(max) {
    return Math.floor(Math.random() * (max + 1));
-};
+}
 
-exports.cycle = function cycle(interval = 5, handle) {
+export function cycle(interval = 5, handle) {
    interval = Math.max(interval, 1);
    let thread;
    (function _cycle() {
@@ -97,22 +97,22 @@ exports.cycle = function cycle(interval = 5, handle) {
          clearTimeout(thread);
       },
    };
-};
-exports.isDev = function isDev() {
+}
+export function isDev() {
    return process.env.NODE_ENV == "development";
-};
+}
 /**
  *
  * @param {Buffer} buffer
  * @param {number | undefined} limit
  * @returns
  */
-exports.buffer2array = function buffer2array(buffer, limit) {
-   let ret = [];
+export function buffer2array(buffer, limit) {
+   let ret: any[] = [];
    let max = limit ? limit : buffer.length;
    max = Math.min(max, buffer.length);
    for (let i = 0; i < max; i++) {
       ret.push(buffer[i]);
    }
    return ret;
-};
+}
