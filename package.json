@@ -4,7 +4,7 @@
   "main": "dist/lib.js",
   "license": "MIT",
   "bin": {
-    "cli": "dist/cli.js"
+ 
   },
   "types": "typings/src/index.d.ts",
   "scripts": {
