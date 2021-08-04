@@ -1,6 +1,6 @@
 {
-  "name": "my-webpack-project",
-  "version": "1.0.0",
+  "name": "@ai-lion/liondb",
+  "version": "3.0.0",
   "main": "dist/lib.js",
   "license": "MIT",
   "bin": {
