@@ -104,7 +104,7 @@ const config = {
       // Learn more about plugins from https://webpack.js.org/configuration/plugins/
       //new webpack.BannerPlugin({ banner: "#!/usr/bin/env node", raw: true }),
       new CopyPlugin({
-         patterns: [{ from: path.resolve("prebuilds"), to: "prebuilds" }],
+         patterns: [{ from: path.resolve("libs/prebuilds"), to: "prebuilds" }],
       }),
    ],
    optimization: {

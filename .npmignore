@@ -2,5 +2,5 @@ src
 .build
 shell
 bin
-prebuilds
+libs
 tests
