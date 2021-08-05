@@ -196,7 +196,7 @@ class LionDB {
       let startAt = Buffer.from(int2Bit(Math.floor(Date.now() / 1000), 5));
       val = Buffer.concat([Buffer.from([type]), startAt, ttlAt, val]); */
       let val = this.toValue(value, ttl);
-      return this.db.put(key, val, DefaultOptions, (err) => {});
+      return this.db.put(key, val, DefaultOptions);
    }
    toValue(value, ttl = 0) {
       let val = Buffer.from([]);
