@@ -8,6 +8,7 @@ const isProduction = process.env.NODE_ENV == "production";
 const webpack = require("webpack");
 const CopyPlugin = require("copy-webpack-plugin");
 const stylesHandler = "style-loader";
+const TerserPlugin = require("terser-webpack-plugin");
 
 const config = {
    entry: {
@@ -101,13 +102,26 @@ const config = {
       //new VueLoaderPlugin(),
       // Add your plugins here
       // Learn more about plugins from https://webpack.js.org/configuration/plugins/
-      new webpack.BannerPlugin({ banner: "#!/usr/bin/env node", raw: true }),
+      new webpack.BannerPlugin({
+         banner: `/*! https://github.com/ai-lion/liondb */`,
+         raw: true,
+      }),
+      /*       new webpack.BannerPlugin({
+         banner: "#!/usr/bin/env node",
+         raw: true,
+         include: [/lib/], //包含哪些文件需要添加头部
+      }), */
       new CopyPlugin({
          patterns: [{ from: path.resolve("libs/prebuilds"), to: "prebuilds" }],
       }),
    ],
    optimization: {
       minimize: true,
+      minimizer: [
+         new TerserPlugin({
+            extractComments: false, //不将注释提取到单独的文件中
+         }),
+      ],
    },
 };
 
