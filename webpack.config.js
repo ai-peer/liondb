@@ -13,7 +13,7 @@ const config = {
    entry: {
       lib: {
          import: "./src/index.ts",
-/*          library: {
+         /*          library: {
             // `output.library` 下的所有配置项可以在这里使用
             //name: "default",
             type: "commonjs2",
@@ -90,11 +90,10 @@ const config = {
    },
    plugins: [
       // 目标为 nodejs 环境使用
-      /*       new webpack.ProvidePlugin({
+      new webpack.ProvidePlugin({
          Buffer: ["buffer", "Buffer"],
-      }), 
-     
-      */
+      }),
+
       /*       new HtmlWebpackPlugin({
          template: "index.html",
       }), */
@@ -102,7 +101,7 @@ const config = {
       //new VueLoaderPlugin(),
       // Add your plugins here
       // Learn more about plugins from https://webpack.js.org/configuration/plugins/
-      //new webpack.BannerPlugin({ banner: "#!/usr/bin/env node", raw: true }),
+      new webpack.BannerPlugin({ banner: "#!/usr/bin/env node", raw: true }),
       new CopyPlugin({
          patterns: [{ from: path.resolve("libs/prebuilds"), to: "prebuilds" }],
       }),
