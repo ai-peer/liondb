@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { machineId, machineIdSync } from "node-machine-id";
-
+import fs from "fs";
+import path from "path";
 /**
  * md5
  * @param {string} value
@@ -115,4 +116,16 @@ export function buffer2array(buffer, limit) {
       ret.push(buffer[i]);
    }
    return ret;
+}
+
+export function mkdirs(dir) {
+   if (!fs.existsSync(dir)) {
+      try {
+         fs.mkdirSync(dir);
+      } catch (err) {
+         let par = dir.replace(/[\/\\][^\/\\]+$/, "");
+         mkdirs(par);
+         fs.mkdirSync(dir);
+      }
+   }
 }

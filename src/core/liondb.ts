@@ -1,8 +1,9 @@
 import levelup from "levelup";
 import leveldown from "leveldown";
-import { bit2Int, int2Bit } from "../utils";
+import { bit2Int, int2Bit, mkdirs } from "../utils";
 //import cluster from "cluster";
 import TcFactor from "./tcfactor";
+
 const Type = {
    String: 1,
    Number: 2,
@@ -136,6 +137,7 @@ class LionDB {
          if (err) throw err;
          _this.db = db;
       }); */
+      mkdirs(filename);
       let ldb = leveldown(filename);
       this.db = new levelup(ldb, {}, async (err, db) => {
          if (err && /LockFile/i.test(err.message)) {
