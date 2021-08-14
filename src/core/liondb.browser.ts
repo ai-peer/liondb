@@ -139,6 +139,9 @@ class LionDB implements ILionDB {
       } else if (value instanceof Buffer) {
          type = Type.Buffer;
          val = value;
+      } else if (value instanceof Uint8Array) {
+         type = Type.Buffer;
+         val = Buffer.from(value);
       } else {
          type = Type.Object;
          val = Buffer.from(JSON.stringify(value));
