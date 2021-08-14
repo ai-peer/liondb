@@ -1,8 +1,9 @@
 import levelup from "levelup";
-import leveldown from "leveldown";
-import { bit2Int, int2Bit, mkdirs } from "../utils";
+import leveljs from "level-js";
+import { ILionDB } from "./liondb.i";
+import { bit2Int, int2Bit } from "../utils/byte";
+import { Buffer } from "buffer";
 //import cluster from "cluster";
-import TcFactor from "./tcfactor";
 
 const Type = {
    String: 1,
@@ -45,7 +46,6 @@ export interface QueryOption {
       blockRestartInterval;
       compression;   // 使用的压缩算法, 可以配合Google开源压缩算法使用
       filterPolicy;   // 设置过滤器, 如Bloom Filter, default: NULL
-
     };
  */
 const DefaultOptions = {
@@ -71,47 +71,7 @@ export function clusterThread({
    isMaster: boolean;
    thread: any;
 }) {
-   return new TcFactor<LionDB>({
-      app: app || "localdb",
-      env: env,
-      isMaster: isMaster,
-      thread: thread,
-      executor: () => {
-         if (isMaster) {
-            return new LionDB(filename);
-         } else {
-            let res = {};
-            for (let key of [
-               "set",
-               "get",
-               "put",
-               "getSet",
-               "getIntSet",
-               "getStringSet",
-               "getFloatSet",
-               "getString",
-               "getInt",
-               "getFloat",
-               "expire",
-               "increment",
-               "del",
-               "batch",
-               "clear",
-               "close",
-               "find",
-               "iterator",
-            ]) {
-               let target = LionDB.prototype[key];
-               if (key.startsWith("_")) continue;
-               if (target instanceof Function) {
-                  //res[key] = target;
-                  res[key] = () => {};
-               }
-            }
-            return res;
-         }
-      },
-   }).executor;
+   return new LionDB(filename);
 }
 levelup.prototype.set = levelup.prototype.put;
 /**
@@ -121,24 +81,12 @@ levelup.prototype.set = levelup.prototype.put;
  * =================================================只能在服务端使用, 不能在客户端使用
  *
  */
-class LionDB {
+class LionDB implements ILionDB {
    db;
    static clusterThread = clusterThread;
    constructor(filename: string, callback?: Function) {
       let _this = this;
-      /*   if (cluster.isMaster) {
-         
-         //if(!this.db.isOpen())this.db.open(DefaultOptions, ()=>console.info("ok"));
-      } */
-      /*     this.db = new levelup(leveldown(filename), {}, (err, db) => {
-         if (err) console.error("liondb open error", err.message);
-      }); */
-      /*   levelup(leveldown(filename), {}, (err, db) => {
-         if (err) throw err;
-         _this.db = db;
-      }); */
-      mkdirs(filename);
-      let ldb = leveldown(filename);
+      let ldb = leveljs(filename);
       this.db = new levelup(ldb, {}, async (err, db) => {
          if (err && /LockFile/i.test(err.message)) {
             await _this.close();
@@ -167,7 +115,7 @@ class LionDB {
     * @param ttl 过期时间, 默认=0表示不过期,单位s(秒)
     */
    async set(key, value, ttl = 0) {
-      this.put(key, value, ttl);
+      return this.put(key, value, ttl);
    }
    /**
     * 设置值
@@ -176,27 +124,6 @@ class LionDB {
     * @param ttl 过期时间, 默认=0表示不过期,单位s(秒)
     */
    async put(key, value, ttl = 0) {
-      /*       let val = Buffer.from([]);
-      let type = Type.Object;
-
-      if (typeof value === "string") {
-         type = Type.String;
-         val = Buffer.from(value);
-      } else if (typeof value === "number") {
-         type = Type.Number;
-         val = Buffer.from(int2Bit(value));
-      } else if (value instanceof Buffer) {
-         type = Type.Buffer;
-         val = value;
-      } else {
-         type = Type.Object;
-         val = Buffer.from(JSON.stringify(value));
-      }
-      ttl = ttl <= 0 ? 0 : ttl;
-      ttl = Math.min(ttl, Math.pow(2, 32));
-      let ttlAt = Buffer.from(int2Bit(ttl, 4));
-      let startAt = Buffer.from(int2Bit(Math.floor(Date.now() / 1000), 5));
-      val = Buffer.concat([Buffer.from([type]), startAt, ttlAt, val]); */
       let val = this.toValue(value, ttl);
       return this.db.put(key, val, DefaultOptions);
    }
@@ -362,7 +289,7 @@ class LionDB {
    async clear(ops) {
       return this.db.clear(ops);
    }
-   async close() {
+   async close(): Promise<undefined> {
       return new Promise((resolve) => {
          this.db.close(() => setTimeout(() => resolve(undefined), 150));
       });
@@ -380,7 +307,7 @@ class LionDB {
       });
       return list;
    }
-   async iterator({ key, limit = 100, start = 0 }: { key: string; limit?: number; start?: number }, callback) {
+   async iterator({ key, limit = 100, start = 0 }: { key: string; limit?: number; start?: number }, callback): Promise<undefined> {
       let _this = this;
       let searchKey = String(key).trim();
       let isFuzzy = searchKey.endsWith("*");
@@ -495,12 +422,5 @@ function analyzeValue(value) {
 async function wait(ttl = 100) {
    return new Promise((resolve) => setTimeout(() => resolve(undefined), ttl));
 }
-/* function makeLionDB(filename, callback): LionDB {
-   let liondb = new LionDB(filename, async (err, db) => {
-      callback && callback(liondb);
-   });
-   return liondb;
-}
-makeLionDB.clusterThread = clusterThread; */
 
 export default LionDB;

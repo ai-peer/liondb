@@ -1,4 +1,4 @@
-import LionDB from "./core/liondb";
+import LionDB from "./core";
 
 export default LionDB;
 module.exports = LionDB;

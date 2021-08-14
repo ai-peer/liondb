@@ -1,11 +1,11 @@
 //const { Transform } = require("stream");
-import {Transform} from "stream";
+import { Transform } from "stream";
 /**
  * stream pipi使用
  * @param {Function} callback (chunk, encoding, callback)
  * @returns Transform
  */
-export default function(callback) {
+export default function (callback) {
    return new Transform({
       transform(chunk, encoding, cb) {
          callback(chunk, encoding, cb);

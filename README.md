@@ -3,7 +3,7 @@
 
 ## 使用例子
 
-```
+``` 
     import LionDB from "@ai-lion/liondb";
     //单个线程：
    
@@ -23,6 +23,33 @@
         console.info("get ", value);
     })();
 
+
+
+```
+### 浏览器 webpack需要配置
+``` 
+    yarn add -D util assert buffer stream-browserify path-browserify process
+    或
+    npm i -D util assert buffer stream-browserify path-browserify process
+
+    resolve: {
+        fallback: {
+            util: require.resolve("util"),
+            assert: require.resolve("assert"),
+            buffer: require.resolve("buffer"),
+            stream: require.resolve("stream-browserify"),
+            path: require.resolve("path-browserify"),
+            fs: false,
+            os: false,
+            crypto: false,
+            child_process: false,
+        }
+    },
+    plugins: [
+        new webpack.ProvidePlugin({
+            process: "process/browser",
+        })
+    ]
 
 
 ```
