@@ -5,3 +5,4 @@ bin
 libs
 tests
 _local
+tsconfig.json
