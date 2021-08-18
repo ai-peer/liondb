@@ -16,3 +16,4 @@ let config: any = program
    .parse(process.argv)
    .opts();
  */
+console.info("===", Uint8Array);
