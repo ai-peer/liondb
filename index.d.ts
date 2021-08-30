@@ -1,18 +1,27 @@
-export interface ILionDB {
+declare class ILionDB {
+   static clusterThread(config: {
+      filename: string; //
+      env: "cluster" | "electron" | "egg"; //
+      isMaster: boolean; //
+      thread: any;//线程 cluster模式： cluster | cluster.worker ， egg模式： agent.messenger
+      app: "app name"; //
+   }): ILionDB;
+
+   constructor(filename: string);
    /**
     * 设置值
     * @param key key关键字
     * @param value 值
     * @param ttl 过期时间, 默认=0表示不过期,单位s(秒)
     */
-   set(key: string, value: any, ttl: number): Promise<undefined>;
+   set(key: string, value: any, ttl: number): Promise<void>;
    /**
     * 设置值
     * @param key key关键字
     * @param value 值
     * @param ttl 过期时间, 默认=0表示不过期,单位s(秒)
     */
-   put(key: string, value: any, ttl: number): Promise<undefined>;
+   put(key: string, value: any, ttl: number): Promise<void>;
    getSet(key: string, value: any, ttl: number): Promise<any>;
    getIntSet(key: string, value: any, ttl: number): Promise<number>;
    getStringSet(key: string, value: any, ttl: number): Promise<string>;
@@ -31,7 +40,7 @@ export interface ILionDB {
     * @param key
     * @param ttl
     */
-   expire(key: string, ttl: number): Promise<undefined>;
+   expire(key: string, ttl: number): Promise<void>;
    /**
     * 取得增量后的值,并存储
     * @param key
@@ -44,20 +53,34 @@ export interface ILionDB {
     */
    del(key): Promise<{ key: string; value: any }[] | { key: string }[]>;
    /**
-    * 
-    * @param {
-    *  {  type : 'del' | 'put' ,  key : string  } , 
-    {  type : 'put' ,  key : 'name' ,  value : 'Yuri Irsenovich Kim'  } , 
-    {  type : 'put' ,  key : ' dob' ,  value : '16 February 1941'  } , 
-    {  type : 'put' ,  key : 'spouse' , 价值: 'Kim Young-sook'  } , 
-    {  type : 'put' ,  key : 'occupation' ,  value : 'Clown'  } 
-    * } ops 
-    * @returns 
+     * 
+     * @param {
+     *  {  type : 'del' | 'put' ,  key : string  } , 
+     {  type : 'put' ,  key : 'name' ,  value : 'Yuri Irsenovich Kim'  } , 
+     {  type : 'put' ,  key : ' dob' ,  value : '16 February 1941'  } , 
+     {  type : 'put' ,  key : 'spouse' , 价值: 'Kim Young-sook'  } , 
+     {  type : 'put' ,  key : 'occupation' ,  value : 'Clown'  } 
+     * } ops 
+     * @returns 
+     */
+   batch(ops: { type: "del" | "put"; key: string; value?: any; ttl?: number }[]): Promise<void>;
+   /**
+    * 清空
+    * @param ops
     */
-   batch(ops: { type: "del" | "put"; key: string; value?: any; ttl?: number }[]): Promise<undefined>;
-   clear(ops): Promise<undefined>;
-   close(): Promise<undefined>;
+   clear(ops): Promise<void>;
+   close(): Promise<void>;
    count(key: string): Promise<number>;
+   /**
+    * 查找
+    * @param config
+    */
    find(config: { key: string; limit?: number; start?: number }): Promise<{ key: string; value: any }[]>;
-   iterator(config: { key: string; limit?: number; start?: number }, callback: Function): Promise<undefined>;
+   /**
+    * 递归查询
+    * @param config
+    * @param callback
+    */
+   iterator(config: { key: string; limit?: number; start?: number }, callback: Function): Promise<void>;
 }
+export default ILionDB;

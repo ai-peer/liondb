@@ -1,8 +1,9 @@
 import assert from "assert";
 import lionDB from "../src";
 import path from "path";
+import { ILionDB } from "../src/types";
 
-let db = new lionDB(path.resolve("_local/1"));
+let db: ILionDB = new lionDB(path.resolve("_local/1"));
 
 beforeEach(async function () {
    await wait(1000);
@@ -63,7 +64,10 @@ beforeEach(async function () {
          value: { name: "bc2" },
       },
    ]);
+
+  // console.info("count=", await db.count("kid-*"));
 });
+
 
 describe("单进程比较取值", function () {
    it("比较取值是否相等", async function () {
@@ -78,12 +82,12 @@ describe("单进程比较取值", function () {
       let bb = await db.find({ key: "b*", limit: 2 });
       console.log(">>>>bb", bb);
 
-      let list = await db.find({key: "a1"});
+      let list = await db.find({ key: "a1" });
       console.log("list ==", list);
    });
-   it("count", async ()=>{
+   it("count", async () => {
       let count = await db.count("a*");
-      console.info("count", count)
+      console.info("count", count);
    });
 });
 async function wait(ttl) {

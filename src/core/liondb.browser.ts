@@ -1,16 +1,10 @@
 import levelup from "levelup";
 import leveljs from "level-js";
-import { ILionDB } from "./liondb.i";
+import { ILionDB, Type } from "../types";
 import { bit2Int, int2Bit } from "../utils/byte";
 import { Buffer } from "buffer";
 //import cluster from "cluster";
 
-const Type = {
-   String: 1,
-   Number: 2,
-   Object: 3,
-   Buffer: 4,
-};
 /* 
 enum Type {
    String = 1,
@@ -136,6 +130,9 @@ class LionDB implements ILionDB {
       } else if (typeof value === "number") {
          type = Type.Number;
          val = Buffer.from(int2Bit(value));
+      } else if (typeof value === "boolean") {
+         type = Type.Boolean;
+         val = Buffer.from([value === true ? 1 : 0]);
       } else if (value instanceof Buffer) {
          type = Type.Buffer;
          val = value;
@@ -407,6 +404,9 @@ function analyzeValue(value) {
                   break;
                case Type.Number:
                   result = bit2Int(val);
+                  break;
+               case Type.Boolean:
+                  result = val[0] >= 1 ? true : false;
                   break;
                case Type.Buffer:
                   result = val;

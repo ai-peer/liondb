@@ -1,17 +1,11 @@
 import levelup from "levelup";
 import leveldown from "leveldown";
-import { ILionDB } from "./liondb.i";
+import { ILionDB, Type } from "../types";
 import { mkdirs } from "../utils";
 import { bit2Int, int2Bit } from "../utils/byte";
 //import cluster from "cluster";
 import TcFactor from "./tcfactor";
 
-const Type = {
-   String: 1,
-   Number: 2,
-   Object: 3,
-   Buffer: 4,
-};
 /* 
 enum Type {
    String = 1,
@@ -189,6 +183,9 @@ class LionDB implements ILionDB {
       } else if (typeof value === "number") {
          type = Type.Number;
          val = Buffer.from(int2Bit(value));
+      } else if (typeof value === "boolean") {
+         type = Type.Boolean;
+         val = Buffer.from([value === true ? 1 : 0]);
       } else if (value instanceof Buffer) {
          type = Type.Buffer;
          val = value;
@@ -349,18 +346,18 @@ class LionDB implements ILionDB {
    }
    async count(key: string): Promise<number> {
       let count = 0;
-      await this.iterator({ key: key, start: 0, limit: -1 }, () => count++);
+      await this.iterator({ key: key, start: 0, limit: -1, hasValue: false }, () => count++);
       return count;
    }
    async find({ key, limit = 100, start = 0 }: { key: string; limit?: number; start?: number }): Promise<{ key: string; value: any }[]> {
       let list: { key: string; value: any }[] = [];
       //let opt = typeof key === "string" ? { key: key } : key;
       await this.iterator({ key, limit, start }, (skey, svalue) => {
-         list.push({ key: skey, value: svalue });
+         svalue !== undefined && list.push({ key: skey, value: svalue });
       });
       return list;
    }
-   async iterator({ key, limit = 100, start = 0 }: { key: string; limit?: number; start?: number }, callback): Promise<undefined> {
+   async iterator({ key, limit = 100, start = 0, hasValue = true }: { key: string; limit?: number; start?: number; hasValue?: boolean }, callback): Promise<undefined> {
       let _this = this;
       let searchKey = String(key).trim();
       let isFuzzy = searchKey.endsWith("*");
@@ -403,6 +400,14 @@ class LionDB implements ILionDB {
                      }
                   }
                   itSize++;
+                  if (!hasValue) {
+                     let callbackResult = await callback(sKey);
+                     if (callbackResult === "break") {
+                        iterator.end((err) => err && console.error("err break", err.message));
+                        return resolve(undefined);
+                     }
+                     return next();
+                  }
                   let res: any = analyzeValue(v);
                   let curTime = Math.ceil(Date.now() / 1000);
                   //console.log("ite==>>", key, res.ttl > 0 && res.startAt + res.ttl < curTime, res.ttl, !!callback);
@@ -411,10 +416,7 @@ class LionDB implements ILionDB {
                      await wait(5);
                   } else {
                      if (!!callback) {
-                        let callbackResult;
-                        /*       if (type === "[object AsyncFunction]") res = await callback(sKey, res.value());
-                        else callbackResult = callback(sKey, res.value()); */
-                        res = await callback(sKey, res.value());
+                        let callbackResult = await callback(sKey, res.value());
                         if (callbackResult === "break") {
                            iterator.end((err) => err && console.error("err break", err.message));
                            return resolve(undefined);
@@ -454,6 +456,9 @@ function analyzeValue(value) {
                   break;
                case Type.Number:
                   result = bit2Int(val);
+                  break;
+               case Type.Boolean:
+                  result = val[0] >= 1 ? true : false;
                   break;
                case Type.Buffer:
                   result = val;

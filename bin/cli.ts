@@ -16,4 +16,31 @@ let config: any = program
    .parse(process.argv)
    .opts();
  */
-console.info("===", Uint8Array);
+import lionDB from "../src";
+import path from "path";
+import { ILionDB } from "../src/types";
+let db: ILionDB = new lionDB(path.resolve("_local/1"));
+
+async function start() {
+   let start = Date.now();
+/*    for (let i = 0; i < 100000; i++) {
+      await db.set("kid-" + i + "-" + Math.ceil(Math.random() * 999999), {
+         text: toRandString(),
+         name: "name-" + i,
+         id: i,
+      });
+   } */
+   let count = await db.count("kid-*");
+   console.info("output ", Date.now() - start, count);
+}
+
+function toRandString() {
+   let list: string[] = [];
+   let chars: string[] = [];
+   for (let i = 65; i < 122; i++) chars.push(String.fromCharCode(i));
+   for (let i = 0; i < 1000; i++) {
+      list.push(chars[Math.floor(Math.random() * chars.length)]);
+   }
+   return list.join("");
+}
+start();
