@@ -4,7 +4,7 @@ declare class ILionDB {
       env: "cluster" | "electron" | "egg" | "browser"; //
       isMaster: boolean; //
       thread: any; //线程 cluster模式： cluster | cluster.worker ， egg模式： agent.messenger
-      app: "app name"; //
+      app: string; //
    }): ILionDB;
 
    constructor(filename: string);
