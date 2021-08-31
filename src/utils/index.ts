@@ -1,7 +1,5 @@
 import crypto from "crypto";
-import { machineId, machineIdSync } from "node-machine-id";
 import fs from "fs";
-import path from "path";
 /**
  * md5
  * @param {string} value
@@ -13,12 +11,6 @@ export function md5(value): string {
    return result.toUpperCase();
 }
 
-/**
- * 创建机器编码
- */
-export function device() {
-   return md5(machineIdSync());
-}
 export function string2Bit(value, length = 6) {
    value = value.substring(0, length);
    return value.split("").map((v) => v.charCodeAt(0));
