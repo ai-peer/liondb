@@ -6,7 +6,6 @@ export const Type = {
    Boolean: 5,
 };
 export interface ILionDB {
-   
    /**
     * 设置值
     * @param key key关键字

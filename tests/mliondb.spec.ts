@@ -1,5 +1,5 @@
 const assert = require( "assert");
-const lionDB  = require( "../src");
+import lionDB from "../src";
 const path  = require( "path");
 const cluster  = require( 'cluster');
 

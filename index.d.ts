@@ -1,9 +1,9 @@
 declare class ILionDB {
    static clusterThread(config: {
       filename: string; //
-      env: "cluster" | "electron" | "egg"; //
+      env: "cluster" | "electron" | "egg" | "browser"; // 
       isMaster: boolean; //
-      thread: any;//线程 cluster模式： cluster | cluster.worker ， egg模式： agent.messenger
+      thread: any; //线程 cluster模式： cluster | cluster.worker ， egg模式： agent.messenger
       app: "app name"; //
    }): ILionDB;
 

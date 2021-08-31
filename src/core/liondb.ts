@@ -1,149 +1,33 @@
-import levelup from "levelup";
-import leveldown from "leveldown";
-import { ILionDB, Type } from "../types";
-import { mkdirs } from "../utils";
+import { Type, ILionDB } from "../types";
 import { bit2Int, int2Bit } from "../utils/byte";
-//import cluster from "cluster";
-import TcFactor from "./tcfactor";
-import LionDB from "./liondb";
+import { Buffer } from "buffer";
+import levelup from "levelup";
 
-/* 
-enum Type {
-   String = 1,
-   Number = 2,
-   Object = 3,
-   Buffer = 4,
-}
-export interface BatchOption {
-   type: "del" | "put";
-   key;
-   value?: any;
-}
-export interface QueryOption {
-   key;
-   lt?;
-   lte?;
-   gt?;
-   gte?;
-   limit?: number;
-} */
-/**
- * options: 
- *  struct Options {
-      createIfMissing: boolean ;        // 类似于 O_CREATE 选项 default: false
-      errorIfExists:boolean ;          // 与上面的选项同时设置会报错 default: false
-      paranoidChecks: boolean;
-      env: ;                      // leveldb与操作系统底层的交互, default: Env::default()
-      infoLog;              // 设置日志级别
-      writeBufferZize;      // 设置写缓冲区大小, 可用来调优 defualt: 4096KB
-      maxOpenFiles: number;            // 最大打开文件数, 可用来调优  default: 1000
-      blockCache: boolean;            // 设置Cache, 可以明显提高性能 defualt: false
-      blockSize;             // 设置block块大小 defualt: 4MB
-      blockRestartInterval;
-      compression;   // 使用的压缩算法, 可以配合Google开源压缩算法使用
-      filterPolicy;   // 设置过滤器, 如Bloom Filter, default: NULL
-    };
- */
 const DefaultOptions = {
    sync: false,
    infoLog: "error",
    errorIfExists: false,
 };
-
-export function clusterThread({
-   /** 数据库文件名 */
-   filename,
-   app,
-   /** 运行环境, cluster集群, electron, browser:流星器 */
-   env, //: "cluster" | "electron" | "egg";
-   /** 是否是主线程 */
-   isMaster,
-   /** 当前线程 */
-   thread,
-}: {
-   filename: string;
-   app: string;
-   env: "cluster" | "electron" | "egg";
-   isMaster: boolean;
-   thread: any;
-}) {
-   return new TcFactor<LionDB>({
-      app: app || "localdb",
-      env: env,
-      isMaster: isMaster,
-      thread: thread,
-      executor: () => {
-         if (isMaster) {
-            return new LionDBNode(filename);
-         } else {
-            let res = {};
-            for (let key of [
-               "set",
-               "get",
-               "put",
-               "getSet",
-               "getIntSet",
-               "getStringSet",
-               "getFloatSet",
-               "getString",
-               "getInt",
-               "getFloat",
-               "expire",
-               "increment",
-               "del",
-               "batch",
-               "clear",
-               "close",
-               "find",
-               "iterator",
-               "count",
-            ]) {
-               let target = LionDB.prototype[key];
-               if (key.startsWith("_")) continue;
-               if (target instanceof Function) {
-                  //res[key] = target;
-                  res[key] = () => {};
-               }
-            }
-            return res;
-         }
-      },
-   }).executor;
-}
 levelup.prototype.set = levelup.prototype.put;
-/**
- * https://github.com/Level/levelup
- *
- * 本地数据存储, 数据会做持久化到磁盘, 不会丢失
- * =================================================只能在服务端使用, 不能在客户端使用
- *
- */
-export default class LionDBNode extends LionDB {
-   static clusterThread = clusterThread;
-   constructor(filename: string, callback?: Function) {
-      super();
-      let _this = this;
-      mkdirs(filename);
-      let ldb = leveldown(filename);
-      this.db = new levelup(ldb, {}, async (err, db) => {
-         setTimeout(async () => {
-            while (true) {
-               //自动清理过期内容
-               try {
-                  await _this.iterator({ key: "*", limit: 0 }, async (key, value) => await wait(100));
-               } finally {
-                  await wait(1 * 60 * 60); //暂停1小时
-               }
-            }
-         }, 2000);
-         callback && callback(err, _this);
-      });
-   }
+export default class LionDB implements ILionDB {
+   public static readonly Break = "break";
+   protected db;
 
-   /*  async set(key, value, ttl = 0) {
+   /**
+    * 设置值
+    * @param key key关键字
+    * @param value 值
+    * @param ttl 过期时间, 默认=0表示不过期,单位s(秒)
+    */
+   async set(key, value, ttl = 0) {
       return this.put(key, value, ttl);
    }
-
+   /**
+    * 设置值
+    * @param key key关键字
+    * @param value 值
+    * @param ttl 过期时间, 默认=0表示不过期,单位s(秒)
+    */
    async put(key, value, ttl = 0) {
       let val = this.toValue(value, ttl);
       return this.db.put(key, val, DefaultOptions);
@@ -206,7 +90,11 @@ export default class LionDBNode extends LionDB {
       let value = await this.get(key, extension);
       return parseFloat(value);
    }
-
+   /**
+    * 获取数据
+    * @param key
+    * @param extension 是否自动延期(默认false, 如果在put时,设置的过期时间, 才会起作用)
+    */
    async get(key, extension = false): Promise<any> {
       let buffer = await this.db.get(key).catch((e) => undefined);
       if (buffer) {
@@ -229,21 +117,32 @@ export default class LionDBNode extends LionDB {
       }
       return undefined;
    }
-
+   /**
+    * 设置过期时间
+    * @param key
+    * @param ttl
+    */
    async expire(key, ttl = 0) {
       ttl = Math.floor(ttl);
       if (ttl < 1) return;
       let value = this.get(key);
       return this.put(key, value, ttl);
    }
-
+   /**
+    * 取得增量后的值,并存储
+    * @param key
+    * @param increment 增量,默认为1
+    */
    async increment(key, increment = 1, ttl = 0) {
       let v = (await this.get(key)) || 0;
       v += increment;
       await this.put(key, v, ttl);
       return v;
    }
-
+   /**
+    * 删除
+    * @param key
+    */
    async del(key) {
       if (key === undefined || key === null) return Promise.resolve([]);
       key = String(key);
@@ -272,7 +171,17 @@ export default class LionDBNode extends LionDB {
          return [{ key: key }];
       }
    }
- 
+   /**
+  * 
+  * @param {
+  *  {  type : 'del' | 'put' ,  key : string  } , 
+  {  type : 'put' ,  key : 'name' ,  value : 'Yuri Irsenovich Kim'  } , 
+  {  type : 'put' ,  key : ' dob' ,  value : '16 February 1941'  } , 
+  {  type : 'put' ,  key : 'spouse' , 价值: 'Kim Young-sook'  } , 
+  {  type : 'put' ,  key : 'occupation' ,  value : 'Clown'  } 
+  * } ops 
+  * @returns 
+  */
    async batch(ops: { type: "del" | "put"; key: string; value?: any; ttl?: number }[]) {
       if (ops instanceof Array) {
          ops = ops.map((v) => {
@@ -366,7 +275,7 @@ export default class LionDBNode extends LionDB {
                   } else {
                      if (!!callback) {
                         let callbackResult = await callback(sKey, res.value());
-                        if (callbackResult === "break") {
+                        if (callbackResult === LionDB.Break) {
                            iterator.end((err) => err && console.error("err break", err.message));
                            return resolve(undefined);
                         }
@@ -381,8 +290,9 @@ export default class LionDBNode extends LionDB {
             });
          })();
       });
-   } */
+   }
 }
+
 function analyzeValue(value) {
    try {
       let type = value[0];
@@ -429,10 +339,3 @@ function analyzeValue(value) {
 async function wait(ttl = 100) {
    return new Promise((resolve) => setTimeout(() => resolve(undefined), ttl));
 }
-/* function makeLionDB(filename, callback): LionDB {
-   let liondb = new LionDB(filename, async (err, db) => {
-      callback && callback(liondb);
-   });
-   return liondb;
-}
-makeLionDB.clusterThread = clusterThread; */

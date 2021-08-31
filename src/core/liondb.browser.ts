@@ -3,45 +3,9 @@ import leveljs from "level-js";
 import { ILionDB, Type } from "../types";
 import { bit2Int, int2Bit } from "../utils/byte";
 import { Buffer } from "buffer";
+import LionDB from "./liondb";
 //import cluster from "cluster";
 
-/* 
-enum Type {
-   String = 1,
-   Number = 2,
-   Object = 3,
-   Buffer = 4,
-}
-export interface BatchOption {
-   type: "del" | "put";
-   key;
-   value?: any;
-}
-export interface QueryOption {
-   key;
-   lt?;
-   lte?;
-   gt?;
-   gte?;
-   limit?: number;
-} */
-/**
- * options: 
- *  struct Options {
-      createIfMissing: boolean ;        // 类似于 O_CREATE 选项 default: false
-      errorIfExists:boolean ;          // 与上面的选项同时设置会报错 default: false
-      paranoidChecks: boolean;
-      env: ;                      // leveldb与操作系统底层的交互, default: Env::default()
-      infoLog;              // 设置日志级别
-      writeBufferZize;      // 设置写缓冲区大小, 可用来调优 defualt: 4096KB
-      maxOpenFiles: number;            // 最大打开文件数, 可用来调优  default: 1000
-      blockCache: boolean;            // 设置Cache, 可以明显提高性能 defualt: false
-      blockSize;             // 设置block块大小 defualt: 4MB
-      blockRestartInterval;
-      compression;   // 使用的压缩算法, 可以配合Google开源压缩算法使用
-      filterPolicy;   // 设置过滤器, 如Bloom Filter, default: NULL
-    };
- */
 const DefaultOptions = {
    sync: false,
    infoLog: "error",
@@ -53,7 +17,7 @@ export function clusterThread({
    filename,
    app,
    /** 运行环境, cluster集群, electron, browser:流星器 */
-   env, //: "cluster" | "electron" | "egg";
+   env, //: "browser";
    /** 是否是主线程 */
    isMaster,
    /** 当前线程 */
@@ -65,7 +29,7 @@ export function clusterThread({
    isMaster: boolean;
    thread: any;
 }) {
-   return new LionDB(filename);
+   return new LionDBBrowser(filename);
 }
 levelup.prototype.set = levelup.prototype.put;
 /**
@@ -75,20 +39,13 @@ levelup.prototype.set = levelup.prototype.put;
  * =================================================只能在服务端使用, 不能在客户端使用
  *
  */
-class LionDB implements ILionDB {
-   db;
+export default class LionDBBrowser extends LionDB {
    static clusterThread = clusterThread;
    constructor(filename: string, callback?: Function) {
+      super();
       let _this = this;
       let ldb = leveljs(filename);
       this.db = new levelup(ldb, {}, async (err, db) => {
-         if (err && /LockFile/i.test(err.message)) {
-            await _this.close();
-            _this.db = new levelup(ldb);
-            callback && callback(err, _this);
-         } else {
-            err && console.error("liondb open error", err.stack);
-         }
          setTimeout(async () => {
             while (true) {
                //自动清理过期内容
@@ -102,21 +59,11 @@ class LionDB implements ILionDB {
          callback && callback(err, _this);
       });
    }
-   /**
-    * 设置值
-    * @param key key关键字
-    * @param value 值
-    * @param ttl 过期时间, 默认=0表示不过期,单位s(秒)
-    */
-   async set(key, value, ttl = 0) {
+
+   /*  async set(key, value, ttl = 0) {
       return this.put(key, value, ttl);
    }
-   /**
-    * 设置值
-    * @param key key关键字
-    * @param value 值
-    * @param ttl 过期时间, 默认=0表示不过期,单位s(秒)
-    */
+
    async put(key, value, ttl = 0) {
       let val = this.toValue(value, ttl);
       return this.db.put(key, val, DefaultOptions);
@@ -185,11 +132,7 @@ class LionDB implements ILionDB {
       let value = await this.get(key, extension);
       return parseFloat(value);
    }
-   /**
-    * 获取数据
-    * @param key
-    * @param extension 是否自动延期(默认false, 如果在put时,设置的过期时间, 才会起作用)
-    */
+
    async get(key, extension = false): Promise<any> {
       let buffer = await this.db.get(key).catch((e) => undefined);
       if (buffer) {
@@ -212,32 +155,21 @@ class LionDB implements ILionDB {
       }
       return undefined;
    }
-   /**
-    * 设置过期时间
-    * @param key
-    * @param ttl
-    */
+
    async expire(key, ttl = 0) {
       ttl = Math.floor(ttl);
       if (ttl < 1) return;
       let value = this.get(key);
       return this.put(key, value, ttl);
    }
-   /**
-    * 取得增量后的值,并存储
-    * @param key
-    * @param increment 增量,默认为1
-    */
+
    async increment(key, increment = 1, ttl = 0) {
       let v = (await this.get(key)) || 0;
       v += increment;
       await this.put(key, v, ttl);
       return v;
    }
-   /**
-    * 删除
-    * @param key
-    */
+
    async del(key) {
       if (key === undefined || key === null) return Promise.resolve([]);
       key = String(key);
@@ -266,17 +198,7 @@ class LionDB implements ILionDB {
          return [{ key: key }];
       }
    }
-   /**
-    * 
-    * @param {
-    *  {  type : 'del' | 'put' ,  key : string  } , 
-    {  type : 'put' ,  key : 'name' ,  value : 'Yuri Irsenovich Kim'  } , 
-    {  type : 'put' ,  key : ' dob' ,  value : '16 February 1941'  } , 
-    {  type : 'put' ,  key : 'spouse' , 价值: 'Kim Young-sook'  } , 
-    {  type : 'put' ,  key : 'occupation' ,  value : 'Clown'  } 
-    * } ops 
-    * @returns 
-    */
+
    async batch(ops: { type: "del" | "put"; key: string; value?: any; ttl?: number }[]) {
       if (ops instanceof Array) {
          ops = ops.map((v) => {
@@ -361,10 +283,7 @@ class LionDB implements ILionDB {
                      await wait(5);
                   } else {
                      if (!!callback) {
-                        let callbackResult;
-                        /*       if (type === "[object AsyncFunction]") res = await callback(sKey, res.value());
-                        else callbackResult = callback(sKey, res.value()); */
-                        res = await callback(sKey, res.value());
+                        let callbackResult = await callback(sKey, res.value());
                         if (callbackResult === "break") {
                            iterator.end((err) => err && console.error("err break", err.message));
                            return resolve(undefined);
@@ -380,7 +299,7 @@ class LionDB implements ILionDB {
             });
          })();
       });
-   }
+   } */
 }
 function analyzeValue(value) {
    try {
@@ -428,5 +347,3 @@ function analyzeValue(value) {
 async function wait(ttl = 100) {
    return new Promise((resolve) => setTimeout(() => resolve(undefined), ttl));
 }
-
-export default LionDB;
