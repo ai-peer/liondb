@@ -10,12 +10,15 @@ beforeEach(async function() {
    await wait(1000);
    await db.del("aa");
    await db.set("aa", { name: "li lei" });
+   
 });
 
 describe("多进程比较取值", function() {
    it("比较取值是否相等", async function() {
       const vv = await db.get("aa");
       assert.deepStrictEqual(vv.name, "li lei");
+      let count = await db.count("a*");
+      console.info("==count", count);
    });
 });
 async function wait(ttl) {
