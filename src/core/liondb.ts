@@ -20,7 +20,7 @@ export default class LionDB implements ILionDB {
     * @param ttl 过期时间, 默认=0表示不过期,单位s(秒)
     */
    async set(key, value, ttl = 0) {
-      return this.put(key, value, ttl);
+      await this.put(key, value, ttl);
    }
    /**
     * 设置值
@@ -30,7 +30,7 @@ export default class LionDB implements ILionDB {
     */
    async put(key, value, ttl = 0) {
       let val = this.toValue(value, ttl);
-      return this.db.put(key, val, DefaultOptions);
+      await new Promise((resolve) => this.db.put(key, val, DefaultOptions, () => resolve(undefined)));
    }
    toValue(value, ttl = 0) {
       let val = Buffer.from([]);
@@ -192,7 +192,7 @@ export default class LionDB implements ILionDB {
             return v;
          });
       }
-      return this.db.batch(ops, DefaultOptions);
+      await new Promise((resolve) => this.db.batch(ops, DefaultOptions, () => resolve(undefined)));
    }
    async clear(ops) {
       return this.db.clear(ops);
@@ -204,7 +204,7 @@ export default class LionDB implements ILionDB {
    }
    async count(key: string): Promise<number> {
       let count = 0;
-      await this.iterator({ key: key, start: 0, limit: -1, hasValue: false }, () => count++);
+      await this.iterator({ key: key, start: 0, limit: -1, values: false, keys: false }, () => count++);
       return count;
    }
    async find({ key, limit = 100, start = 0 }: { key: string; limit?: number; start?: number }): Promise<{ key: string; value: any }[]> {
@@ -215,12 +215,15 @@ export default class LionDB implements ILionDB {
       });
       return list;
    }
-   async iterator({ key, limit = 100, start = 0, hasValue = true }: { key: string; limit?: number; start?: number; hasValue?: boolean }, callback): Promise<undefined> {
+   async iterator(
+      { key, limit = 100, start = 0, keys = true, values = true }: { key: string; limit?: number; start?: number; keys?: boolean; values?: boolean },
+      callback,
+   ): Promise<undefined> {
       let _this = this;
       let searchKey = String(key).trim();
       let isFuzzy = searchKey.endsWith("*");
       searchKey = searchKey === "*" ? searchKey : searchKey.replace(/^\*|\*$/g, "");
-      let options = Object.assign({}, { key, limit: start + limit }, { gte: searchKey });
+      let options = Object.assign({}, { key, limit: start + limit, values }, { gte: searchKey });
       let iterator = this.db.iterator(options);
       //let type = Object.prototype.toString.call(callback);
       return new Promise((resolve, reject) => {
@@ -238,11 +241,15 @@ export default class LionDB implements ILionDB {
                }
                itIndex++;
                //console.info("=====", start, itIndex, start > itIndex);
-               if (start > itIndex) {
-                  next();
-                  return;
+               if (start > itIndex) return next();
+               if (!values) {
+                  let callbackResult = await callback();
+                  if (callbackResult === LionDB.Break) {
+                     iterator.end((err) => err && console.error("err break", err.message));
+                     return resolve(undefined);
+                  }
+                  return next();
                }
-
                try {
                   let sKey = String(k);
                   if (!isFuzzy) {
@@ -258,14 +265,6 @@ export default class LionDB implements ILionDB {
                      }
                   }
                   itSize++;
-                  if (!hasValue) {
-                     let callbackResult = await callback(sKey);
-                     if (callbackResult === "break") {
-                        iterator.end((err) => err && console.error("err break", err.message));
-                        return resolve(undefined);
-                     }
-                     return next();
-                  }
                   let res: any = analyzeValue(v);
                   let curTime = Math.ceil(Date.now() / 1000);
                   //console.log("ite==>>", key, res.ttl > 0 && res.startAt + res.ttl < curTime, res.ttl, !!callback);
@@ -273,12 +272,10 @@ export default class LionDB implements ILionDB {
                      _this.del(sKey);
                      await wait(5);
                   } else {
-                     if (!!callback) {
-                        let callbackResult = await callback(sKey, res.value());
-                        if (callbackResult === LionDB.Break) {
-                           iterator.end((err) => err && console.error("err break", err.message));
-                           return resolve(undefined);
-                        }
+                     let callbackResult = await callback(sKey, res.value());
+                     if (callbackResult === LionDB.Break) {
+                        iterator.end((err) => err && console.error("err break", err.message));
+                        return resolve(undefined);
                      }
                   }
                   next();

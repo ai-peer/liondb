@@ -40,13 +40,13 @@ declare class ILionDB {
     * @param key
     * @param ttl
     */
-   expire(key: string, ttl?: number): Promise<void>;
+   expire(key: string, ttl: number): Promise<void>;
    /**
     * 取得增量后的值,并存储
     * @param key
     * @param increment 增量,默认为1
     */
-   increment(key: string, increment: number, ttl?: number): Promise<number>;
+   increment(key: string, increment?: number, ttl?: number): Promise<number>;
    /**
     * 删除
     * @param key

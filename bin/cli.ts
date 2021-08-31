@@ -23,13 +23,17 @@ let db: ILionDB = new lionDB(path.resolve("_local/1"));
 
 async function start() {
    let start = Date.now();
-/*    for (let i = 0; i < 100000; i++) {
+   /*    for (let i = 0; i < 100000; i++) {
       await db.set("kid-" + i + "-" + Math.ceil(Math.random() * 999999), {
          text: toRandString(),
          name: "name-" + i,
          id: i,
       });
    } */
+   let key = "abc51";
+   await db.set(key, 1);
+   let v = await db.get(key);
+   console.info("v", v);
    let count = await db.count("kid-*");
    console.info("output ", Date.now() - start, count);
 }
