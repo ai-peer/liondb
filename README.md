@@ -4,9 +4,10 @@
 ## 使用例子
 
 ``` 
+    // liondb.js
     import LionDB from "@ai-lion/liondb";
+    
     //单个线程：
-   
     let liondb = LionDB("path");
 
     //cluster 集群环境
@@ -14,7 +15,28 @@
     let liondb = LionDB.clusterThread({filename:  'path', env: "cluster", isMaster: cluster.isMaster, thread: cluster.isMaster ? cluster : cluster.worker， app: "app name"  });
 
 
+    //阿里 egg 框架 集群环境：
+        const lionDB = require("@ai-lion/liondb");
+        const cluster = require("cluster");
 
+        let liondb;
+        module.exports = (thread) => {
+            if (liondb) return liondb;
+            if (!thread) throw new Error("use liondb no thread");
+            try {
+                liondb = lionDB.clusterThread({ app: "lioncms-db", filename: ".liondb", env: "egg", isMaster: cluster.isMaster, thread: thread }, (err) => {
+                    console.info("...........load ", err ? err.message : "");
+                });
+            } catch (err) {
+                console.info("error load liondb ", err.message);
+            }
+            return liondb;
+        };
+
+    // agent.js //这个是egg框架内置的一个配置文件， 会 自动读取，优先加载，放在根目录 与 app.js同目录
+        module.exports = async (agent) => {
+            require("./liondb")(agent.messenger);
+        };
 
 
     (async()=>{

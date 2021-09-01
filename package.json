@@ -1,6 +1,6 @@
 {
   "name": "@ai-lion/liondb",
-  "version": "3.6.3",
+  "version": "3.6.5",
   "main": "dist/lib.js",
   "license": "MIT",
   "bin": {},
@@ -21,7 +21,12 @@
   "keywords": [
     "liondb",
     "leveldb",
-    "cache"
+    "cache",
+    "db",
+    "nosql",
+    "数据库",
+    "本地数据库",
+    "浏览器数据库"
   ],
   "repository": "https://github.com/ai-lion/liondb",
   "dependencies": {
@@ -48,7 +53,7 @@
     "webpack-dev-server": "^3.11.2",
     "workbox-webpack-plugin": "^6.1.5"
   },
-  "description": "My webpack project",
+  "description": "liondb是一个基于leveldb的本地磁盘存储数据库， 数据可以持久存储， 性能高效， 容量受限于磁盘大小",
   "mocha": {
     "require": [
       "ts-node/register"
