@@ -8,7 +8,6 @@ yarn-debug.log*
 yarn-error.log*
 
 database/
-dist/
 data/
 # Runtime data
 pids
@@ -116,5 +115,4 @@ crashlytics.properties
 crashlytics-build.properties
 fabric.properties
 
-dist/
 typings/

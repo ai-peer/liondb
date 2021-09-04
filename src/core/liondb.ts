@@ -204,26 +204,26 @@ export default class LionDB implements ILionDB {
    }
    async count(key: string): Promise<number> {
       let count = 0;
-      await this.iterator({ key: key, start: 0, limit: -1, values: false, keys: false }, () => count++);
+      await this.iterator({ key: key, start: 0, limit: -1, values: false }, () => count++);
       return count;
    }
-   async find({ key, limit = 100, start = 0 }: { key: string; limit?: number; start?: number }): Promise<{ key: string; value: any }[]> {
+   async find({ key, limit = 100, start = 0, reverse = false }: { key: string; limit?: number; start?: number; reverse?: boolean }): Promise<{ key: string; value: any }[]> {
       let list: { key: string; value: any }[] = [];
       //let opt = typeof key === "string" ? { key: key } : key;
-      await this.iterator({ key, limit, start }, (skey, svalue) => {
+      await this.iterator({ key, limit, start, reverse }, (skey, svalue) => {
          svalue !== undefined && list.push({ key: skey, value: svalue });
       });
       return list;
    }
    async iterator(
-      { key, limit = 100, start = 0, keys = true, values = true }: { key: string; limit?: number; start?: number; keys?: boolean; values?: boolean },
+      { key, limit = 100, start = 0, values = true, reverse = false }: { key: string; limit?: number; start?: number; values?: boolean; reverse?: boolean },
       callback,
    ): Promise<undefined> {
       let _this = this;
       let searchKey = String(key).trim();
       let isFuzzy = searchKey.endsWith("*");
       searchKey = searchKey === "*" ? searchKey : searchKey.replace(/^\*|\*$/g, "");
-      let options = Object.assign({}, { key, limit: start + limit, values }, { gte: searchKey });
+      let options = Object.assign({}, { key, limit: start + limit, values, reverse }, { gte: searchKey });
       let iterator = this.db.iterator(options);
       //let type = Object.prototype.toString.call(callback);
       return new Promise((resolve, reject) => {

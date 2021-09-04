@@ -2,7 +2,7 @@
 import LionDBNode from "./liondb.node";
   */
 const isBrowser = !!globalThis.window;
-console.info("============isBrowser", isBrowser);
+console.info("LionDB run in browser", isBrowser);
 const LionDB = isBrowser ? require("./liondb.browser") : require("./liondb.node");
 
 export default LionDB;

@@ -12,15 +12,19 @@ const TerserPlugin = require("terser-webpack-plugin");
 
 const config = {
    entry: {
-      node: {
+      browser: {
          import: "./src/index.ts",
+         filename: "[name].js",
+         library: {
+            // all options under `output.library` can be used here
+            name: "LionDB",
+            type: "var",
+            umdNamedDefine: false,
+         },
       },
    },
    output: {
       path: path.resolve(__dirname, "dist"),
-      clean: {
-         keep: /(test|index)\.js/, // 保留 'ignored/dir' 下的静态资源
-      },
       /*       chunkFormat: "commonjs",
       libraryTarget: "commonjs",
       globalObject: 'this',, */
@@ -29,8 +33,13 @@ const config = {
          umdNamedDefine: true,
       },
    },
-   target: "node",
-   externals: {},
+   target: "web",
+   externals: {
+      crypto: "crypto",
+      fs: "fs",
+      os: "os",
+      path: "path",
+   },
    devServer: {
       open: false,
       host: "localhost",
@@ -76,6 +85,9 @@ const config = {
       },
       fallback: {
          //自定义require的模块 如 require("os") 等
+         assert: require.resolve("assert"),
+         util: require.resolve("util"),
+         //path: require.resolve("path-browserify"),
       },
    },
    node: {
@@ -87,7 +99,9 @@ const config = {
       // 目标为 nodejs 环境使用
       new webpack.ProvidePlugin({
          Buffer: ["buffer", "Buffer"],
+         process: "process/browser",
       }),
+
       /*       new HtmlWebpackPlugin({
          template: "index.html",
       }), */
@@ -104,13 +118,9 @@ const config = {
          raw: true,
          include: [/lib/], //包含哪些文件需要添加头部
       }), */
-
-      new CopyPlugin({
-         patterns: [
-            { from: path.resolve("libs/prebuilds"), to: "prebuilds" },
-            { from: "src/exports.ep", to: "index.js" },
-         ],
-      }),
+      /*       new CopyPlugin({
+         patterns: [{ from: path.resolve("libs/prebuilds"), to: "prebuilds" }],
+      }), */
    ],
    optimization: {
       minimize: isProduction ? true : false,
