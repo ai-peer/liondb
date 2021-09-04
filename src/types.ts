@@ -1,3 +1,5 @@
+import LionDB from "./core";
+
 export const Type = {
    String: 1,
    Number: 2,
@@ -64,7 +66,7 @@ export interface ILionDB {
    batch(ops: { type: "del" | "put"; key: string; value?: any; ttl?: number }[]): Promise<void>;
    clear(ops?): Promise<void>;
    close(): Promise<void>;
-   count(key: string): Promise<number>;
+   count(key: string, filter?: Filter): Promise<number>;
    /**
     * 查找
     * @param config
@@ -73,6 +75,17 @@ export interface ILionDB {
     *    limit: 限制 默认-1，表示无限
     *    reverse: 倒序查询， 默认false
     */
-   find(config: { key: string; limit?: number; start?: number; reverse?: boolean }): Promise<{ key: string; value: any }[]>;
-   iterator(config: { key: string; limit?: number; start?: number }, callback: Function): Promise<void>;
+   find(config: { key: string; limit?: number; start?: number; reverse?: boolean; filter?: Filter }): Promise<{ key: string; value: any }[]>;
+   iterator(
+      config: {
+         key: string;
+         limit?: number;
+         start?: number;
+         values?: boolean;
+         filter?: Filter;
+      },
+      callback: Function,
+   ): Promise<void>;
 }
+
+export type Filter = (value: any) => boolean;

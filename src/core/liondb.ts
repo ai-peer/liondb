@@ -1,4 +1,4 @@
-import { Type, ILionDB } from "../types";
+import { Type, ILionDB, Filter } from "../types";
 import { bit2Int, int2Bit } from "../utils/byte";
 import { Buffer } from "buffer";
 import levelup from "levelup";
@@ -202,25 +202,57 @@ export default class LionDB implements ILionDB {
          this.db.close(() => setTimeout(() => resolve(undefined), 150));
       });
    }
-   async count(key: string): Promise<number> {
+   async count(key: string, filter?: Filter): Promise<number> {
       let count = 0;
-      await this.iterator({ key: key, start: 0, limit: -1, values: false }, () => count++);
+      await this.iterator({ key: key, start: 0, limit: -1, values: false, filter }, () => count++);
       return count;
    }
-   async find({ key, limit = 100, start = 0, reverse = false }: { key: string; limit?: number; start?: number; reverse?: boolean }): Promise<{ key: string; value: any }[]> {
+   async find({
+      key,
+      limit = 100,
+      start = 0,
+      reverse = false,
+      filter,
+   }: {
+      key: string;
+      limit?: number;
+      start?: number;
+      values?: boolean;
+      reverse?: boolean;
+      filter?: Filter;
+   }): Promise<{ key: string; value: any }[]> {
       let list: { key: string; value: any }[] = [];
-      await this.iterator({ key, limit, start }, (skey, svalue) => {
+      await this.iterator({ key, limit, start, filter }, (skey, svalue) => {
          svalue !== undefined && list.push({ key: skey, value: svalue });
       });
       return reverse ? list.reverse() : list;
    }
-   async iterator({ key, limit = 100, start = 0, values = true }: { key: string; limit?: number; start?: number; values?: boolean }, callback): Promise<void> {
+
+   async iterator(
+      {
+         key,
+         limit = 100,
+         start = 0,
+         values = true,
+         filter,
+      }: {
+         key: string;
+         limit?: number;
+         start?: number;
+         values?: boolean;
+         filter?: Filter;
+      },
+      callback,
+   ): Promise<void> {
       let _this = this;
       let searchKey = String(key).trim();
       let isFuzzy = searchKey.endsWith("*");
       searchKey = searchKey === "*" ? searchKey : searchKey.replace(/^\*|\*$/g, "");
+      if (values === false && filter) values = true;
       let options = Object.assign({}, { key, limit: start + limit, values }, { gte: searchKey });
+
       let iterator = this.db.iterator(options);
+
       return new Promise((resolve, reject) => {
          let itSize = 0;
          let itIndex = -1;
@@ -260,8 +292,6 @@ export default class LionDB implements ILionDB {
                      }
                      return next();
                   }
-
-                  itSize++;
                   let res: any = analyzeValue(v);
                   let curTime = Math.ceil(Date.now() / 1000);
                   //console.log("ite==>>", key, res.ttl > 0 && res.startAt + res.ttl < curTime, res.ttl, !!callback);
@@ -269,7 +299,13 @@ export default class LionDB implements ILionDB {
                      _this.del(sKey);
                      await wait(5);
                   } else {
-                     let callbackResult = await callback(sKey, res.value());
+                     let value = res.value();
+                     if (filter) {
+                        let v = await filter(value);
+                        if (v != true) return next();
+                     }
+                     itSize++;
+                     let callbackResult = await callback(sKey, value);
                      if (callbackResult === LionDB.Break) {
                         iterator.end((err) => err && console.error("err break", err.message));
                         return resolve();

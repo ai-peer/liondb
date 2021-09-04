@@ -4,7 +4,7 @@ import path from "path";
 import { ILionDB } from "../src/types";
 
 let liondb: ILionDB = new LionDB(path.resolve("_local/1"));
- 
+
 beforeEach(async function () {
    await wait(1000);
    //await db.del("aa");
@@ -63,11 +63,36 @@ beforeEach(async function () {
          key: "bc2",
          value: { name: "bc2" },
       },
+      {
+         type: "put",
+         key: "中国福建",
+         value: { name: "中国福建" },
+      },
+      {
+         type: "put",
+         key: "中国广东",
+         value: { name: "中国广东" },
+      },
+      {
+         type: "put",
+         key: "中国广西",
+         value: { name: "中国广西" },
+      },
+      {
+         type: "put",
+         key: "中国四川",
+         value: { name: "中国四川" },
+      },
+      {
+         type: "put",
+         key: "中国上海",
+         value: { name: "中国上海" },
+      },
    ]);
-   let list0 = await liondb.find({ key: "b*" });
+   /*    let list0 = await liondb.find({ key: "b*" });
    console.info("list0", list0);
    let list1 = await liondb.find({ key: "b*", reverse: true });
-   console.info("list1", list1);
+   console.info("list1", list1); */
    // console.info("count=", await db.count("kid-*"));
 });
 
@@ -76,9 +101,20 @@ describe("单进程比较取值", function () {
       const vv = await liondb.get("aa");
       console.info(">>>vv2", vv);
       assert.deepStrictEqual(vv.name, "li lei");
+      let list = await liondb.find({
+         key: "中国*",
+         filter: (value) => {
+            return /^中国广/.test(value.name); // value.name == "b1";
+         },
+      });
+      console.info("list===", list);
+      let count = await liondb.count("中国*", (value) => {
+         return /^中国广/.test(value.name); // value.name == "b1";
+      });
+      console.info("count===", count);
    });
    it("查询", async function () {
-    /*   liondb.iterator({ key: "a*" }, (key, value) => {
+      /*   liondb.iterator({ key: "a*" }, (key, value) => {
          console.log("v", key, value);
       }); */
       let bb = await liondb.find({ key: "b*", limit: 2 });
