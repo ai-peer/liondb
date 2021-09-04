@@ -79,7 +79,7 @@ declare class ILionDB {
     *    limit: 限制 默认-1，表示无限
     *    reverse: 倒序查询， 默认false
     */
-   find(config: { key: string; limit?: number; start?: number, reverse: boolean }): Promise<{ key: string; value: any }[]>;
+   find(config: { key: string; limit?: number; start?: number, reverse?: boolean }): Promise<{ key: string; value: any }[]>;
    /**
     * 递归查询
     * @param config
