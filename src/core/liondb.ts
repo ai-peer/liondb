@@ -236,18 +236,8 @@ export default class LionDB implements ILionDB {
                   return resolve();
                }
                try {
-                  //console.info("=====", k.toString(), start, itSize, limit);
                   itIndex++;
                   if (start > itIndex) return next();
-
-                  if (!values) {
-                     let callbackResult = await callback();
-                     if (callbackResult === LionDB.Break) {
-                        iterator.end((err) => err && console.error("err break", err.message));
-                        return resolve();
-                     }
-                     return next();
-                  }
 
                   let sKey = String(k);
                   if (!isFuzzy) {
@@ -262,6 +252,15 @@ export default class LionDB implements ILionDB {
                         return resolve();
                      }
                   }
+                  if (values === false) {
+                     let callbackResult = await callback();
+                     if (callbackResult === LionDB.Break) {
+                        iterator.end((err) => err && console.error("err break", err.message));
+                        return resolve();
+                     }
+                     return next();
+                  }
+
                   itSize++;
                   let res: any = analyzeValue(v);
                   let curTime = Math.ceil(Date.now() / 1000);
