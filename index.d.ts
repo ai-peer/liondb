@@ -70,7 +70,7 @@ declare class ILionDB {
     */
    clear(ops?): Promise<void>;
    close(): Promise<void>;
-   count(key: string): Promise<number>;
+   count(key: string, filter?: Filter): Promise<number>;
    /**
     * 查找
     * @param config
@@ -79,12 +79,15 @@ declare class ILionDB {
     *    limit: 限制 默认100条， -1 表示无限
     *    reverse: 倒序查询， 默认false
     */
-   find(config: { key: string; limit?: number; start?: number, reverse?: boolean }): Promise<{ key: string; value: any }[]>;
+   find(config: { key: string; limit?: number; start?: number; reverse?: boolean; filter?: Filter }): Promise<{ key: string; value: any }[]>;
    /**
     * 递归查询
     * @param config
     * @param callback
     */
-   iterator(config: { key: string; limit?: number; start?: number }, callback: Function): Promise<void>;
+   iterator(config: { key: string; limit?: number; start?: number; filter?: Filter }, callback: Function): Promise<void>;
 }
+
+export type Filter = (value: any) => boolean;
+
 export default ILionDB;
