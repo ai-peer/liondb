@@ -68,7 +68,7 @@ declare class ILionDB {
     * 清空
     * @param ops
     */
-   clear(ops): Promise<void>;
+   clear(ops?): Promise<void>;
    close(): Promise<void>;
    count(key: string): Promise<number>;
    /**
@@ -76,7 +76,7 @@ declare class ILionDB {
     * @param config
     *    key: 搜索词 结尾 * 表示匹配所有
     *    start: 开始位置 默认 0
-    *    limit: 限制 默认-1，表示无限
+    *    limit: 限制 默认100条， -1 表示无限
     *    reverse: 倒序查询， 默认false
     */
    find(config: { key: string; limit?: number; start?: number, reverse?: boolean }): Promise<{ key: string; value: any }[]>;

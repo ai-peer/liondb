@@ -209,59 +209,57 @@ export default class LionDB implements ILionDB {
    }
    async find({ key, limit = 100, start = 0, reverse = false }: { key: string; limit?: number; start?: number; reverse?: boolean }): Promise<{ key: string; value: any }[]> {
       let list: { key: string; value: any }[] = [];
-      //let opt = typeof key === "string" ? { key: key } : key;
-      await this.iterator({ key, limit, start, reverse }, (skey, svalue) => {
+      await this.iterator({ key, limit, start }, (skey, svalue) => {
          svalue !== undefined && list.push({ key: skey, value: svalue });
       });
-      return list;
+      return reverse ? list.reverse() : list;
    }
-   async iterator(
-      { key, limit = 100, start = 0, values = true, reverse = false }: { key: string; limit?: number; start?: number; values?: boolean; reverse?: boolean },
-      callback,
-   ): Promise<undefined> {
+   async iterator({ key, limit = 100, start = 0, values = true }: { key: string; limit?: number; start?: number; values?: boolean }, callback): Promise<void> {
       let _this = this;
       let searchKey = String(key).trim();
       let isFuzzy = searchKey.endsWith("*");
       searchKey = searchKey === "*" ? searchKey : searchKey.replace(/^\*|\*$/g, "");
-      let options = Object.assign({}, { key, limit: start + limit, values, reverse }, { gte: searchKey });
+      let options = Object.assign({}, { key, limit: start + limit, values }, { gte: searchKey });
       let iterator = this.db.iterator(options);
-      //let type = Object.prototype.toString.call(callback);
       return new Promise((resolve, reject) => {
          let itSize = 0;
          let itIndex = -1;
-         if (!iterator) return resolve(undefined);
+         if (!iterator) return resolve();
          iterator.seek(searchKey);
          (function next() {
-            //console.info("next====");
-            iterator.next(async (error, k, v) => {
-               if (!k) {
-                  //callback && callback();
+            iterator.next(async (...args) => {
+               let error = args[0],
+                  k = args[1],
+                  v = args[2];
+               if (args.length < 1 || !k || error) {
                   iterator.end((err) => err && console.error("err", err.message));
-                  return resolve(undefined);
-               }
-               itIndex++;
-               //console.info("=====", start, itIndex, start > itIndex);
-               if (start > itIndex) return next();
-               if (!values) {
-                  let callbackResult = await callback();
-                  if (callbackResult === LionDB.Break) {
-                     iterator.end((err) => err && console.error("err break", err.message));
-                     return resolve(undefined);
-                  }
-                  return next();
+                  return resolve();
                }
                try {
+                  //console.info("=====", k.toString(), start, itSize, limit);
+                  itIndex++;
+                  if (start > itIndex) return next();
+
+                  if (!values) {
+                     let callbackResult = await callback();
+                     if (callbackResult === LionDB.Break) {
+                        iterator.end((err) => err && console.error("err break", err.message));
+                        return resolve();
+                     }
+                     return next();
+                  }
+
                   let sKey = String(k);
                   if (!isFuzzy) {
                      if (sKey != searchKey) {
                         iterator.end((err) => err && console.error("err", err.message));
-                        return resolve(undefined);
+                        return resolve();
                      }
                   } else {
                      //console.info("========>>>>", key, sKey, searchKey, limit, itIndex, itSize, !sKey || !sKey.startsWith(searchKey) || (limit > 0 && itSize >= limit));
                      if (!sKey || !sKey.startsWith(searchKey) || (limit > 0 && itSize >= limit)) {
                         iterator.end((err) => err && console.error("err", err.message));
-                        return resolve(undefined);
+                        return resolve();
                      }
                   }
                   itSize++;
@@ -275,14 +273,14 @@ export default class LionDB implements ILionDB {
                      let callbackResult = await callback(sKey, res.value());
                      if (callbackResult === LionDB.Break) {
                         iterator.end((err) => err && console.error("err break", err.message));
-                        return resolve(undefined);
+                        return resolve();
                      }
                   }
                   next();
                } catch (err) {
                   console.info("err", err.stack);
                   iterator.end((err) => err && console.error("err", err.message));
-                  resolve(undefined);
+                  resolve();
                }
             });
          })();

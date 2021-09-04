@@ -62,8 +62,8 @@ export interface ILionDB {
     * @returns 
     */
    batch(ops: { type: "del" | "put"; key: string; value?: any; ttl?: number }[]): Promise<void>;
-   clear(ops): Promise<undefined>;
-   close(): Promise<undefined>;
+   clear(ops?): Promise<void>;
+   close(): Promise<void>;
    count(key: string): Promise<number>;
    /**
     * 查找
@@ -74,5 +74,5 @@ export interface ILionDB {
     *    reverse: 倒序查询， 默认false
     */
    find(config: { key: string; limit?: number; start?: number; reverse?: boolean }): Promise<{ key: string; value: any }[]>;
-   iterator(config: { key: string; limit?: number; start?: number; reverse?: boolean }, callback: Function): Promise<undefined>;
+   iterator(config: { key: string; limit?: number; start?: number }, callback: Function): Promise<void>;
 }
