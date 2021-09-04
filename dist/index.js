@@ -1,1 +1,0 @@
-const isBrowser=!!globalThis.window;module.exports=isBrowser?require("./browser"):require("./node");

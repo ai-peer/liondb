@@ -14,6 +14,9 @@ const config = {
    entry: {
       browser: {
          import: "./src/index.ts",
+      },
+      liondb: {
+         import: "./src/index.ts",
          filename: "[name].js",
          library: {
             // all options under `output.library` can be used here
@@ -34,12 +37,7 @@ const config = {
       },
    },
    target: "web",
-   externals: {
-      crypto: "crypto",
-      fs: "fs",
-      os: "os",
-      path: "path",
-   },
+   externals: {},
    devServer: {
       open: false,
       host: "localhost",
@@ -84,10 +82,14 @@ const config = {
          //store: path.join(root, 'src/store')
       },
       fallback: {
-         //自定义require的模块 如 require("os") 等
+         //自定义require的模块
          assert: require.resolve("assert"),
          util: require.resolve("util"),
          //path: require.resolve("path-browserify"),
+         path: require.resolve("./src/browser/none"),
+         crypto: require.resolve("./src/browser/none"),
+         fs: require.resolve("./src/browser/none"),
+         os: require.resolve("./src/browser/none"),
       },
    },
    node: {

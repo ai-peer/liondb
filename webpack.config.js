@@ -19,7 +19,7 @@ const config = {
    output: {
       path: path.resolve(__dirname, "dist"),
       clean: {
-         keep: /(test|index)\.js/, // 保留 'ignored/dir' 下的静态资源
+         keep: /(test)\.js/, // 保留 'ignored/dir' 下的静态资源
       },
       /*       chunkFormat: "commonjs",
       libraryTarget: "commonjs",
@@ -106,10 +106,7 @@ const config = {
       }), */
 
       new CopyPlugin({
-         patterns: [
-            { from: path.resolve("libs/prebuilds"), to: "prebuilds" },
-            { from: "src/exports.ep", to: "index.js" },
-         ],
+         patterns: [{ from: path.resolve("libs/prebuilds"), to: "prebuilds" }],
       }),
    ],
    optimization: {

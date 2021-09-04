@@ -2,8 +2,9 @@
 ### 可以做单机持久存储或缓存， 基于google开源的leveldb之上做的封装
 
 ## 使用例子
-
+### nodejs环境
 ``` 
+   
     // liondb.js
     import LionDB from "@ai-lion/liondb";
     
@@ -48,32 +49,15 @@
 
 
 ```
-### 浏览器 webpack需要配置
+### 浏览器环境
 ``` 
-    yarn add -D util assert buffer stream-browserify path-browserify process
+ // 使用webpack 打包环境的
+    import LionDB from "@ai-lion/liondb/dist/browser";
     或
-    npm i -D util assert buffer stream-browserify path-browserify process
+    import LionDB = require("@ai-lion/liondb/dist/browser");
 
-    resolve: {
-        fallback: {
-            util: require.resolve("util"),
-            assert: require.resolve("assert"),
-            buffer: require.resolve("buffer"),
-            stream: require.resolve("stream-browserify"),
-            path: require.resolve("path-browserify"),
-            fs: false,
-            os: false,
-            crypto: false,
-            child_process: false,
-        }
-    },
-    plugins: [
-        new webpack.ProvidePlugin({
-            process: "process/browser",
-        })
-    ]
-
-
+ // html页面直接引用： 
+    https://cdn.jsdelivr.net/npm/@ai-lion/liondb/dist/liondb.js
 ```
 
 ## api
