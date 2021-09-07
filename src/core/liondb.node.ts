@@ -53,7 +53,7 @@ const DefaultOptions = {
 export function clusterThread({
    /** 数据库文件名 */
    filename,
-   app,
+   //app,
    /** 运行环境, cluster集群, electron, browser:流星器 */
    env, //: "cluster" | "electron" | "egg";
    /** 是否是主线程 */
@@ -62,13 +62,13 @@ export function clusterThread({
    thread,
 }: {
    filename: string;
-   app: string;
+   //app: string;
    env: "cluster" | "electron" | "egg";
    isMaster: boolean;
    thread: any;
 }) {
    return new TcFactor<LionDB>({
-      app: app || "localdb",
+      //app: app || "localdb",
       env: env,
       isMaster: isMaster,
       thread: thread,
@@ -110,7 +110,7 @@ export function clusterThread({
       },
    }).executor;
 }
-levelup.prototype.set = levelup.prototype.put;
+//levelup.prototype.set = levelup.prototype.put;
 /**
  * https://github.com/Level/levelup
  *

@@ -13,7 +13,7 @@
 
     //cluster 集群环境
     //const isMaster = cluster.isMaster;
-    let liondb = LionDB.clusterThread({filename:  'path', env: "cluster", isMaster: cluster.isMaster, thread: cluster.isMaster ? cluster : cluster.worker， app: "app name"  });
+    let liondb = LionDB.clusterThread({filename:  'path', env: "cluster", isMaster: cluster.isMaster, thread: cluster.isMaster ? cluster : cluster.worker， });
 
 
     //阿里 egg 框架 集群环境：
@@ -25,7 +25,7 @@
             if (liondb) return liondb;
             if (!thread) throw new Error("use liondb no thread");
             try {
-                liondb = lionDB.clusterThread({ app: "lioncms-db", filename: ".liondb", env: "egg", isMaster: cluster.isMaster, thread: thread }, (err) => {
+                liondb = lionDB.clusterThread({ filename: ".liondb", env: "egg", isMaster: cluster.isMaster, thread: thread }, (err) => {
                     console.info("...........load ", err ? err.message : "");
                 });
             } catch (err) {

@@ -13,10 +13,10 @@ const TerserPlugin = require("terser-webpack-plugin");
 const config = {
    entry: {
       browser: {
-         import: "./src/index.ts",
+         import: "./src/index.browser.ts",
       },
       liondb: {
-         import: "./src/index.ts",
+         import: "./src/index.browser.ts",
          filename: "[name].js",
          library: {
             // all options under `output.library` can be used here

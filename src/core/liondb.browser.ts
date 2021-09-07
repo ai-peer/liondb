@@ -31,7 +31,7 @@ export function clusterThread({
 }) {
    return new LionDBBrowser(filename);
 }
-levelup.prototype.set = levelup.prototype.put;
+//levelup.prototype.set = levelup.prototype.put;
 /**
  * https://github.com/Level/levelup
  *
