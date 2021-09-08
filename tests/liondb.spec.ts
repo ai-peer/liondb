@@ -120,7 +120,7 @@ describe("单进程比较取值", function () {
       let bb = await liondb.find({ key: "b*", limit: 2 });
       console.log(">>>>bb", bb);
 
-      let list = await liondb.find({ key: "a1", keys: false });
+      let list:any[] = await liondb.find({ key: "a1", keys: false });
       console.log("list ==00", list);
    });
    it("count", async () => {

@@ -222,8 +222,8 @@ export default class LionDB implements ILionDB {
       reverse?: boolean;
       filter?: Filter;
       keys?: boolean;
-   }): Promise<{ key: string; value: any }[]> {
-      let list: { key: string; value: any }[] = [];
+   }): Promise<{ key: string; value: any }[] | any[]> {
+      let list: any[] = [];
       await this.iterator({ key, limit, start, filter }, (skey, svalue) => {
          if (svalue !== undefined) keys ? list.push({ key: skey, value: svalue }) : list.push(svalue);
       });
