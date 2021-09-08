@@ -27,6 +27,11 @@ declare class ILionDB {
    getStringSet(key: string, value: any, ttl?: number): Promise<string>;
    getFloatSet(key: string, value: any, ttl?: number): Promise<number>;
    getString(key: string, extension?: boolean): Promise<string>;
+   /**
+    * 获取int型值， 默认返回0
+    * @param key 
+    * @param extension 
+    */
    getInt(key: string, extension?: boolean): Promise<number>;
    getFloat(key: string, extension?: boolean): Promise<number>;
    /**

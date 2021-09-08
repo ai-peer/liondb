@@ -249,12 +249,12 @@ export default class LionDB implements ILionDB {
       let _this = this;
       let searchKey = String(key).trim();
       let isFuzzy = searchKey.endsWith("*");
-      searchKey = searchKey === "*" ? searchKey : searchKey.replace(/^\*|\*$/g, "");
+      let isSearchAll = searchKey === "*";
+      searchKey = isSearchAll ? searchKey : searchKey.replace(/^\*|\*$/g, "");
       if (values === false && filter) values = true;
-      let options = Object.assign({}, { key, limit: start + limit, values }, { gte: searchKey });
 
+      let options = Object.assign({}, { key, limit: start + limit, values: false }, { gte: searchKey });
       let iterator = this.db.iterator(options);
-
       return new Promise((resolve, reject) => {
          let itSize = 0;
          let itIndex = -1;
@@ -280,11 +280,20 @@ export default class LionDB implements ILionDB {
                         return resolve();
                      }
                   } else {
-                     //console.info("========>>>>", key, sKey, searchKey, limit, itIndex, itSize, !sKey || !sKey.startsWith(searchKey) || (limit > 0 && itSize >= limit));
-                     if (!sKey || !sKey.startsWith(searchKey) || (limit > 0 && itSize >= limit)) {
+                     if (limit > 0 && itSize >= limit) {
+                        //如果限制条数， 超出刚好返回
                         iterator.end((err) => err && console.error("err", err.message));
                         return resolve();
                      }
+                     if (!isSearchAll && !sKey.startsWith(searchKey)) {
+                        //不是全局搜索， 发现开头不匹配，返回
+                        iterator.end((err) => err && console.error("err", err.message));
+                        return resolve();
+                     }
+                     /* if (!sKey || !sKey.startsWith(searchKey) || (limit > 0 && itSize >= limit)) {
+                        iterator.end((err) => err && console.error("err", err.message));
+                        return resolve();
+                     } */
                   }
                   if (values === false) {
                      let callbackResult = await callback();
@@ -294,9 +303,9 @@ export default class LionDB implements ILionDB {
                      }
                      return next();
                   }
-                  let res: any = analyzeValue(v);
+
+                 /*  let res: any = analyzeValue(v);
                   let curTime = Math.ceil(Date.now() / 1000);
-                  //console.log("ite==>>", key, res.ttl > 0 && res.startAt + res.ttl < curTime, res.ttl, !!callback);
                   if (res.ttl > 0 && res.startAt + res.ttl < curTime) {
                      _this.del(sKey);
                      await wait(5);
@@ -312,7 +321,21 @@ export default class LionDB implements ILionDB {
                         iterator.end((err) => err && console.error("err break", err.message));
                         return resolve();
                      }
-                  }
+                  }  */
+                   let value = await _this.get(sKey);
+                  if (value != undefined) {
+                     if (filter) {
+                        let v = await filter(value);
+                        if (v != true) return next();
+                     }
+                     itSize++;
+                     let callbackResult = await callback(sKey, value);
+                     if (callbackResult === LionDB.Break) {
+                        iterator.end((err) => err && console.error("err break", err.message));
+                        return resolve();
+                     }
+                  } 
+
                   next();
                } catch (err) {
                   console.info("err", err.stack);

@@ -107,10 +107,11 @@ describe("单进程比较取值", function () {
             return /^中国广/.test(value.name); // value.name == "b1";
          },
       });
-      console.info("list===", list);
+/*       console.info("list===", list);
       let count = await liondb.count("中国*", (value) => {
          return /^中国广/.test(value.name); // value.name == "b1";
-      });
+      }); */
+      let count = await liondb.count("*")
       console.info("count===", count);
    });
    it("查询", async function () {
