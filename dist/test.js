@@ -1,7 +1,7 @@
 const path = require("path");
 const os = require("os");
 const cluster = require("cluster");
-const LionDB = require("./");
+const LionDB = require("./node");
 console.info("xxx", LionDB);
 (async () => {
    let liondb = new LionDB("/.aaa");

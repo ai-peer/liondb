@@ -1,7 +1,8 @@
 {
   "name": "@ai-lion/liondb",
-  "version": "3.7.8",
+  "version": "3.7.9",
   "main": "dist/node.js",
+  "browser": "dist/browser.js",
   "license": "MIT",
   "bin": {},
   "types": "index.d.ts",

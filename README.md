@@ -52,9 +52,9 @@
 ### 浏览器环境
 ``` 
  // 使用webpack 打包环境的
-    import LionDB from "@ai-lion/liondb/dist/browser";
+    import LionDB from "@ai-lion/liondb"; //@ai-lion/liondb/dist/browser
     或
-    import LionDB = require("@ai-lion/liondb/dist/browser");
+    import LionDB = require("@ai-lion/liondb");  //@ai-lion/liondb/dist/browser
 
  // html页面直接引用： 
     https://cdn.jsdelivr.net/npm/@ai-lion/liondb/dist/liondb.js
