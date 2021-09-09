@@ -51,24 +51,27 @@ const DefaultOptions = {
 };
 
 export function clusterThread({
-   /** 数据库文件名 */
    filename,
-   //app,
-   /** 运行环境, cluster集群, electron, browser:流星器 */
    env, //: "cluster" | "electron" | "egg";
-   /** 是否是主线程 */
    isMaster,
-   /** 当前线程 */
    thread,
-}: {
+}: //app,
+{
+   /** 数据库文件名 */
    filename: string;
    //app: string;
+   /** 运行环境, cluster集群, electron, browser:流星器 */
    env: "cluster" | "electron" | "egg";
+   /** 是否是主线程 */
    isMaster: boolean;
+   /** 当前线程 */
    thread: any;
+   /** 应用名， 用作信息隔离 */
+   //app: string;
 }) {
+   let app = filename.replace(/[^a-z0-9]+/g, "_").replace(/^[^a-z0-9]+/, "");
    return new TcFactor<LionDB>({
-      //app: app || "localdb",
+      app: app || "localdb",
       env: env,
       isMaster: isMaster,
       thread: thread,

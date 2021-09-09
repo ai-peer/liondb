@@ -89,11 +89,11 @@ class TCFactor<T> extends EventEmitter {
    executor; //: any;
    static ___apps = {};
    taskCallback = {}; //任务回调
-   constructor({ thread, isMaster, executor, env }: { isMaster: boolean; env: "cluster" | "electron" | "egg"; thread: any; executor: Function }) {
+   constructor({ thread, isMaster, executor, env, app }: { isMaster: boolean; env: "cluster" | "electron" | "egg"; thread: any; app: string; executor: Function }) {
       super();
       this.setMaxListeners(9999);
       this.env = env;
-      //this.app = app;
+      this.app = app;
       if (TCFactor.___apps[this.app]) throw new Error(`已经存在应用${this.app}`);
       TCFactor.___apps[this.app] = true;
       this.isMaster = isMaster;
