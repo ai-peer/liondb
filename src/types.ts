@@ -87,4 +87,4 @@ export interface ILionDB {
    ): Promise<void>;
 }
 
-export type Filter = (value: any) => Promise<boolean>;
+export type Filter = (value: any) => Promise<boolean> | boolean;
