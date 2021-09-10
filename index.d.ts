@@ -29,8 +29,8 @@ declare class ILionDB {
    getString(key: string, extension?: boolean): Promise<string>;
    /**
     * 获取int型值， 默认返回0
-    * @param key 
-    * @param extension 
+    * @param key
+    * @param extension
     */
    getInt(key: string, extension?: boolean): Promise<number>;
    getFloat(key: string, extension?: boolean): Promise<number>;
@@ -93,6 +93,6 @@ declare class ILionDB {
    iterator(config: { key: string; limit?: number; start?: number; filter?: Filter }, callback: Function): Promise<void>;
 }
 
-export type Filter = (value: any) => boolean;
+export type Filter = (value: any) => Promise<boolean>;
 
 export default ILionDB;

@@ -103,15 +103,15 @@ describe("单进程比较取值", function () {
       assert.deepStrictEqual(vv.name, "li lei");
       let list = await liondb.find({
          key: "中国*",
-         filter: (value) => {
+         filter: async (value) => {
             return /^中国广/.test(value.name); // value.name == "b1";
          },
       });
-/*       console.info("list===", list);
+      /*       console.info("list===", list);
       let count = await liondb.count("中国*", (value) => {
          return /^中国广/.test(value.name); // value.name == "b1";
       }); */
-      let count = await liondb.count("*")
+      let count = await liondb.count("*");
       console.info("count===", count);
    });
    it("查询", async function () {
@@ -121,7 +121,7 @@ describe("单进程比较取值", function () {
       let bb = await liondb.find({ key: "b*", limit: 2 });
       console.log(">>>>bb", bb);
 
-      let list:any[] = await liondb.find({ key: "a1", keys: false });
+      let list: any[] = await liondb.find({ key: "a1", keys: false });
       console.log("list ==00", list);
    });
    it("count", async () => {
