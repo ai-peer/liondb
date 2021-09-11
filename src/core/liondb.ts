@@ -304,7 +304,7 @@ export default class LionDB implements ILionDB {
                      return next();
                   }
 
-                 /*  let res: any = analyzeValue(v);
+                  /*  let res: any = analyzeValue(v);
                   let curTime = Math.ceil(Date.now() / 1000);
                   if (res.ttl > 0 && res.startAt + res.ttl < curTime) {
                      _this.del(sKey);
@@ -322,10 +322,10 @@ export default class LionDB implements ILionDB {
                         return resolve();
                      }
                   }  */
-                   let value = await _this.get(sKey);
+                  let value = await _this.get(sKey);
                   if (value != undefined) {
                      if (filter) {
-                        let v = await filter(value);
+                        let v = await filter(value, sKey);
                         if (v != true) return next();
                      }
                      itSize++;
@@ -334,7 +334,7 @@ export default class LionDB implements ILionDB {
                         iterator.end((err) => err && console.error("err break", err.message));
                         return resolve();
                      }
-                  } 
+                  }
 
                   next();
                } catch (err) {

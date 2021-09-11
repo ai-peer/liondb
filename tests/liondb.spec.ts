@@ -103,12 +103,12 @@ describe("单进程比较取值", function () {
       assert.deepStrictEqual(vv.name, "li lei");
       let list = await liondb.find({
          key: "中国*",
-         filter: async (value) => {
+         filter: (value) => {
             return /^中国广/.test(value.name); // value.name == "b1";
          },
       });
-      /*       console.info("list===", list);
-      let count = await liondb.count("中国*", (value) => {
+         console.info("list===", list);
+      /*    let count = await liondb.count("中国*", (value) => {
          return /^中国广/.test(value.name); // value.name == "b1";
       }); */
       let count = await liondb.count("*");
