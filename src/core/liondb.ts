@@ -253,7 +253,7 @@ export default class LionDB implements ILionDB {
       searchKey = isSearchAll ? searchKey : searchKey.replace(/^\*|\*$/g, "");
       if (values === false && filter) values = true;
 
-      let options = Object.assign({}, { key, limit: start + limit, values: false }, { gte: searchKey });
+      let options = Object.assign({}, { key, limit: -1, values: false }, { gte: searchKey });
       let iterator = this.db.iterator(options);
       return new Promise((resolve, reject) => {
          let itSize = 0;
@@ -290,10 +290,6 @@ export default class LionDB implements ILionDB {
                         iterator.end((err) => err && console.error("err", err.message));
                         return resolve();
                      }
-                     /* if (!sKey || !sKey.startsWith(searchKey) || (limit > 0 && itSize >= limit)) {
-                        iterator.end((err) => err && console.error("err", err.message));
-                        return resolve();
-                     } */
                   }
                   if (values === false) {
                      let callbackResult = await callback();
@@ -328,14 +324,13 @@ export default class LionDB implements ILionDB {
                         let v = await filter(value, sKey);
                         if (v != true) return next();
                      }
-                     itSize++;
                      let callbackResult = await callback(sKey, value);
                      if (callbackResult === LionDB.Break) {
                         iterator.end((err) => err && console.error("err break", err.message));
                         return resolve();
                      }
+                     itSize++;
                   }
-
                   next();
                } catch (err) {
                   console.info("err", err.stack);
