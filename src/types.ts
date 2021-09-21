@@ -42,6 +42,11 @@ export interface ILionDB {
     */
    expire(key: string, ttl?: number): Promise<void>;
    /**
+    * 存在
+    * @param key
+    */
+   exist(key: string): Promise<boolean>;
+   /**
     * 取得增量后的值,并存储
     * @param key
     * @param increment 增量,默认为1
@@ -83,8 +88,10 @@ export interface ILionDB {
          start?: number;
          filter?: Filter;
       },
-      callback: Function,
+      callback: IteratorCallback,
    ): Promise<void>;
 }
 
 export type Filter = (value: any, key: string) => Promise<boolean> | boolean;
+
+export type IteratorCallback = (key: string, value?: any) => Promise<"break"> | Promise<void> | "break" | void;

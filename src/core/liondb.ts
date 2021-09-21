@@ -1,4 +1,4 @@
-import { Type, ILionDB, Filter } from "../types";
+import { Type, ILionDB, Filter, IteratorCallback } from "../types";
 import { bit2Int, int2Bit } from "../utils/byte";
 import { Buffer } from "buffer";
 import levelup from "levelup";
@@ -129,6 +129,17 @@ export default class LionDB implements ILionDB {
       return this.put(key, value, ttl);
    }
    /**
+    * 存在
+    * @param key
+    */
+   async exist(key: string): Promise<boolean> {
+      let ex = false;
+      await this.iterator({ key, limit: 1, values: false }, (skey) => {
+         ex = skey === key;
+      });
+      return ex;
+   }
+   /**
     * 取得增量后的值,并存储
     * @param key
     * @param increment 增量,默认为1
@@ -204,7 +215,9 @@ export default class LionDB implements ILionDB {
    }
    async count(key: string, filter?: Filter): Promise<number> {
       let count = 0;
-      await this.iterator({ key: key, start: 0, limit: -1, values: false, filter }, () => count++);
+      await this.iterator({ key: key, start: 0, limit: -1, values: false, filter }, (key) => {
+         count++;
+      });
       return count;
    }
    async find({
@@ -244,7 +257,7 @@ export default class LionDB implements ILionDB {
          values?: boolean;
          filter?: Filter;
       },
-      callback,
+      callback: IteratorCallback,
    ): Promise<void> {
       let _this = this;
       let searchKey = String(key).trim();
@@ -292,7 +305,7 @@ export default class LionDB implements ILionDB {
                      }
                   }
                   if (values === false) {
-                     let callbackResult = await callback();
+                     let callbackResult = await callback(sKey);
                      if (callbackResult === LionDB.Break) {
                         iterator.end((err) => err && console.error("err break", err.message));
                         return resolve();

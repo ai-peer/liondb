@@ -11,7 +11,8 @@ beforeEach(async function () {
    await liondb.set("aa", { name: "li lei" });
    console.info(">>>>aa", await liondb.get("aa"));
    await liondb.set("a1", { name: "a1" });
-
+   console.info(">>>>existt a1", await liondb.exist("a1"));
+   console.info(">>>>existt a1xxxxxx", await liondb.exist("a1xxxxxx"));
    /*    await db.set("a2", { name: "a2" });
    await db.set("a3", { name: "a3" });
    await db.set("a4", { name: "a4" });

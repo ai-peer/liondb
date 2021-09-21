@@ -47,6 +47,11 @@ declare class ILionDB {
     */
    expire(key: string, ttl: number): Promise<void>;
    /**
+    * 存在
+    * @param key 
+    */
+   exist(key: string): Promise<boolean>;
+   /**
     * 取得增量后的值,并存储
     * @param key
     * @param increment 增量,默认为1

@@ -100,6 +100,7 @@ export function clusterThread({
                "find",
                "iterator",
                "count",
+               "exist",
             ]) {
                let target = LionDB.prototype[key];
                if (key.startsWith("_")) continue;
@@ -133,7 +134,9 @@ export default class LionDBNode extends LionDB {
             while (true) {
                //自动清理过期内容
                try {
-                  await _this.iterator({ key: "*", limit: 0 }, async (key, value) => await wait(100));
+                  await _this.iterator({ key: "*", limit: 0 }, async (key, value) => {
+                     await wait(100);
+                  });
                } finally {
                   await wait(1 * 60 * 60); //暂停1小时
                }
