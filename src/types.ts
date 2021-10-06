@@ -7,6 +7,11 @@ export const Type = {
    Buffer: 4,
    Boolean: 5,
 };
+export type LionDBOptions = {
+   env: "cluster" | "electron" | "egg" | "browser"; // 运行环境
+   isMaster: boolean; //是否是主线程
+   thread: any; //线程 cluster模式： cluster | cluster.worker ， egg模式： agent.messenger ， electron模式  browser浏览器模式
+};
 export interface ILionDB {
    /**
     * 设置值

@@ -3,8 +3,8 @@ import lionDB from "../src";
 const path = require("path");
 const cluster = require("cluster");
 
-let db = lionDB.clusterThread({ filename: path.resolve("_local/2"), env: "cluster", isMaster: true, thread: cluster });
-let db1 = lionDB.clusterThread({ filename: path.resolve("_local/3"), env: "cluster", isMaster: true, thread: cluster });
+let db = lionDB.worker({ filename: path.resolve("_local/2"), env: "cluster", isMaster: true, thread: cluster });
+let db1 = lionDB.worker({ filename: path.resolve("_local/3"), env: "cluster", isMaster: true, thread: cluster });
 console.info(">>>", path.resolve("_local"));
 
 beforeEach(async function () {

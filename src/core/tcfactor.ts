@@ -24,7 +24,6 @@ function makeSend2WorkerFun(env, event) {
          return function (data, callback?) {
             event.reply("message", data);
          };
-
       case "egg":
          return function (data, callback?) {
             //process?.send?.apply(process, [data]);
@@ -89,7 +88,7 @@ class TCFactor<T> extends EventEmitter {
    executor; //: any;
    static ___apps = {};
    taskCallback = {}; //任务回调
-   constructor({ thread, isMaster, executor, env, app }: { isMaster: boolean; env: "cluster" | "electron" | "egg"; thread: any; app: string; executor: Function }) {
+   constructor({ thread, isMaster, executor, env, app }: { isMaster: boolean; env: "cluster" | "electron" | "egg" | "browser"; thread: any; app: string; executor: Function }) {
       super();
       this.setMaxListeners(9999);
       this.env = env;

@@ -12,7 +12,7 @@ const DefaultOptions = {
    errorIfExists: false,
 };
 
-export function clusterThread({
+export function worker({
    /** 数据库文件名 */
    filename,
    /** 运行环境, cluster集群, electron, browser:流星器 */
@@ -24,10 +24,10 @@ export function clusterThread({
 }: {
    filename: string;
    app: string;
-   env: "cluster" | "electron" | "egg";
+   env: "browser";
    isMaster: boolean;
    thread: any;
-}) {
+}): LionDB {
    return new LionDBBrowser(filename);
 }
 //levelup.prototype.set = levelup.prototype.put;
@@ -39,7 +39,7 @@ export function clusterThread({
  *
  */
 export default class LionDBBrowser extends LionDB {
-   static clusterThread = clusterThread;
+   static worker = worker;
    constructor(filename: string, callback?: Function) {
       super();
       let _this = this;

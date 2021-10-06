@@ -1,5 +1,5 @@
 declare class ILionDB {
-   static clusterThread(config: {
+   static worker(config: {
       filename: string; //
       env: "cluster" | "electron" | "egg" | "browser"; //
       isMaster: boolean; //
@@ -7,7 +7,9 @@ declare class ILionDB {
       //app: string; //
    }): ILionDB;
 
-   constructor(filename: string);
+   constructor(
+      filename: string
+   );
    /**
     * 设置值
     * @param key key关键字
@@ -48,7 +50,7 @@ declare class ILionDB {
    expire(key: string, ttl: number): Promise<void>;
    /**
     * 存在
-    * @param key 
+    * @param key
     */
    exist(key: string): Promise<boolean>;
    /**

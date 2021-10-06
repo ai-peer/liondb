@@ -13,10 +13,10 @@
 
     //cluster 集群环境
     //const isMaster = cluster.isMaster;
-    let liondb = LionDB.clusterThread({filename:  'path', env: "cluster", isMaster: cluster.isMaster, thread: cluster.isMaster ? cluster : cluster.worker， });
+    let liondb = LionDB.thread({filename:  'path', env: "cluster" | "electron" | "egg", isMaster: cluster.isMaster, thread: cluster.isMaster ? cluster : cluster.worker, });
 
 
-    //阿里 egg 框架 集群环境：
+    //阿里 egg 框架 集群环境： 定义 db.js
         const lionDB = require("@ai-lion/liondb");
         const cluster = require("cluster");
 

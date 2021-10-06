@@ -1,6 +1,6 @@
 {
   "name": "@ai-lion/liondb",
-  "version": "3.7.18",
+  "version": "4.0.0",
   "main": "dist/node.js",
   "browser": "dist/browser.js",
   "license": "MIT",
@@ -65,5 +65,11 @@
       "ts-node/register"
     ],
     "ui": "bdd"
-  }
+  },
+  "files": [
+    "dist",
+    "package.json",
+    "index.d.ts",
+    "README.md"
+  ]
 }
