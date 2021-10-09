@@ -89,7 +89,7 @@ export default class LionDBNode extends LionDB {
       mkdirs(filename);
       let ldb = leveldown(filename);
       this.db = new levelup(ldb, {}, async (err, db) => {
-         setTimeout(async () => {
+/*          setTimeout(async () => {
             while (true) {
                //自动清理过期内容
                try {
@@ -100,7 +100,7 @@ export default class LionDBNode extends LionDB {
                   await wait(1 * 60 * 60); //暂停1小时
                }
             }
-         }, 2000);
+         }, 2000); */
          //callback && callback(err, _this);
       });
    }
