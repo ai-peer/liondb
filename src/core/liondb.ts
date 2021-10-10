@@ -174,34 +174,7 @@ export default class LionDB implements ILionDB {
             batchs.push({ type: "del", key: key });
          }
       }
-      console.info("battchs==", batchs)
       await this.batch(batchs);
-      /*  if (key === undefined || key === null) return Promise.resolve([]);
-      key = String(key);
-      if (key.indexOf("*") >= 0) {
-         
-         await this.iterator(
-            {
-               key: key,
-            },
-            async (skey, val) => {
-               if (batchs.length > 999) return;
-               batchs.push({ type: "del", key: skey });
-            },
-         );
-         //console.info("del key b",key, batchs);
-         await this.batch(batchs);
-         return batchs.map((v) => {
-            //delete v.type;
-            return {
-               key: v.key,
-               value: v.value,
-            };
-         });
-      } else {
-         await this.db.del(key, DefaultOptions);
-         return [{ key: key }];
-      } */
    }
    /**
   * 

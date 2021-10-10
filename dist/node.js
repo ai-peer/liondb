@@ -6050,7 +6050,6 @@ class LionDB {
                 batchs.push({ type: "del", key: key });
             }
         }
-        console.info("battchs==", batchs);
         await this.batch(batchs);
     }
     async batch(ops) {
