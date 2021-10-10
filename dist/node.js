@@ -6031,31 +6031,27 @@ class LionDB {
         await this.put(key, v, ttl);
         return v;
     }
-    async del(key) {
-        if (key === undefined || key === null)
-            return Promise.resolve([]);
-        key = String(key);
-        if (key.indexOf("*") >= 0) {
-            let batchs = [];
-            await this.iterator({
-                key: key,
-            }, async (skey, val) => {
-                if (batchs.length > 999)
-                    return;
-                batchs.push({ type: "del", key: skey });
-            });
-            await this.batch(batchs);
-            return batchs.map((v) => {
-                return {
-                    key: v.key,
-                    value: v.value,
-                };
-            });
+    async del(...keys) {
+        if (keys.length < 1)
+            return Promise.resolve();
+        let batchs = [];
+        keys = keys.filter((v) => v != undefined);
+        for (let key of keys) {
+            if (key.indexOf("*") >= 0) {
+                await this.iterator({
+                    key: key,
+                }, async (skey, val) => {
+                    if (batchs.length > 999)
+                        return LionDB.Break;
+                    batchs.push({ type: "del", key: skey });
+                });
+            }
+            else {
+                batchs.push({ type: "del", key: key });
+            }
         }
-        else {
-            await this.db.del(key, DefaultOptions);
-            return [{ key: key }];
-        }
+        console.info("battchs==", batchs);
+        await this.batch(batchs);
     }
     async batch(ops) {
         if (ops instanceof Array) {

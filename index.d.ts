@@ -7,9 +7,7 @@ declare class ILionDB {
       //app: string; //
    }): ILionDB;
 
-   constructor(
-      filename: string
-   );
+   constructor(filename: string);
    /**
     * 设置值
     * @param key key关键字
@@ -63,7 +61,7 @@ declare class ILionDB {
     * 删除
     * @param key
     */
-   del(key): Promise<{ key: string; value: any }[] | { key: string }[]>;
+   del(...keys: string[]): Promise<void>;
    /**
      * 
      * @param {

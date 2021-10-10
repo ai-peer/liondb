@@ -154,11 +154,32 @@ export default class LionDB implements ILionDB {
     * 删除
     * @param key
     */
-   async del(key) {
-      if (key === undefined || key === null) return Promise.resolve([]);
+   async del(...keys: string[]) {
+      if (keys.length < 1) return Promise.resolve();
+      let batchs: { type: "del"; key: string; value?: any }[] = [];
+      keys = keys.filter((v) => v != undefined);
+      for (let key of keys) {
+         if (key.indexOf("*") >= 0) {
+            await this.iterator(
+               {
+                  key: key,
+               },
+               async (skey, val): Promise<any> => {
+                  if (batchs.length > 999) return LionDB.Break;
+                  batchs.push({ type: "del", key: skey });
+               },
+            );
+         } else {
+            //await this.db.del(key, DefaultOptions);
+            batchs.push({ type: "del", key: key });
+         }
+      }
+      console.info("battchs==", batchs)
+      await this.batch(batchs);
+      /*  if (key === undefined || key === null) return Promise.resolve([]);
       key = String(key);
       if (key.indexOf("*") >= 0) {
-         let batchs: { type: "del"; key: string; value?: any }[] = [];
+         
          await this.iterator(
             {
                key: key,
@@ -180,7 +201,7 @@ export default class LionDB implements ILionDB {
       } else {
          await this.db.del(key, DefaultOptions);
          return [{ key: key }];
-      }
+      } */
    }
    /**
   * 

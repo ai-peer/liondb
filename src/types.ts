@@ -61,7 +61,7 @@ export interface ILionDB {
     * 删除
     * @param key
     */
-   del(key): Promise<{ key: string; value: any }[] | { key: string }[]>;
+   del(...keys: string[]): Promise<void>;
    /**
     * 
     * @param {

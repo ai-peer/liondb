@@ -18,6 +18,7 @@ beforeEach(async function () {
    await db.set("a4", { name: "a4" });
    await db.set("b1", { name: "b1" });
    await db.set("b2", { name: "b2" }); */
+  
    await liondb.batch([
       {
          type: "put",
@@ -95,6 +96,10 @@ beforeEach(async function () {
    let list1 = await liondb.find({ key: "b*", reverse: true });
    console.info("list1", list1); */
    // console.info("count=", await db.count("kid-*"));
+
+   await liondb.del("b*", "b2");
+   let list = await liondb.find({key: "*"});
+   console.info("list=====>>>", list);
 });
 
 describe("单进程比较取值", function () {
