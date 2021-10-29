@@ -6075,8 +6075,11 @@ class LionDB {
     }
     async count(key, filter) {
         let count = 0;
-        await this.iterator({ key: key, start: 0, limit: -1, values: false, filter }, async (key) => {
+        let startTime = Date.now();
+        await this.iterator({ key: key, start: 0, limit: -1, values: false, filter }, async (key, val) => {
             count++;
+            if (Date.now() - startTime >= 5 * 1000)
+                return LionDB.Break;
             if (count % 100 === 0)
                 await wait(100);
         });

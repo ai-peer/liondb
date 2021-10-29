@@ -101,4 +101,4 @@ export interface ILionDB {
 
 export type Filter = (value: any, key: string) => Promise<boolean> | boolean;
 
-export type IteratorCallback = (key: string, value?: any) => Promise<"break"> | Promise<void> | "break" | void;
+export type IteratorCallback = (key: string, value?: any) => Promise<"break"> | "break" | Promise<any> | any;
