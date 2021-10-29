@@ -45,18 +45,6 @@ export default class LionDBBrowser extends LionDB {
       let _this = this;
       let ldb = leveljs(filename);
       this.db = new levelup(ldb, {}, async (err, db) => {
-         setTimeout(async () => {
-            while (true) {
-               //自动清理过期内容
-               try {
-                  await _this.iterator({ key: "*", limit: 0 }, async (key, value) => {
-                     await wait(100);
-                  });
-               } finally {
-                  await wait(1 * 60 * 60); //暂停1小时
-               }
-            }
-         }, 2000);
          callback && callback(err, _this);
       });
    }

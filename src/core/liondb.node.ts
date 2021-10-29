@@ -42,6 +42,7 @@ export function worker({
             for (let key of [
                "set",
                "get",
+               "getMany",
                "put",
                "getSet",
                "getIntSet",
@@ -60,6 +61,7 @@ export function worker({
                "iterator",
                "count",
                "exist",
+               "getProperty"
             ]) {
                let target = LionDB.prototype[key];
                if (key.startsWith("_")) continue;

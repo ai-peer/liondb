@@ -5,7 +5,10 @@
 /***/ 8508:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var nextTick = __webpack_require__(8920)
+"use strict";
+
+
+const emptyOptions = Object.freeze({})
 
 function AbstractChainedBatch (db) {
   if (typeof db !== 'object' || db === null) {
@@ -23,38 +26,38 @@ AbstractChainedBatch.prototype._checkWritten = function () {
   }
 }
 
-AbstractChainedBatch.prototype.put = function (key, value) {
+AbstractChainedBatch.prototype.put = function (key, value, options) {
   this._checkWritten()
 
-  var err = this.db._checkKey(key) || this.db._checkValue(value)
+  const err = this.db._checkKey(key) || this.db._checkValue(value)
   if (err) throw err
 
   key = this.db._serializeKey(key)
   value = this.db._serializeValue(value)
 
-  this._put(key, value)
+  this._put(key, value, options != null ? options : emptyOptions)
 
   return this
 }
 
-AbstractChainedBatch.prototype._put = function (key, value) {
-  this._operations.push({ type: 'put', key: key, value: value })
+AbstractChainedBatch.prototype._put = function (key, value, options) {
+  this._operations.push({ ...options, type: 'put', key, value })
 }
 
-AbstractChainedBatch.prototype.del = function (key) {
+AbstractChainedBatch.prototype.del = function (key, options) {
   this._checkWritten()
 
-  var err = this.db._checkKey(key)
+  const err = this.db._checkKey(key)
   if (err) throw err
 
   key = this.db._serializeKey(key)
-  this._del(key)
+  this._del(key, options != null ? options : emptyOptions)
 
   return this
 }
 
-AbstractChainedBatch.prototype._del = function (key) {
-  this._operations.push({ type: 'del', key: key })
+AbstractChainedBatch.prototype._del = function (key, options) {
+  this._operations.push({ ...options, type: 'del', key })
 }
 
 AbstractChainedBatch.prototype.clear = function () {
@@ -71,7 +74,9 @@ AbstractChainedBatch.prototype._clear = function () {
 AbstractChainedBatch.prototype.write = function (options, callback) {
   this._checkWritten()
 
-  if (typeof options === 'function') { callback = options }
+  if (typeof options === 'function') {
+    callback = options
+  }
   if (typeof callback !== 'function') {
     throw new Error('write() requires a callback argument')
   }
@@ -88,7 +93,7 @@ AbstractChainedBatch.prototype._write = function (options, callback) {
 }
 
 // Expose browser-compatible nextTick for dependents
-AbstractChainedBatch.prototype._nextTick = nextTick
+AbstractChainedBatch.prototype._nextTick = __webpack_require__(8920)
 
 module.exports = AbstractChainedBatch
 
@@ -98,7 +103,8 @@ module.exports = AbstractChainedBatch
 /***/ 3538:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var nextTick = __webpack_require__(8920)
+"use strict";
+
 
 function AbstractIterator (db) {
   if (typeof db !== 'object' || db === null) {
@@ -111,33 +117,42 @@ function AbstractIterator (db) {
 }
 
 AbstractIterator.prototype.next = function (callback) {
-  var self = this
+  // In callback mode, we return `this`
+  let ret = this
 
-  if (typeof callback !== 'function') {
+  if (callback === undefined) {
+    ret = new Promise(function (resolve, reject) {
+      callback = function (err, key, value) {
+        if (err) reject(err)
+        else if (key === undefined && value === undefined) resolve()
+        else resolve([key, value])
+      }
+    })
+  } else if (typeof callback !== 'function') {
     throw new Error('next() requires a callback argument')
   }
 
-  if (self._ended) {
-    nextTick(callback, new Error('cannot call next() after end()'))
-    return self
+  if (this._ended) {
+    this._nextTick(callback, new Error('cannot call next() after end()'))
+    return ret
   }
 
-  if (self._nexting) {
-    nextTick(callback, new Error('cannot call next() before previous next() has completed'))
-    return self
+  if (this._nexting) {
+    this._nextTick(callback, new Error('cannot call next() before previous next() has completed'))
+    return ret
   }
 
-  self._nexting = true
-  self._next(function () {
-    self._nexting = false
-    callback.apply(null, arguments)
+  this._nexting = true
+  this._next((err, ...rest) => {
+    this._nexting = false
+    callback(err, ...rest)
   })
 
-  return self
+  return ret
 }
 
 AbstractIterator.prototype._next = function (callback) {
-  nextTick(callback)
+  this._nextTick(callback)
 }
 
 AbstractIterator.prototype.seek = function (target) {
@@ -155,24 +170,48 @@ AbstractIterator.prototype.seek = function (target) {
 AbstractIterator.prototype._seek = function (target) {}
 
 AbstractIterator.prototype.end = function (callback) {
-  if (typeof callback !== 'function') {
+  let promise
+
+  if (callback === undefined) {
+    promise = new Promise(function (resolve, reject) {
+      callback = function (err) {
+        if (err) reject(err)
+        else resolve()
+      }
+    })
+  } else if (typeof callback !== 'function') {
     throw new Error('end() requires a callback argument')
   }
 
   if (this._ended) {
-    return nextTick(callback, new Error('end() already called on iterator'))
+    this._nextTick(callback, new Error('end() already called on iterator'))
+    return promise
   }
 
   this._ended = true
   this._end(callback)
+
+  return promise
 }
 
 AbstractIterator.prototype._end = function (callback) {
-  nextTick(callback)
+  this._nextTick(callback)
+}
+
+AbstractIterator.prototype[Symbol.asyncIterator] = async function * () {
+  try {
+    let kv
+
+    while ((kv = (await this.next())) !== undefined) {
+      yield kv
+    }
+  } finally {
+    if (!this._ended) await this.end()
+  }
 }
 
 // Expose browser-compatible nextTick for dependents
-AbstractIterator.prototype._nextTick = nextTick
+AbstractIterator.prototype._nextTick = __webpack_require__(8920)
 
 module.exports = AbstractIterator
 
@@ -182,14 +221,19 @@ module.exports = AbstractIterator
 /***/ 2554:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var xtend = __webpack_require__(7529)
-var supports = __webpack_require__(1675)
-var Buffer = __webpack_require__(4293).Buffer
-var AbstractIterator = __webpack_require__(3538)
-var AbstractChainedBatch = __webpack_require__(8508)
-var nextTick = __webpack_require__(8920)
-var hasOwnProperty = Object.prototype.hasOwnProperty
-var rangeOptions = 'start end gt gte lt lte'.split(' ')
+"use strict";
+
+
+const supports = __webpack_require__(1675)
+const isBuffer = __webpack_require__(5214)
+const catering = __webpack_require__(6957)
+const AbstractIterator = __webpack_require__(3538)
+const AbstractChainedBatch = __webpack_require__(8508)
+const getCallback = __webpack_require__(70)/* .getCallback */ .R
+const getOptions = __webpack_require__(70)/* .getOptions */ .F
+
+const hasOwnProperty = Object.prototype.hasOwnProperty
+const rangeOptions = ['lt', 'lte', 'gt', 'gte']
 
 function AbstractLevelDOWN (manifest) {
   this.status = 'new'
@@ -201,8 +245,7 @@ function AbstractLevelDOWN (manifest) {
 }
 
 AbstractLevelDOWN.prototype.open = function (options, callback) {
-  var self = this
-  var oldStatus = this.status
+  const oldStatus = this.status
 
   if (typeof options === 'function') callback = options
 
@@ -216,41 +259,40 @@ AbstractLevelDOWN.prototype.open = function (options, callback) {
   options.errorIfExists = !!options.errorIfExists
 
   this.status = 'opening'
-  this._open(options, function (err) {
+  this._open(options, (err) => {
     if (err) {
-      self.status = oldStatus
+      this.status = oldStatus
       return callback(err)
     }
-    self.status = 'open'
+    this.status = 'open'
     callback()
   })
 }
 
 AbstractLevelDOWN.prototype._open = function (options, callback) {
-  nextTick(callback)
+  this._nextTick(callback)
 }
 
 AbstractLevelDOWN.prototype.close = function (callback) {
-  var self = this
-  var oldStatus = this.status
+  const oldStatus = this.status
 
   if (typeof callback !== 'function') {
     throw new Error('close() requires a callback argument')
   }
 
   this.status = 'closing'
-  this._close(function (err) {
+  this._close((err) => {
     if (err) {
-      self.status = oldStatus
+      this.status = oldStatus
       return callback(err)
     }
-    self.status = 'closed'
+    this.status = 'closed'
     callback()
   })
 }
 
 AbstractLevelDOWN.prototype._close = function (callback) {
-  nextTick(callback)
+  this._nextTick(callback)
 }
 
 AbstractLevelDOWN.prototype.get = function (key, options, callback) {
@@ -260,8 +302,8 @@ AbstractLevelDOWN.prototype.get = function (key, options, callback) {
     throw new Error('get() requires a callback argument')
   }
 
-  var err = this._checkKey(key)
-  if (err) return nextTick(callback, err)
+  const err = this._checkKey(key)
+  if (err) return this._nextTick(callback, err)
 
   key = this._serializeKey(key)
 
@@ -273,7 +315,52 @@ AbstractLevelDOWN.prototype.get = function (key, options, callback) {
 }
 
 AbstractLevelDOWN.prototype._get = function (key, options, callback) {
-  nextTick(function () { callback(new Error('NotFound')) })
+  this._nextTick(function () { callback(new Error('NotFound')) })
+}
+
+AbstractLevelDOWN.prototype.getMany = function (keys, options, callback) {
+  callback = getCallback(options, callback)
+  callback = catering.fromCallback(callback)
+  options = getOptions(options)
+
+  if (maybeError(this, callback)) {
+    return callback.promise
+  }
+
+  if (!Array.isArray(keys)) {
+    this._nextTick(callback, new Error('getMany() requires an array argument'))
+    return callback.promise
+  }
+
+  if (keys.length === 0) {
+    this._nextTick(callback, null, [])
+    return callback.promise
+  }
+
+  if (typeof options.asBuffer !== 'boolean') {
+    options = { ...options, asBuffer: true }
+  }
+
+  const serialized = new Array(keys.length)
+
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i]
+    const err = this._checkKey(key)
+
+    if (err) {
+      this._nextTick(callback, err)
+      return callback.promise
+    }
+
+    serialized[i] = this._serializeKey(key)
+  }
+
+  this._getMany(serialized, options, callback)
+  return callback.promise
+}
+
+AbstractLevelDOWN.prototype._getMany = function (keys, options, callback) {
+  this._nextTick(callback, null, new Array(keys.length).fill(undefined))
 }
 
 AbstractLevelDOWN.prototype.put = function (key, value, options, callback) {
@@ -283,8 +370,8 @@ AbstractLevelDOWN.prototype.put = function (key, value, options, callback) {
     throw new Error('put() requires a callback argument')
   }
 
-  var err = this._checkKey(key) || this._checkValue(value)
-  if (err) return nextTick(callback, err)
+  const err = this._checkKey(key) || this._checkValue(value)
+  if (err) return this._nextTick(callback, err)
 
   key = this._serializeKey(key)
   value = this._serializeValue(value)
@@ -295,7 +382,7 @@ AbstractLevelDOWN.prototype.put = function (key, value, options, callback) {
 }
 
 AbstractLevelDOWN.prototype._put = function (key, value, options, callback) {
-  nextTick(callback)
+  this._nextTick(callback)
 }
 
 AbstractLevelDOWN.prototype.del = function (key, options, callback) {
@@ -305,8 +392,8 @@ AbstractLevelDOWN.prototype.del = function (key, options, callback) {
     throw new Error('del() requires a callback argument')
   }
 
-  var err = this._checkKey(key)
-  if (err) return nextTick(callback, err)
+  const err = this._checkKey(key)
+  if (err) return this._nextTick(callback, err)
 
   key = this._serializeKey(key)
 
@@ -316,7 +403,7 @@ AbstractLevelDOWN.prototype.del = function (key, options, callback) {
 }
 
 AbstractLevelDOWN.prototype._del = function (key, options, callback) {
-  nextTick(callback)
+  this._nextTick(callback)
 }
 
 AbstractLevelDOWN.prototype.batch = function (array, options, callback) {
@@ -331,36 +418,36 @@ AbstractLevelDOWN.prototype.batch = function (array, options, callback) {
   }
 
   if (!Array.isArray(array)) {
-    return nextTick(callback, new Error('batch(array) requires an array argument'))
+    return this._nextTick(callback, new Error('batch(array) requires an array argument'))
   }
 
   if (array.length === 0) {
-    return nextTick(callback)
+    return this._nextTick(callback)
   }
 
   if (typeof options !== 'object' || options === null) options = {}
 
-  var serialized = new Array(array.length)
+  const serialized = new Array(array.length)
 
-  for (var i = 0; i < array.length; i++) {
+  for (let i = 0; i < array.length; i++) {
     if (typeof array[i] !== 'object' || array[i] === null) {
-      return nextTick(callback, new Error('batch(array) element must be an object and not `null`'))
+      return this._nextTick(callback, new Error('batch(array) element must be an object and not `null`'))
     }
 
-    var e = xtend(array[i])
+    const e = Object.assign({}, array[i])
 
     if (e.type !== 'put' && e.type !== 'del') {
-      return nextTick(callback, new Error("`type` must be 'put' or 'del'"))
+      return this._nextTick(callback, new Error("`type` must be 'put' or 'del'"))
     }
 
-    var err = this._checkKey(e.key)
-    if (err) return nextTick(callback, err)
+    const err = this._checkKey(e.key)
+    if (err) return this._nextTick(callback, err)
 
     e.key = this._serializeKey(e.key)
 
     if (e.type === 'put') {
-      var valueErr = this._checkValue(e.value)
-      if (valueErr) return nextTick(callback, valueErr)
+      const valueErr = this._checkValue(e.value)
+      if (valueErr) return this._nextTick(callback, valueErr)
 
       e.value = this._serializeValue(e.value)
     }
@@ -372,7 +459,7 @@ AbstractLevelDOWN.prototype.batch = function (array, options, callback) {
 }
 
 AbstractLevelDOWN.prototype._batch = function (array, options, callback) {
-  nextTick(callback)
+  this._nextTick(callback)
 }
 
 AbstractLevelDOWN.prototype.clear = function (options, callback) {
@@ -396,25 +483,24 @@ AbstractLevelDOWN.prototype._clear = function (options, callback) {
   options.keyAsBuffer = true
   options.valueAsBuffer = true
 
-  var iterator = this._iterator(options)
-  var emptyOptions = {}
-  var self = this
+  const iterator = this._iterator(options)
+  const emptyOptions = {}
 
-  var next = function (err) {
+  const next = (err) => {
     if (err) {
       return iterator.end(function () {
         callback(err)
       })
     }
 
-    iterator.next(function (err, key) {
+    iterator.next((err, key) => {
       if (err) return next(err)
       if (key === undefined) return iterator.end(callback)
 
       // This could be optimized by using a batch, but the default _clear
       // is not meant to be fast. Implementations have more room to optimize
       // if they override _clear. Note: using _del bypasses key serialization.
-      self._del(key, emptyOptions, next)
+      this._del(key, emptyOptions, next)
     })
   }
 
@@ -435,12 +521,16 @@ AbstractLevelDOWN.prototype._setupIteratorOptions = function (options) {
 }
 
 function cleanRangeOptions (db, options) {
-  var result = {}
+  const result = {}
 
-  for (var k in options) {
+  for (const k in options) {
     if (!hasOwnProperty.call(options, k)) continue
 
-    var opt = options[k]
+    if (k === 'start' || k === 'end') {
+      throw new Error('Legacy range options ("start" and "end") have been removed')
+    }
+
+    let opt = options[k]
 
     if (isRangeOption(k)) {
       // Note that we don't reject nullish and empty options here. While
@@ -483,7 +573,7 @@ AbstractLevelDOWN.prototype._serializeValue = function (value) {
 AbstractLevelDOWN.prototype._checkKey = function (key) {
   if (key === null || key === undefined) {
     return new Error('key cannot be `null` or `undefined`')
-  } else if (Buffer.isBuffer(key) && key.length === 0) {
+  } else if (isBuffer(key) && key.length === 0) { // TODO: replace with typed array check
     return new Error('key cannot be an empty Buffer')
   } else if (key === '') {
     return new Error('key cannot be an empty String')
@@ -498,16 +588,40 @@ AbstractLevelDOWN.prototype._checkValue = function (value) {
   }
 }
 
+// TODO: docs and tests
+AbstractLevelDOWN.prototype.isOperational = function () {
+  return this.status === 'open' || this._isOperational()
+}
+
+// Implementation may accept operations in other states too
+AbstractLevelDOWN.prototype._isOperational = function () {
+  return false
+}
+
 // Expose browser-compatible nextTick for dependents
-AbstractLevelDOWN.prototype._nextTick = nextTick
+// TODO: rename _nextTick to _queueMicrotask
+// TODO: after we drop node 10, also use queueMicrotask in node
+AbstractLevelDOWN.prototype._nextTick = __webpack_require__(8920)
 
 module.exports = AbstractLevelDOWN
+
+function maybeError (db, callback) {
+  if (!db.isOperational()) {
+    db._nextTick(callback, new Error('Database is not open'))
+    return true
+  }
+
+  return false
+}
 
 
 /***/ }),
 
 /***/ 4012:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
 
 exports.AbstractLevelDOWN = __webpack_require__(2554)
 exports.AbstractIterator = __webpack_require__(3538)
@@ -516,10 +630,120 @@ exports.AbstractChainedBatch = __webpack_require__(8508)
 
 /***/ }),
 
+/***/ 70:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+
+exports.R = function (options, callback) {
+  return typeof options === 'function' ? options : callback
+}
+
+exports.F = function (options) {
+  return typeof options === 'object' && options !== null ? options : {}
+}
+
+
+/***/ }),
+
 /***/ 8920:
 /***/ ((module) => {
 
+"use strict";
+
+
 module.exports = process.nextTick
+
+
+/***/ }),
+
+/***/ 5214:
+/***/ ((module) => {
+
+/*!
+ * Determine if an object is a Buffer
+ *
+ * @author   Feross Aboukhadijeh <https://feross.org>
+ * @license  MIT
+ */
+
+module.exports = function isBuffer (obj) {
+  return obj != null && obj.constructor != null &&
+    typeof obj.constructor.isBuffer === 'function' && obj.constructor.isBuffer(obj)
+}
+
+
+/***/ }),
+
+/***/ 6957:
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+
+var queueTick = __webpack_require__(3522)
+
+exports.fromCallback = function (callback, symbol) {
+  if (callback === undefined) {
+    var promise = new Promise(function (resolve, reject) {
+      callback = function (err, res) {
+        if (err) reject(err)
+        else resolve(res)
+      }
+    })
+
+    callback[symbol !== undefined ? symbol : 'promise'] = promise
+  } else if (typeof callback !== 'function') {
+    throw new TypeError('Callback must be a function')
+  }
+
+  return callback
+}
+
+exports.fromPromise = function (promise, callback) {
+  if (callback === undefined) return promise
+
+  promise
+    .then(function (res) { queueTick(() => callback(null, res)) })
+    .catch(function (err) { queueTick(() => callback(err)) })
+}
+
+
+/***/ }),
+
+/***/ 7171:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+"use strict";
+
+
+const { AbstractChainedBatch } = __webpack_require__(4012)
+const kOperations = Symbol('operations')
+
+module.exports = class DeferredChainedBatch extends AbstractChainedBatch {
+  constructor (db) {
+    super(db)
+    this[kOperations] = []
+  }
+
+  _put (key, value, options) {
+    this[kOperations].push({ ...options, type: 'put', key, value })
+  }
+
+  _del (key, options) {
+    this[kOperations].push({ ...options, type: 'del', key })
+  }
+
+  _clear () {
+    this[kOperations] = []
+  }
+
+  _write (options, callback) {
+    // AbstractChainedBatch would call _batch(), we call batch()
+    this.db.batch(this[kOperations], options, callback)
+  }
+}
 
 
 /***/ }),
@@ -527,40 +751,89 @@ module.exports = process.nextTick
 /***/ 2790:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var AbstractIterator = __webpack_require__(4012).AbstractIterator
-var inherits = __webpack_require__(4378)
+"use strict";
+
+
+const { AbstractIterator } = __webpack_require__(4012)
+const inherits = __webpack_require__(4378)
+const getCallback = __webpack_require__(2502)/* .getCallback */ .R
+
+const kOptions = Symbol('options')
+const kIterator = Symbol('iterator')
+const kOperations = Symbol('operations')
+const kPromise = Symbol('promise')
 
 function DeferredIterator (db, options) {
   AbstractIterator.call(this, db)
 
-  this._options = options
-  this._iterator = null
-  this._operations = []
+  this[kOptions] = options
+  this[kIterator] = null
+  this[kOperations] = []
 }
 
 inherits(DeferredIterator, AbstractIterator)
 
 DeferredIterator.prototype.setDb = function (db) {
-  var it = this._iterator = db.iterator(this._options)
-  this._operations.forEach(function (op) {
-    it[op.method].apply(it, op.args)
-  })
-}
+  this[kIterator] = db.iterator(this[kOptions])
 
-DeferredIterator.prototype._operation = function (method, args) {
-  if (this._iterator) return this._iterator[method].apply(this._iterator, args)
-  this._operations.push({ method: method, args: args })
-}
-
-'next end'.split(' ').forEach(function (m) {
-  DeferredIterator.prototype['_' + m] = function () {
-    this._operation(m, arguments)
+  for (const op of this[kOperations].splice(0, this[kOperations].length)) {
+    this[kIterator][op.method](...op.args)
   }
-})
+}
 
-// Must defer seek() rather than _seek() because it requires db._serializeKey to be available
-DeferredIterator.prototype.seek = function () {
-  this._operation('seek', arguments)
+DeferredIterator.prototype.next = function (...args) {
+  if (this.db.status === 'open') {
+    return this[kIterator].next(...args)
+  }
+
+  const callback = getCallback(args, kPromise, function map (key, value) {
+    if (key === undefined && value === undefined) {
+      return undefined
+    } else {
+      return [key, value]
+    }
+  })
+
+  if (this.db.status === 'opening') {
+    this[kOperations].push({ method: 'next', args })
+  } else {
+    this._nextTick(callback, new Error('Database is not open'))
+  }
+
+  return callback[kPromise] || this
+}
+
+DeferredIterator.prototype.seek = function (...args) {
+  if (this.db.status === 'open') {
+    this[kIterator].seek(...args)
+  } else if (this.db.status === 'opening') {
+    this[kOperations].push({ method: 'seek', args })
+  } else {
+    throw new Error('Database is not open')
+  }
+}
+
+DeferredIterator.prototype.end = function (...args) {
+  if (this.db.status === 'open') {
+    return this[kIterator].end(...args)
+  }
+
+  const callback = getCallback(args, kPromise)
+
+  if (this.db.status === 'opening') {
+    this[kOperations].push({ method: 'end', args })
+  } else {
+    this._nextTick(callback, new Error('Database is not open'))
+  }
+
+  return callback[kPromise] || this
+}
+
+for (const method of ['next', 'seek', 'end']) {
+  DeferredIterator.prototype['_' + method] = function () {
+    /* istanbul ignore next: assertion */
+    throw new Error('Did not expect private method to be called: ' + method)
+  }
 }
 
 module.exports = DeferredIterator
@@ -571,99 +844,135 @@ module.exports = DeferredIterator
 /***/ 6944:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var AbstractLevelDOWN = __webpack_require__(4012).AbstractLevelDOWN
-var inherits = __webpack_require__(4378)
-var DeferredIterator = __webpack_require__(2790)
-var deferrables = 'put get del batch clear'.split(' ')
-var optionalDeferrables = 'approximateSize compactRange'.split(' ')
+"use strict";
+
+
+const { AbstractLevelDOWN } = __webpack_require__(4012)
+const inherits = __webpack_require__(4378)
+const DeferredIterator = __webpack_require__(2790)
+const DeferredChainedBatch = __webpack_require__(7171)
+const getCallback = __webpack_require__(2502)/* .getCallback */ .R
+
+const deferrables = ['put', 'get', 'getMany', 'del', 'batch', 'clear']
+const optionalDeferrables = ['approximateSize', 'compactRange']
+
+const kInnerDb = Symbol('innerDb')
+const kOperations = Symbol('operations')
+const kPromise = Symbol('promise')
 
 function DeferredLevelDOWN (db) {
   AbstractLevelDOWN.call(this, db.supports || {})
 
   // TODO (future major): remove this fallback; db must have manifest that
   // declares approximateSize and compactRange in additionalMethods.
-  optionalDeferrables.forEach(function (m) {
+  for (const m of optionalDeferrables) {
     if (typeof db[m] === 'function' && !this.supports.additionalMethods[m]) {
       this.supports.additionalMethods[m] = true
     }
-  }, this)
+  }
 
-  this._db = db
-  this._operations = []
-  closed(this)
+  this[kInnerDb] = db
+  this[kOperations] = []
+
+  implement(this)
 }
 
 inherits(DeferredLevelDOWN, AbstractLevelDOWN)
 
 DeferredLevelDOWN.prototype.type = 'deferred-leveldown'
 
+// Backwards compatibility for reachdown and subleveldown
+Object.defineProperty(DeferredLevelDOWN.prototype, '_db', {
+  enumerable: true,
+  get () {
+    return this[kInnerDb]
+  }
+})
+
 DeferredLevelDOWN.prototype._open = function (options, callback) {
-  var self = this
+  const onopen = (err) => {
+    if (err || this[kInnerDb].status !== 'open') {
+      // TODO: reject scheduled operations
+      return callback(err || new Error('Database is not open'))
+    }
 
-  this._db.open(options, function (err) {
-    if (err) return callback(err)
+    const operations = this[kOperations]
+    this[kOperations] = []
 
-    self._operations.forEach(function (op) {
+    for (const op of operations) {
       if (op.iterator) {
-        op.iterator.setDb(self._db)
+        op.iterator.setDb(this[kInnerDb])
       } else {
-        self._db[op.method].apply(self._db, op.args)
+        this[kInnerDb][op.method](...op.args)
       }
-    })
-    self._operations = []
+    }
 
-    open(self)
+    /* istanbul ignore if: assertion */
+    if (this[kOperations].length > 0) {
+      throw new Error('Did not expect further operations')
+    }
+
     callback()
-  })
-}
+  }
 
-DeferredLevelDOWN.prototype._close = function (callback) {
-  var self = this
-
-  this._db.close(function (err) {
-    if (err) return callback(err)
-    closed(self)
-    callback()
-  })
-}
-
-function open (self) {
-  deferrables.concat('iterator').forEach(function (m) {
-    self['_' + m] = function () {
-      return this._db[m].apply(this._db, arguments)
-    }
-  })
-  Object.keys(self.supports.additionalMethods).forEach(function (m) {
-    self[m] = function () {
-      return this._db[m].apply(this._db, arguments)
-    }
-  })
-}
-
-function closed (self) {
-  deferrables.forEach(function (m) {
-    self['_' + m] = function () {
-      this._operations.push({ method: m, args: arguments })
-    }
-  })
-  Object.keys(self.supports.additionalMethods).forEach(function (m) {
-    self[m] = function () {
-      this._operations.push({ method: m, args: arguments })
-    }
-  })
-  self._iterator = function (options) {
-    var it = new DeferredIterator(self, options)
-    this._operations.push({ iterator: it })
-    return it
+  if (this[kInnerDb].status === 'new' || this[kInnerDb].status === 'closed') {
+    this[kInnerDb].open(options, onopen)
+  } else {
+    this._nextTick(onopen)
   }
 }
 
-DeferredLevelDOWN.prototype._serializeKey = function (key) {
-  return key
+DeferredLevelDOWN.prototype._close = function (callback) {
+  this[kInnerDb].close(callback)
 }
 
-DeferredLevelDOWN.prototype._serializeValue = function (value) {
-  return value
+DeferredLevelDOWN.prototype._isOperational = function () {
+  return this.status === 'opening'
+}
+
+function implement (self) {
+  const additionalMethods = Object.keys(self.supports.additionalMethods)
+
+  for (const method of deferrables.concat(additionalMethods)) {
+    // Override the public rather than private methods to cover cases where abstract-leveldown
+    // has a fast-path like on db.batch([]) which bypasses _batch() because the array is empty.
+    self[method] = function (...args) {
+      if (method === 'batch' && args.length === 0) {
+        return new DeferredChainedBatch(this)
+      } else if (this.status === 'open') {
+        return this[kInnerDb][method](...args)
+      }
+
+      const callback = getCallback(args, kPromise)
+
+      if (this.status === 'opening') {
+        this[kOperations].push({ method, args })
+      } else {
+        this._nextTick(callback, new Error('Database is not open'))
+      }
+
+      return callback[kPromise]
+    }
+  }
+
+  self.iterator = function (options) {
+    if (this.status === 'open') {
+      return this[kInnerDb].iterator(options)
+    } else if (this.status === 'opening') {
+      const iterator = new DeferredIterator(this, options)
+      this[kOperations].push({ iterator })
+      return iterator
+    } else {
+      throw new Error('Database is not open')
+    }
+  }
+
+  for (const method of deferrables.concat(['iterator'])) {
+    self['_' + method] = function () {
+      /* istanbul ignore next: assertion */
+      throw new Error('Did not expect private method to be called: ' + method)
+    }
+  }
 }
 
 module.exports = DeferredLevelDOWN
@@ -672,386 +981,28 @@ module.exports.DeferredIterator = DeferredIterator
 
 /***/ }),
 
-/***/ 6555:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ 2502:
+/***/ ((__unused_webpack_module, exports) => {
 
-var prr = __webpack_require__(233)
+"use strict";
 
-function init (type, message, cause) {
-  if (!!message && typeof message != 'string') {
-    message = message.message || message.name
+
+exports.R = function (args, symbol, map) {
+  let callback = args[args.length - 1]
+
+  if (typeof callback !== 'function') {
+    const promise = new Promise((resolve, reject) => {
+      args.push(callback = function (err, ...results) {
+        if (err) reject(err)
+        else resolve(map ? map(...results) : results[0])
+      })
+    })
+
+    callback[symbol] = promise
   }
-  prr(this, {
-      type    : type
-    , name    : type
-      // can be passed just a 'cause'
-    , cause   : typeof message != 'string' ? message : cause
-    , message : message
-  }, 'ewr')
+
+  return callback
 }
-
-// generic prototype, not intended to be actually used - helpful for `instanceof`
-function CustomError (message, cause) {
-  Error.call(this)
-  if (Error.captureStackTrace)
-    Error.captureStackTrace(this, this.constructor)
-  init.call(this, 'CustomError', message, cause)
-}
-
-CustomError.prototype = new Error()
-
-function createError (errno, type, proto) {
-  var err = function (message, cause) {
-    init.call(this, type, message, cause)
-    //TODO: the specificity here is stupid, errno should be available everywhere
-    if (type == 'FilesystemError') {
-      this.code    = this.cause.code
-      this.path    = this.cause.path
-      this.errno   = this.cause.errno
-      this.message =
-        (errno.errno[this.cause.errno]
-          ? errno.errno[this.cause.errno].description
-          : this.cause.message)
-        + (this.cause.path ? ' [' + this.cause.path + ']' : '')
-    }
-    Error.call(this)
-    if (Error.captureStackTrace)
-      Error.captureStackTrace(this, err)
-  }
-  err.prototype = !!proto ? new proto() : new CustomError()
-  return err
-}
-
-module.exports = function (errno) {
-  var ce = function (type, proto) {
-    return createError(errno, type, proto)
-  }
-  return {
-      CustomError     : CustomError
-    , FilesystemError : ce('FilesystemError')
-    , createError     : ce
-  }
-}
-
-
-/***/ }),
-
-/***/ 7138:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
-
-var all = module.exports.all = [
-  {
-    errno: -2,
-    code: 'ENOENT',
-    description: 'no such file or directory'
-  },
-  {
-    errno: -1,
-    code: 'UNKNOWN',
-    description: 'unknown error'
-  },
-  {
-    errno: 0,
-    code: 'OK',
-    description: 'success'
-  },
-  {
-    errno: 1,
-    code: 'EOF',
-    description: 'end of file'
-  },
-  {
-    errno: 2,
-    code: 'EADDRINFO',
-    description: 'getaddrinfo error'
-  },
-  {
-    errno: 3,
-    code: 'EACCES',
-    description: 'permission denied'
-  },
-  {
-    errno: 4,
-    code: 'EAGAIN',
-    description: 'resource temporarily unavailable'
-  },
-  {
-    errno: 5,
-    code: 'EADDRINUSE',
-    description: 'address already in use'
-  },
-  {
-    errno: 6,
-    code: 'EADDRNOTAVAIL',
-    description: 'address not available'
-  },
-  {
-    errno: 7,
-    code: 'EAFNOSUPPORT',
-    description: 'address family not supported'
-  },
-  {
-    errno: 8,
-    code: 'EALREADY',
-    description: 'connection already in progress'
-  },
-  {
-    errno: 9,
-    code: 'EBADF',
-    description: 'bad file descriptor'
-  },
-  {
-    errno: 10,
-    code: 'EBUSY',
-    description: 'resource busy or locked'
-  },
-  {
-    errno: 11,
-    code: 'ECONNABORTED',
-    description: 'software caused connection abort'
-  },
-  {
-    errno: 12,
-    code: 'ECONNREFUSED',
-    description: 'connection refused'
-  },
-  {
-    errno: 13,
-    code: 'ECONNRESET',
-    description: 'connection reset by peer'
-  },
-  {
-    errno: 14,
-    code: 'EDESTADDRREQ',
-    description: 'destination address required'
-  },
-  {
-    errno: 15,
-    code: 'EFAULT',
-    description: 'bad address in system call argument'
-  },
-  {
-    errno: 16,
-    code: 'EHOSTUNREACH',
-    description: 'host is unreachable'
-  },
-  {
-    errno: 17,
-    code: 'EINTR',
-    description: 'interrupted system call'
-  },
-  {
-    errno: 18,
-    code: 'EINVAL',
-    description: 'invalid argument'
-  },
-  {
-    errno: 19,
-    code: 'EISCONN',
-    description: 'socket is already connected'
-  },
-  {
-    errno: 20,
-    code: 'EMFILE',
-    description: 'too many open files'
-  },
-  {
-    errno: 21,
-    code: 'EMSGSIZE',
-    description: 'message too long'
-  },
-  {
-    errno: 22,
-    code: 'ENETDOWN',
-    description: 'network is down'
-  },
-  {
-    errno: 23,
-    code: 'ENETUNREACH',
-    description: 'network is unreachable'
-  },
-  {
-    errno: 24,
-    code: 'ENFILE',
-    description: 'file table overflow'
-  },
-  {
-    errno: 25,
-    code: 'ENOBUFS',
-    description: 'no buffer space available'
-  },
-  {
-    errno: 26,
-    code: 'ENOMEM',
-    description: 'not enough memory'
-  },
-  {
-    errno: 27,
-    code: 'ENOTDIR',
-    description: 'not a directory'
-  },
-  {
-    errno: 28,
-    code: 'EISDIR',
-    description: 'illegal operation on a directory'
-  },
-  {
-    errno: 29,
-    code: 'ENONET',
-    description: 'machine is not on the network'
-  },
-  {
-    errno: 31,
-    code: 'ENOTCONN',
-    description: 'socket is not connected'
-  },
-  {
-    errno: 32,
-    code: 'ENOTSOCK',
-    description: 'socket operation on non-socket'
-  },
-  {
-    errno: 33,
-    code: 'ENOTSUP',
-    description: 'operation not supported on socket'
-  },
-  {
-    errno: 34,
-    code: 'ENOENT',
-    description: 'no such file or directory'
-  },
-  {
-    errno: 35,
-    code: 'ENOSYS',
-    description: 'function not implemented'
-  },
-  {
-    errno: 36,
-    code: 'EPIPE',
-    description: 'broken pipe'
-  },
-  {
-    errno: 37,
-    code: 'EPROTO',
-    description: 'protocol error'
-  },
-  {
-    errno: 38,
-    code: 'EPROTONOSUPPORT',
-    description: 'protocol not supported'
-  },
-  {
-    errno: 39,
-    code: 'EPROTOTYPE',
-    description: 'protocol wrong type for socket'
-  },
-  {
-    errno: 40,
-    code: 'ETIMEDOUT',
-    description: 'connection timed out'
-  },
-  {
-    errno: 41,
-    code: 'ECHARSET',
-    description: 'invalid Unicode character'
-  },
-  {
-    errno: 42,
-    code: 'EAIFAMNOSUPPORT',
-    description: 'address family for hostname not supported'
-  },
-  {
-    errno: 44,
-    code: 'EAISERVICE',
-    description: 'servname not supported for ai_socktype'
-  },
-  {
-    errno: 45,
-    code: 'EAISOCKTYPE',
-    description: 'ai_socktype not supported'
-  },
-  {
-    errno: 46,
-    code: 'ESHUTDOWN',
-    description: 'cannot send after transport endpoint shutdown'
-  },
-  {
-    errno: 47,
-    code: 'EEXIST',
-    description: 'file already exists'
-  },
-  {
-    errno: 48,
-    code: 'ESRCH',
-    description: 'no such process'
-  },
-  {
-    errno: 49,
-    code: 'ENAMETOOLONG',
-    description: 'name too long'
-  },
-  {
-    errno: 50,
-    code: 'EPERM',
-    description: 'operation not permitted'
-  },
-  {
-    errno: 51,
-    code: 'ELOOP',
-    description: 'too many symbolic links encountered'
-  },
-  {
-    errno: 52,
-    code: 'EXDEV',
-    description: 'cross-device link not permitted'
-  },
-  {
-    errno: 53,
-    code: 'ENOTEMPTY',
-    description: 'directory not empty'
-  },
-  {
-    errno: 54,
-    code: 'ENOSPC',
-    description: 'no space left on device'
-  },
-  {
-    errno: 55,
-    code: 'EIO',
-    description: 'i/o error'
-  },
-  {
-    errno: 56,
-    code: 'EROFS',
-    description: 'read-only file system'
-  },
-  {
-    errno: 57,
-    code: 'ENODEV',
-    description: 'no such device'
-  },
-  {
-    errno: 58,
-    code: 'ESPIPE',
-    description: 'invalid seek'
-  },
-  {
-    errno: 59,
-    code: 'ECANCELED',
-    description: 'operation canceled'
-  }
-]
-
-module.exports.errno = {}
-module.exports.code = {}
-
-all.forEach(function (error) {
-  module.exports.errno[error.errno] = error
-  module.exports.code[error.code] = error
-})
-
-module.exports.custom = __webpack_require__(6555)(module.exports)
-module.exports.create = module.exports.custom.createError
 
 
 /***/ }),
@@ -1107,14 +1058,45 @@ if (typeof Object.create === 'function') {
 /***/ }),
 
 /***/ 6604:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ ((module) => {
 
-var createError = __webpack_require__(7138).create
-var LevelUPError = createError('LevelUPError')
-var NotFoundError = createError('NotFoundError', LevelUPError)
+"use strict";
 
-NotFoundError.prototype.notFound = true
-NotFoundError.prototype.status = 404
+
+function createError (type, Proto) {
+  const Err = function (message, cause) {
+    if (typeof message === 'object' && message !== null) {
+      // Can be passed just a cause
+      cause = cause || message
+      message = message.message || message.name
+    }
+
+    message = message || ''
+    cause = cause || undefined
+
+    // If input is already of type, return as-is to keep its stack trace.
+    // Avoid instanceof, for when node_modules has multiple copies of level-errors.
+    if (typeof cause === 'object' && cause.type === type && cause.message === message) {
+      return cause
+    }
+
+    Object.defineProperty(this, 'type', { value: type, enumerable: false, writable: true, configurable: true })
+    Object.defineProperty(this, 'name', { value: type, enumerable: false, writable: true, configurable: true })
+    Object.defineProperty(this, 'cause', { value: cause, enumerable: false, writable: true, configurable: true })
+    Object.defineProperty(this, 'message', { value: message, enumerable: false, writable: true, configurable: true })
+
+    Error.call(this)
+
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, Err)
+    }
+  }
+
+  Err.prototype = new Proto()
+  return Err
+}
+
+const LevelUPError = createError('LevelUPError', Error)
 
 module.exports = {
   LevelUPError: LevelUPError,
@@ -1122,9 +1104,12 @@ module.exports = {
   OpenError: createError('OpenError', LevelUPError),
   ReadError: createError('ReadError', LevelUPError),
   WriteError: createError('WriteError', LevelUPError),
-  NotFoundError: NotFoundError,
+  NotFoundError: createError('NotFoundError', LevelUPError),
   EncodingError: createError('EncodingError', LevelUPError)
 }
+
+module.exports.NotFoundError.prototype.notFound = true
+module.exports.NotFoundError.prototype.status = 404
 
 
 /***/ }),
@@ -1132,9 +1117,11 @@ module.exports = {
 /***/ 3462:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var inherits = __webpack_require__(4378)
-var Readable = __webpack_require__(8654).Readable
-var extend = __webpack_require__(7529)
+"use strict";
+
+
+const inherits = __webpack_require__(4378)
+const { Readable } = __webpack_require__(8654)
 
 module.exports = ReadStream
 inherits(ReadStream, Readable)
@@ -1142,7 +1129,7 @@ inherits(ReadStream, Readable)
 function ReadStream (iterator, options) {
   if (!(this instanceof ReadStream)) return new ReadStream(iterator, options)
   options = options || {}
-  Readable.call(this, extend(options, {
+  Readable.call(this, Object.assign({}, options, {
     objectMode: true
   }))
   this._iterator = iterator
@@ -1151,22 +1138,20 @@ function ReadStream (iterator, options) {
 }
 
 ReadStream.prototype._read = function () {
-  var self = this
-  var options = this._options
   if (this.destroyed) return
 
-  this._iterator.next(function (err, key, value) {
-    if (self.destroyed) return
-    if (err) return self.destroy(err)
+  this._iterator.next((err, key, value) => {
+    if (this.destroyed) return
+    if (err) return this.destroy(err)
 
     if (key === undefined && value === undefined) {
-      self.push(null)
-    } else if (options.keys !== false && options.values === false) {
-      self.push(key)
-    } else if (options.keys === false && options.values !== false) {
-      self.push(value)
+      this.push(null)
+    } else if (this._options.keys !== false && this._options.values === false) {
+      this.push(key)
+    } else if (this._options.keys === false && this._options.values !== false) {
+      this.push(value)
     } else {
-      self.push({ key: key, value: value })
+      this.push({ key, value })
     }
   })
 }
@@ -4809,28 +4794,32 @@ function simpleEnd(buf) {
 /***/ }),
 
 /***/ 1675:
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+/***/ ((module) => {
 
 "use strict";
 
 
-// For (old) browser support
-var xtend = __webpack_require__(7529)
-var assign = __webpack_require__(9820)
+module.exports = function supports (...manifests) {
+  const manifest = manifests.reduce((acc, m) => Object.assign(acc, m), {})
 
-module.exports = function supports () {
-  var manifest = xtend.apply(null, arguments)
-
-  return assign(manifest, {
+  return Object.assign(manifest, {
     // Features of abstract-leveldown
     bufferKeys: manifest.bufferKeys || false,
     snapshots: manifest.snapshots || false,
     permanence: manifest.permanence || false,
     seek: manifest.seek || false,
     clear: manifest.clear || false,
+    getMany: manifest.getMany || false,
+    keyIterator: manifest.keyIterator || false,
+    valueIterator: manifest.valueIterator || false,
+    iteratorNextv: manifest.iteratorNextv || false,
+    iteratorAll: manifest.iteratorAll || false,
 
     // Features of abstract-leveldown that levelup doesn't have
     status: manifest.status || false,
+    idempotentOpen: manifest.idempotentOpen || false,
+    passiveOpen: manifest.passiveOpen || false,
+    serialize: manifest.serialize || false,
 
     // Features of disk-based implementations
     createIfMissing: manifest.createIfMissing || false,
@@ -4841,11 +4830,16 @@ module.exports = function supports () {
     openCallback: manifest.openCallback || false,
     promises: manifest.promises || false,
     streams: manifest.streams || false,
-    encodings: manifest.encodings || false,
+    encodings: maybeObject(manifest.encodings),
+    events: maybeObject(manifest.events),
 
     // Methods that are not part of abstract-leveldown or levelup
-    additionalMethods: xtend(manifest.additionalMethods)
+    additionalMethods: Object.assign({}, manifest.additionalMethods)
   })
+}
+
+function maybeObject (value) {
+  return !value ? false : Object.assign({}, value)
 }
 
 
@@ -4861,6 +4855,9 @@ module.exports = __webpack_require__(9516)(__dirname)
 
 /***/ 2005:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+"use strict";
+
 
 const util = __webpack_require__(1669)
 const AbstractChainedBatch = __webpack_require__(4012).AbstractChainedBatch
@@ -4897,6 +4894,9 @@ module.exports = ChainedBatch
 /***/ 3135:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
+"use strict";
+
+
 const util = __webpack_require__(1669)
 const AbstractIterator = __webpack_require__(4012).AbstractIterator
 const binding = __webpack_require__(4746)
@@ -4922,19 +4922,17 @@ Iterator.prototype._seek = function (target) {
 }
 
 Iterator.prototype._next = function (callback) {
-  var that = this
-
   if (this.cache && this.cache.length) {
     process.nextTick(callback, null, this.cache.pop(), this.cache.pop())
   } else if (this.finished) {
     process.nextTick(callback)
   } else {
-    binding.iterator_next(this.context, function (err, array, finished) {
+    binding.iterator_next(this.context, (err, array, finished) => {
       if (err) return callback(err)
 
-      that.cache = array
-      that.finished = finished
-      that._next(callback)
+      this.cache = array
+      this.finished = finished
+      this._next(callback)
     })
   }
 
@@ -4954,7 +4952,10 @@ module.exports = Iterator
 /***/ 717:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
+"use strict";
 /* provided dependency */ var Buffer = __webpack_require__(4293)["Buffer"];
+
+
 const util = __webpack_require__(1669)
 const AbstractLevelDOWN = __webpack_require__(4012).AbstractLevelDOWN
 const binding = __webpack_require__(4746)
@@ -4976,6 +4977,7 @@ function LevelDOWN (location) {
     permanence: true,
     seek: true,
     clear: true,
+    getMany: true,
     createIfMissing: true,
     errorIfExists: true,
     additionalMethods: {
@@ -5014,8 +5016,16 @@ LevelDOWN.prototype._get = function (key, options, callback) {
   binding.db_get(this.context, key, options, callback)
 }
 
+LevelDOWN.prototype._getMany = function (keys, options, callback) {
+  binding.db_get_many(this.context, keys, options, callback)
+}
+
 LevelDOWN.prototype._del = function (key, options, callback) {
   binding.db_del(this.context, key, options, callback)
+}
+
+LevelDOWN.prototype._clear = function (options, callback) {
+  binding.db_clear(this.context, options, callback)
 }
 
 LevelDOWN.prototype._chainedBatch = function () {
@@ -5107,7 +5117,7 @@ LevelDOWN.repair = function (location, callback) {
   binding.repair_db(location, callback)
 }
 
-module.exports = LevelDOWN.default = LevelDOWN
+module.exports = LevelDOWN
 
 
 /***/ }),
@@ -5115,40 +5125,42 @@ module.exports = LevelDOWN.default = LevelDOWN
 /***/ 8133:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var WriteError = __webpack_require__(6604).WriteError
-var promisify = __webpack_require__(5160)
-var getCallback = __webpack_require__(2369)/* .getCallback */ .R
-var getOptions = __webpack_require__(2369)/* .getOptions */ .F
+"use strict";
+
+
+const WriteError = __webpack_require__(6604).WriteError
+const catering = __webpack_require__(6957)
+const getCallback = __webpack_require__(2369)/* .getCallback */ .R
+const getOptions = __webpack_require__(2369)/* .getOptions */ .F
 
 function Batch (levelup) {
-  // TODO (next major): remove this._levelup alias
-  this.db = this._levelup = levelup
+  this.db = levelup
   this.batch = levelup.db.batch()
   this.ops = []
   this.length = 0
 }
 
-Batch.prototype.put = function (key, value) {
+Batch.prototype.put = function (key, value, options) {
   try {
-    this.batch.put(key, value)
+    this.batch.put(key, value, options)
   } catch (e) {
     throw new WriteError(e)
   }
 
-  this.ops.push({ type: 'put', key: key, value: value })
+  this.ops.push({ ...options, type: 'put', key, value })
   this.length++
 
   return this
 }
 
-Batch.prototype.del = function (key) {
+Batch.prototype.del = function (key, options) {
   try {
-    this.batch.del(key)
+    this.batch.del(key, options)
   } catch (err) {
     throw new WriteError(err)
   }
 
-  this.ops.push({ type: 'del', key: key })
+  this.ops.push({ ...options, type: 'del', key })
   this.length++
 
   return this
@@ -5168,17 +5180,11 @@ Batch.prototype.clear = function () {
 }
 
 Batch.prototype.write = function (options, callback) {
-  var levelup = this._levelup
-  var ops = this.ops
-  var promise
+  const levelup = this.db
+  const ops = this.ops
 
   callback = getCallback(options, callback)
-
-  if (!callback) {
-    callback = promisify()
-    promise = callback.promise
-  }
-
+  callback = catering.fromCallback(callback)
   options = getOptions(options)
 
   try {
@@ -5191,7 +5197,7 @@ Batch.prototype.write = function (options, callback) {
     throw new WriteError(err)
   }
 
-  return promise
+  return callback.promise
 }
 
 module.exports = Batch
@@ -5201,6 +5207,9 @@ module.exports = Batch
 
 /***/ 2369:
 /***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
 
 exports.R = function (options, callback) {
   return typeof options === 'function' ? options : callback
@@ -5216,40 +5225,35 @@ exports.F = function (options) {
 /***/ 4918:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var EventEmitter = __webpack_require__(8614).EventEmitter
-var inherits = __webpack_require__(1669).inherits
-var extend = __webpack_require__(7529)
-var DeferredLevelDOWN = __webpack_require__(6944)
-var IteratorStream = __webpack_require__(3462)
-var Batch = __webpack_require__(8133)
-var errors = __webpack_require__(6604)
-var supports = __webpack_require__(1675)
-var assert = __webpack_require__(2357)
-var promisify = __webpack_require__(5160)
-var getCallback = __webpack_require__(2369)/* .getCallback */ .R
-var getOptions = __webpack_require__(2369)/* .getOptions */ .F
+"use strict";
 
-var WriteError = errors.WriteError
-var ReadError = errors.ReadError
-var NotFoundError = errors.NotFoundError
-var OpenError = errors.OpenError
-var InitializationError = errors.InitializationError
 
-// Possible AbstractLevelDOWN#status values:
-//  - 'new'     - newly created, not opened or closed
-//  - 'opening' - waiting for the database to be opened, post open()
-//  - 'open'    - successfully opened the database, available for use
-//  - 'closing' - waiting for the database to be closed, post close()
-//  - 'closed'  - database has been successfully closed, should not be
-//                 used except for another open() operation
+const EventEmitter = __webpack_require__(8614).EventEmitter
+const inherits = __webpack_require__(1669).inherits
+const DeferredLevelDOWN = __webpack_require__(6944)
+const IteratorStream = __webpack_require__(3462)
+const Batch = __webpack_require__(8133)
+const errors = __webpack_require__(6604)
+const supports = __webpack_require__(1675)
+const catering = __webpack_require__(6957)
+const getCallback = __webpack_require__(2369)/* .getCallback */ .R
+const getOptions = __webpack_require__(2369)/* .getOptions */ .F
+
+// TODO: after we drop node 10, also use queueMicrotask() in node
+const nextTick = __webpack_require__(5583)
+
+const WriteError = errors.WriteError
+const ReadError = errors.ReadError
+const NotFoundError = errors.NotFoundError
+const OpenError = errors.OpenError
+const InitializationError = errors.InitializationError
 
 function LevelUP (db, options, callback) {
   if (!(this instanceof LevelUP)) {
     return new LevelUP(db, options, callback)
   }
 
-  var error
-  var self = this
+  let error
 
   EventEmitter.call(this)
   this.setMaxListeners(Infinity)
@@ -5264,23 +5268,25 @@ function LevelUP (db, options, callback) {
   if (!db || typeof db !== 'object') {
     error = new InitializationError('First argument must be an abstract-leveldown compliant store')
     if (typeof callback === 'function') {
-      return process.nextTick(callback, error)
+      return nextTick(callback, error)
     }
     throw error
   }
 
-  assert.strictEqual(typeof db.status, 'string', '.status required, old abstract-leveldown')
+  if (typeof db.status !== 'string') {
+    throw new Error('.status required, old abstract-leveldown')
+  }
 
   this.options = getOptions(options)
   this._db = db
-  this.db = new DeferredLevelDOWN(db)
-  this.open(callback || function (err) {
-    if (err) self.emit('error', err)
-  })
+  this.db = null
+  this.open(callback || ((err) => {
+    if (err) this.emit('error', err)
+  }))
 
   // Create manifest based on deferred-leveldown's
   this.supports = supports(this.db.supports, {
-    status: false,
+    status: true,
     deferredOpen: true,
     openCallback: true,
     promises: true,
@@ -5288,115 +5294,119 @@ function LevelUP (db, options, callback) {
   })
 
   // Experimental: enrich levelup interface
-  Object.keys(this.supports.additionalMethods).forEach(function (method) {
-    if (this[method] != null) return
+  for (const method of Object.keys(this.supports.additionalMethods)) {
+    if (this[method] != null) continue
 
     // Don't do this.db[method].bind() because this.db is dynamic.
-    this[method] = function () {
-      return this.db[method].apply(this.db, arguments)
+    this[method] = function (...args) {
+      return this.db[method](...args)
     }
-  }, this)
+  }
 }
 
 LevelUP.prototype.emit = EventEmitter.prototype.emit
 LevelUP.prototype.once = EventEmitter.prototype.once
 inherits(LevelUP, EventEmitter)
 
-LevelUP.prototype.open = function (opts, callback) {
-  var self = this
-  var promise
+// TODO: tests
+Object.defineProperty(LevelUP.prototype, 'status', {
+  enumerable: true,
+  get () {
+    return this.db.status
+  }
+})
 
+// TODO: tests
+LevelUP.prototype.isOperational = function () {
+  return this.db.status === 'open' || this.db.status === 'opening'
+}
+
+LevelUP.prototype.open = function (opts, callback) {
   if (typeof opts === 'function') {
     callback = opts
     opts = null
   }
 
-  if (!callback) {
-    callback = promisify()
-    promise = callback.promise
-  }
+  callback = catering.fromCallback(callback)
 
   if (!opts) {
     opts = this.options
   }
 
-  if (this.isOpen()) {
-    process.nextTick(callback, null, self)
-    return promise
+  // 1) Don't check db.status until levelup has opened,
+  // in order for levelup events to be consistent
+  if (this.db && this.isOpen()) {
+    nextTick(callback, null, this)
+    return callback.promise
   }
 
-  if (this._isOpening()) {
-    this.once('open', function () { callback(null, self) })
-    return promise
+  if (this.db && this._isOpening()) {
+    this.once('open', () => { callback(null, this) })
+    return callback.promise
   }
 
+  // 2) Instead let deferred-leveldown handle already-open cases.
+  // TODO: ideally though, levelup would have its own status
+  this.db = new DeferredLevelDOWN(this._db)
   this.emit('opening')
 
-  this.db.open(opts, function (err) {
+  this.db.open(opts, (err) => {
     if (err) {
       return callback(new OpenError(err))
     }
-    self.db = self._db
-    callback(null, self)
-    self.emit('open')
-    self.emit('ready')
+    this.db = this._db
+    callback(null, this)
+    this.emit('open')
+    this.emit('ready')
   })
 
-  return promise
+  return callback.promise
 }
 
 LevelUP.prototype.close = function (callback) {
-  var self = this
-  var promise
-
-  if (!callback) {
-    callback = promisify()
-    promise = callback.promise
-  }
+  callback = catering.fromCallback(callback)
 
   if (this.isOpen()) {
-    this.db.close(function () {
-      self.emit('closed')
-      callback.apply(null, arguments)
+    this.db.close((err, ...rest) => {
+      this.emit('closed')
+      callback(err, ...rest)
     })
     this.emit('closing')
-    this.db = new DeferredLevelDOWN(this._db)
   } else if (this.isClosed()) {
-    process.nextTick(callback)
+    nextTick(callback)
   } else if (this.db.status === 'closing') {
     this.once('closed', callback)
   } else if (this._isOpening()) {
-    this.once('open', function () {
-      self.close(callback)
+    this.once('open', () => {
+      this.close(callback)
     })
   }
 
-  return promise
+  return callback.promise
 }
 
+// TODO: remove in future major
 LevelUP.prototype.isOpen = function () {
   return this.db.status === 'open'
 }
 
+// TODO: remove in future major
 LevelUP.prototype._isOpening = function () {
   return this.db.status === 'opening'
 }
 
+// TODO: remove in future major
 LevelUP.prototype.isClosed = function () {
   return (/^clos|new/).test(this.db.status)
 }
 
 LevelUP.prototype.get = function (key, options, callback) {
-  var promise
-
   callback = getCallback(options, callback)
+  callback = catering.fromCallback(callback)
 
-  if (!callback) {
-    callback = promisify()
-    promise = callback.promise
+  if (maybeError(this, callback)) {
+    return callback.promise
   }
-
-  if (maybeError(this, callback)) { return promise }
 
   options = getOptions(options)
 
@@ -5412,59 +5422,53 @@ LevelUP.prototype.get = function (key, options, callback) {
     callback(null, value)
   })
 
-  return promise
+  return callback.promise
+}
+
+LevelUP.prototype.getMany = function (keys, options, callback) {
+  return this.db.getMany(keys, options, callback)
 }
 
 LevelUP.prototype.put = function (key, value, options, callback) {
-  var self = this
-  var promise
-
   callback = getCallback(options, callback)
+  callback = catering.fromCallback(callback)
 
-  if (!callback) {
-    callback = promisify()
-    promise = callback.promise
+  if (maybeError(this, callback)) {
+    return callback.promise
   }
-
-  if (maybeError(this, callback)) { return promise }
 
   options = getOptions(options)
 
-  this.db.put(key, value, options, function (err) {
+  this.db.put(key, value, options, (err) => {
     if (err) {
       return callback(new WriteError(err))
     }
-    self.emit('put', key, value)
+    this.emit('put', key, value)
     callback()
   })
 
-  return promise
+  return callback.promise
 }
 
 LevelUP.prototype.del = function (key, options, callback) {
-  var self = this
-  var promise
-
   callback = getCallback(options, callback)
+  callback = catering.fromCallback(callback)
 
-  if (!callback) {
-    callback = promisify()
-    promise = callback.promise
+  if (maybeError(this, callback)) {
+    return callback.promise
   }
-
-  if (maybeError(this, callback)) { return promise }
 
   options = getOptions(options)
 
-  this.db.del(key, options, function (err) {
+  this.db.del(key, options, (err) => {
     if (err) {
       return callback(new WriteError(err))
     }
-    self.emit('del', key)
+    this.emit('del', key)
     callback()
   })
 
-  return promise
+  return callback.promise
 }
 
 LevelUP.prototype.batch = function (arr, options, callback) {
@@ -5472,30 +5476,26 @@ LevelUP.prototype.batch = function (arr, options, callback) {
     return new Batch(this)
   }
 
-  var self = this
-  var promise
-
   if (typeof arr === 'function') callback = arr
   else callback = getCallback(options, callback)
 
-  if (!callback) {
-    callback = promisify()
-    promise = callback.promise
-  }
+  callback = catering.fromCallback(callback)
 
-  if (maybeError(this, callback)) { return promise }
+  if (maybeError(this, callback)) {
+    return callback.promise
+  }
 
   options = getOptions(options)
 
-  this.db.batch(arr, options, function (err) {
+  this.db.batch(arr, options, (err) => {
     if (err) {
       return callback(new WriteError(err))
     }
-    self.emit('batch', arr)
+    this.emit('batch', arr)
     callback()
   })
 
-  return promise
+  return callback.promise
 }
 
 LevelUP.prototype.iterator = function (options) {
@@ -5503,47 +5503,40 @@ LevelUP.prototype.iterator = function (options) {
 }
 
 LevelUP.prototype.clear = function (options, callback) {
-  var self = this
-  var promise
-
   callback = getCallback(options, callback)
   options = getOptions(options)
-
-  if (!callback) {
-    callback = promisify()
-    promise = callback.promise
-  }
+  callback = catering.fromCallback(callback)
 
   if (maybeError(this, callback)) {
-    return promise
+    return callback.promise
   }
 
-  this.db.clear(options, function (err) {
+  this.db.clear(options, (err) => {
     if (err) {
       return callback(new WriteError(err))
     }
-    self.emit('clear', options)
+    this.emit('clear', options)
     callback()
   })
 
-  return promise
+  return callback.promise
 }
 
 LevelUP.prototype.readStream =
 LevelUP.prototype.createReadStream = function (options) {
-  options = extend({ keys: true, values: true }, options)
+  options = Object.assign({ keys: true, values: true }, options)
   if (typeof options.limit !== 'number') { options.limit = -1 }
   return new IteratorStream(this.db.iterator(options), options)
 }
 
 LevelUP.prototype.keyStream =
 LevelUP.prototype.createKeyStream = function (options) {
-  return this.createReadStream(extend(options, { keys: true, values: false }))
+  return this.createReadStream(Object.assign({}, options, { keys: true, values: false }))
 }
 
 LevelUP.prototype.valueStream =
 LevelUP.prototype.createValueStream = function (options) {
-  return this.createReadStream(extend(options, { keys: false, values: true }))
+  return this.createReadStream(Object.assign({}, options, { keys: false, values: true }))
 }
 
 LevelUP.prototype.toString = function () {
@@ -5552,35 +5545,31 @@ LevelUP.prototype.toString = function () {
 
 LevelUP.prototype.type = 'levelup'
 
+// Expose nextTick for API parity with abstract-leveldown
+LevelUP.prototype._nextTick = nextTick
+
 function maybeError (db, callback) {
-  if (!db._isOpening() && !db.isOpen()) {
-    process.nextTick(callback, new ReadError('Database is not open'))
+  if (!db.isOperational()) {
+    nextTick(callback, new ReadError('Database is not open'))
     return true
   }
+
+  return false
 }
 
 LevelUP.errors = errors
-module.exports = LevelUP.default = LevelUP
+module.exports = LevelUP
 
 
 /***/ }),
 
-/***/ 5160:
+/***/ 5583:
 /***/ ((module) => {
 
-function promisify () {
-  var callback
-  var promise = new Promise(function (resolve, reject) {
-    callback = function callback (err, value) {
-      if (err) reject(err)
-      else resolve(value)
-    }
-  })
-  callback.promise = promise
-  return callback
-}
+"use strict";
 
-module.exports = promisify
+
+module.exports = process.nextTick
 
 
 /***/ }),
@@ -5595,13 +5584,14 @@ var os = __webpack_require__(2087)
 // Workaround to fix webpack's build warnings: 'the request of a dependency is an expression'
 var runtimeRequire =  true ? require : 0 // eslint-disable-line
 
+var vars = (process.config && process.config.variables) || {}
 var prebuildsOnly = !!process.env.PREBUILDS_ONLY
 var abi = process.versions.modules // TODO: support old node where this is undef
 var runtime = isElectron() ? 'electron' : 'node'
 var arch = os.arch()
 var platform = os.platform()
 var libc = process.env.LIBC || (isAlpine(platform) ? 'musl' : 'glibc')
-var armv = process.env.ARM_VERSION || (arch === 'arm64' ? '8' : process.config.variables.arm_version) || ''
+var armv = process.env.ARM_VERSION || (arch === 'arm64' ? '8' : vars.arm_version) || ''
 var uv = (process.versions.uv || '').split('.')[0]
 
 module.exports = load
@@ -5626,12 +5616,11 @@ load.path = function (dir) {
     if (debug) return debug
   }
 
-  // Find most specific flavor first
-  var prebuilds = path.join(dir, 'prebuilds', platform + '-' + arch)
-  var parsed = readdirSync(prebuilds).map(parseTags)
-  var candidates = parsed.filter(matchTags(runtime, abi))
-  var winner = candidates.sort(compareTags(runtime))[0]
-  if (winner) return path.join(prebuilds, winner.file)
+  var prebuild = resolve(dir)
+  if (prebuild) return prebuild
+
+  var nearby = resolve(path.dirname(process.execPath))
+  if (nearby) return nearby
 
   var target = [
     'platform=' + platform,
@@ -5640,10 +5629,27 @@ load.path = function (dir) {
     'abi=' + abi,
     'uv=' + uv,
     armv ? 'armv=' + armv : '',
-    'libc=' + libc
+    'libc=' + libc,
+    'node=' + process.versions.node,
+    process.versions.electron ? 'electron=' + process.versions.electron : '',
+     true ? 'webpack=true' : 0 // eslint-disable-line
   ].filter(Boolean).join(' ')
 
-  throw new Error('No native build was found for ' + target)
+  throw new Error('No native build was found for ' + target + '\n    loaded from: ' + dir + '\n')
+
+  function resolve (dir) {
+    // Find matching "prebuilds/<platform>-<arch>" directory
+    var tuples = readdirSync(path.join(dir, 'prebuilds')).map(parseTuple)
+    var tuple = tuples.filter(matchTuple(platform, arch)).sort(compareTuples)[0]
+    if (!tuple) return
+
+    // Find most specific flavor first
+    var prebuilds = path.join(dir, 'prebuilds', tuple.name)
+    var parsed = readdirSync(prebuilds).map(parseTags)
+    var candidates = parsed.filter(matchTags(runtime, abi))
+    var winner = candidates.sort(compareTags(runtime))[0]
+    if (winner) return path.join(prebuilds, winner.file)
+  }
 }
 
 function readdirSync (dir) {
@@ -5661,6 +5667,34 @@ function getFirst (dir, filter) {
 
 function matchBuild (name) {
   return /\.node$/.test(name)
+}
+
+function parseTuple (name) {
+  // Example: darwin-x64+arm64
+  var arr = name.split('-')
+  if (arr.length !== 2) return
+
+  var platform = arr[0]
+  var architectures = arr[1].split('+')
+
+  if (!platform) return
+  if (!architectures.length) return
+  if (!architectures.every(Boolean)) return
+
+  return { name, platform, architectures }
+}
+
+function matchTuple (platform, arch) {
+  return function (tuple) {
+    if (tuple == null) return false
+    if (tuple.platform !== platform) return false
+    return tuple.architectures.includes(arch)
+  }
+}
+
+function compareTuples (a, b) {
+  // Prefer single-arch prebuilds over multi-arch
+  return a.architectures.length - b.architectures.length
 }
 
 function parseTags (file) {
@@ -5742,76 +5776,18 @@ function isAlpine (platform) {
 load.parseTags = parseTags
 load.matchTags = matchTags
 load.compareTags = compareTags
+load.parseTuple = parseTuple
+load.matchTuple = matchTuple
+load.compareTuples = compareTuples
 
 
 /***/ }),
 
-/***/ 233:
-/***/ (function(module) {
+/***/ 3522:
+/***/ ((module) => {
 
-/*!
-  * prr
-  * (c) 2013 Rod Vagg <rod@vagg.org>
-  * https://github.com/rvagg/prr
-  * License: MIT
-  */
+module.exports = process.nextTick.bind(process)
 
-(function (name, context, definition) {
-  if ( true && module.exports)
-    module.exports = definition()
-  else
-    context[name] = definition()
-})('prr', this, function() {
-
-  var setProperty = typeof Object.defineProperty == 'function'
-      ? function (obj, key, options) {
-          Object.defineProperty(obj, key, options)
-          return obj
-        }
-      : function (obj, key, options) { // < es5
-          obj[key] = options.value
-          return obj
-        }
-
-    , makeOptions = function (value, options) {
-        var oo = typeof options == 'object'
-          , os = !oo && typeof options == 'string'
-          , op = function (p) {
-              return oo
-                ? !!options[p]
-                : os
-                  ? options.indexOf(p[0]) > -1
-                  : false
-            }
-
-        return {
-            enumerable   : op('enumerable')
-          , configurable : op('configurable')
-          , writable     : op('writable')
-          , value        : value
-        }
-      }
-
-    , prr = function (obj, key, value, options) {
-        var k
-
-        options = makeOptions(value, options)
-
-        if (typeof key == 'object') {
-          for (k in key) {
-            if (Object.hasOwnProperty.call(key, k)) {
-              options.value = key[k]
-              setProperty(obj, k, options)
-            }
-          }
-          return obj
-        }
-
-        return setProperty(obj, key, options)
-      }
-
-  return prr
-})
 
 /***/ }),
 
@@ -5849,6 +5825,7 @@ function worker({ filename, env, isMaster, thread, }) {
                 for (let key of [
                     "set",
                     "get",
+                    "getMany",
                     "put",
                     "getSet",
                     "getIntSet",
@@ -5867,6 +5844,7 @@ function worker({ filename, env, isMaster, thread, }) {
                     "iterator",
                     "count",
                     "exist",
+                    "getProperty"
                 ]) {
                     let target = liondb_1.default.prototype[key];
                     if (key.startsWith("_"))
@@ -6011,6 +5989,29 @@ class LionDB {
         }
         return undefined;
     }
+    async getMany(...keys) {
+        let bufs = await this.db.getMany(keys, {}).catch((e) => undefined);
+        let vals = [];
+        for (let i = 0; i < bufs.length; i++) {
+            let key = keys[i];
+            let buffer = bufs[i];
+            let res = analyzeValue(buffer);
+            if (res) {
+                if (res.ttl > 0) {
+                    let curTime = Math.ceil(Date.now() / 1000);
+                    if (res.startAt + res.ttl < curTime) {
+                        this.del(key);
+                        vals.push(undefined);
+                    }
+                }
+                vals.push(res.value());
+            }
+            else {
+                vals.push(undefined);
+            }
+        }
+        return vals;
+    }
     async expire(key, ttl = 0) {
         ttl = Math.floor(ttl);
         if (ttl < 1)
@@ -6074,8 +6075,10 @@ class LionDB {
     }
     async count(key, filter) {
         let count = 0;
-        await this.iterator({ key: key, start: 0, limit: -1, values: false, filter }, (key) => {
+        await this.iterator({ key: key, start: 0, limit: -1, values: false, filter }, async (key) => {
             count++;
+            if (count % 100 === 0)
+                await wait(100);
         });
         return count;
     }
@@ -6163,6 +6166,14 @@ class LionDB {
                 });
             })();
         });
+    }
+    getProperty(property) {
+        try {
+            return this.db.db.getProperty(property);
+        }
+        catch (err) {
+            return undefined;
+        }
     }
 }
 exports.default = LionDB;
@@ -6564,64 +6575,6 @@ exports.mkdirs = mkdirs;
 
 module.exports = __webpack_require__(1669).deprecate;
 
-
-/***/ }),
-
-/***/ 7529:
-/***/ ((module) => {
-
-module.exports = extend
-
-var hasOwnProperty = Object.prototype.hasOwnProperty;
-
-function extend() {
-    var target = {}
-
-    for (var i = 0; i < arguments.length; i++) {
-        var source = arguments[i]
-
-        for (var key in source) {
-            if (hasOwnProperty.call(source, key)) {
-                target[key] = source[key]
-            }
-        }
-    }
-
-    return target
-}
-
-
-/***/ }),
-
-/***/ 9820:
-/***/ ((module) => {
-
-module.exports = extend
-
-var hasOwnProperty = Object.prototype.hasOwnProperty;
-
-function extend(target) {
-    for (var i = 1; i < arguments.length; i++) {
-        var source = arguments[i]
-
-        for (var key in source) {
-            if (hasOwnProperty.call(source, key)) {
-                target[key] = source[key]
-            }
-        }
-    }
-
-    return target
-}
-
-
-/***/ }),
-
-/***/ 2357:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("assert");
 
 /***/ }),
 

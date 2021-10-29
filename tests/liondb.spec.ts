@@ -18,7 +18,7 @@ beforeEach(async function () {
    await db.set("a4", { name: "a4" });
    await db.set("b1", { name: "b1" });
    await db.set("b2", { name: "b2" }); */
-  
+
    await liondb.batch([
       {
          type: "put",
@@ -91,6 +91,8 @@ beforeEach(async function () {
          value: { name: "中国上海" },
       },
    ]);
+   let manyList = await liondb.getMany("b1", "a1", "a2", "b3", "c10");
+   console.info("getMany", manyList);
    /*    let list0 = await liondb.find({ key: "b*" });
    console.info("list0", list0);
    let list1 = await liondb.find({ key: "b*", reverse: true });
@@ -98,8 +100,12 @@ beforeEach(async function () {
    // console.info("count=", await db.count("kid-*"));
 
    await liondb.del("b*", "b2");
-   let list = await liondb.find({key: "*"});
+   let list = await liondb.find({ key: "*" });
    console.info("list=====>>>", list);
+
+   console.info("stats ", await liondb.getProperty("leveldb.stats"))
+   console.info("sstables ", await liondb.getProperty("leveldb.sstables"))
+
 });
 
 describe("单进程比较取值", function () {
@@ -113,7 +119,7 @@ describe("单进程比较取值", function () {
             return /^中国广/.test(value.name); // value.name == "b1";
          },
       });
-         console.info("list===", list);
+      console.info("list===", list);
       /*    let count = await liondb.count("中国*", (value) => {
          return /^中国广/.test(value.name); // value.name == "b1";
       }); */

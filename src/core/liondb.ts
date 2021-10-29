@@ -117,6 +117,28 @@ export default class LionDB implements ILionDB {
       }
       return undefined;
    }
+   async getMany(...keys: string[]): Promise<any[]> {
+      let bufs = await this.db.getMany(keys, {}).catch((e) => undefined);
+      let vals: any[] = [];
+      for (let i = 0; i < bufs.length; i++) {
+         let key = keys[i];
+         let buffer = bufs[i];
+         let res = analyzeValue(buffer);
+         if (res) {
+            if (res.ttl > 0) {
+               let curTime = Math.ceil(Date.now() / 1000);
+               if (res.startAt + res.ttl < curTime) {
+                  this.del(key);
+                  vals.push(undefined);
+               }
+            }
+            vals.push(res.value());
+         } else {
+            vals.push(undefined);
+         }
+      }
+      return vals;
+   }
    /**
     * 设置过期时间
     * @param key
@@ -209,8 +231,9 @@ export default class LionDB implements ILionDB {
    }
    async count(key: string, filter?: Filter): Promise<number> {
       let count = 0;
-      await this.iterator({ key: key, start: 0, limit: -1, values: false, filter }, (key) => {
+      await this.iterator({ key: key, start: 0, limit: -1, values: false, filter }, async (key) => {
          count++;
+         if (count % 100 === 0) await wait(100);
       });
       return count;
    }
@@ -347,6 +370,13 @@ export default class LionDB implements ILionDB {
             });
          })();
       });
+   }
+   getProperty(property: "leveldb.num-files-at-levelN" | "leveldb.stats" | "leveldb.sstables") {
+      try {
+         return this.db.db.getProperty(property);
+      } catch (err) {
+         return undefined;
+      }
    }
 }
 
