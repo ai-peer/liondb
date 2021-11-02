@@ -6085,15 +6085,15 @@ class LionDB {
         });
         return count;
     }
-    async find({ key, limit = 100, start = 0, reverse = false, keys = true, filter, }) {
+    async find({ key, limit = 100, start = 0, reverse = false, keys = true, filter, isReference = false, }) {
         let list = [];
-        await this.iterator({ key, limit, start, filter: filter }, (skey, svalue) => {
+        await this.iterator({ key, limit, start, filter: filter, isReference }, (skey, svalue) => {
             if (svalue !== undefined)
                 keys ? list.push({ key: skey, value: svalue }) : list.push(svalue);
         });
         return reverse ? list.reverse() : list;
     }
-    async iterator({ key, limit = 100, start = 0, values = true, filter, }, callback) {
+    async iterator({ key, limit = 100, start = 0, values = true, filter, isReference = false, }, callback) {
         let _this = this;
         let searchKey = String(key).trim();
         let isFuzzy = searchKey.endsWith("*");
@@ -6147,6 +6147,8 @@ class LionDB {
                         }
                         let value = await _this.get(sKey);
                         if (value != undefined) {
+                            if (isReference)
+                                value = await _this.get(value);
                             if (filter) {
                                 let v = await filter(value, sKey, {
                                     get: async (k) => {

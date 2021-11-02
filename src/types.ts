@@ -87,13 +87,22 @@ export interface ILionDB {
     *    limit: 限制 默认-1，表示无限
     *    reverse: 倒序查询， 默认false
     */
-   find(config: { key: string; limit?: number; start?: number; reverse?: boolean; filter?: Filter; keys?: boolean }): Promise<{ key: string; value: any }[] | any[]>;
+   find(config: {
+      key: string;
+      limit?: number;
+      start?: number;
+      reverse?: boolean;
+      filter?: Filter;
+      keys?: boolean;
+      isReference?: boolean;
+   }): Promise<{ key: string; value: any }[] | any[]>;
    iterator(
       config: {
          key: string;
          limit?: number;
          start?: number;
          filter?: Filter;
+         isReference?: boolean;
       },
       callback: IteratorCallback,
    ): Promise<void>;

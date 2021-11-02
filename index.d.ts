@@ -91,13 +91,21 @@ declare class ILionDB {
     *    limit: 限制 默认100条， -1 表示无限
     *    reverse: 倒序查询， 默认false
     */
-   find(config: { key: string; limit?: number; start?: number; reverse?: boolean; filter?: Filter; keys?: boolean }): Promise<{ key: string; value: any }[] | any[]>;
+   find(config: {
+      key: string;
+      limit?: number;
+      start?: number;
+      reverse?: boolean;
+      filter?: Filter;
+      keys?: boolean;
+      isReference?: boolean;
+   }): Promise<{ key: string; value: any }[] | any[]>;
    /**
     * 递归查询
     * @param config
     * @param callback
     */
-   iterator(config: { key: string; limit?: number; start?: number; filter?: Filter }, callback: Function): Promise<void>;
+   iterator(config: { key: string; limit?: number; start?: number; filter?: Filter; isReference?: boolean }, callback: Function): Promise<void>;
 }
 
 export type Get = (key: string) => Promise<any>;

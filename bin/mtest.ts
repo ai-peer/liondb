@@ -13,7 +13,12 @@ let db = LionDB.worker({
 });
 async function execr() {
    console.info("execr===========", db.find);
-   //await db.set("aa1", {name: "aa1"});
+   await db.set("ref_a", "aa2");
+   await db.set("aa2", { name: "aa2", age: 12 });
+
+   let refVal = await db.find({key: "ref_a", isReference: true});
+   console.info("===refVal", refVal)
+
    let list = await db.find({
       key: "a*",
       //query: {},
