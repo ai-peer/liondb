@@ -189,7 +189,7 @@ class TCFactor<T> extends EventEmitter {
       return new Promise((resolve, reject) => {
          let task = "task-" + Math.floor(Math.random() * 9999999999);
          if (args[0].filter instanceof Function) {
-            args[0].filter = `(()=>${args[0].filter.toString()})()`;
+            args[0].filter = `(function(){return ${args[0].filter.toString()}})()`;
          }
          if (args[args.length - 1] instanceof Function) {
             //最后一个是函数, 约定是回调函数

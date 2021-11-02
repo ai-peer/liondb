@@ -19,7 +19,9 @@ async function execr() {
       //query: {},
       //index: "code",
       limit: 3,
-      filter: (v) => {
+      filter: async (v, k, db) => {
+         let v2 = await db.get("aa");
+         console.info("v2==", v2);
          return /^li/i.test(v.name);
          //return true;
       },
@@ -35,7 +37,7 @@ async function execr() {
          },
       },
       (key, value) => {
-          console.info("key", key, value);
+         console.info("key", key, value);
          list2.push(value);
       },
    );
@@ -43,7 +45,8 @@ async function execr() {
 }
 if (cluster.isMaster) {
    console.info("===master");
-   cluster.fork();
+   //cluster.fork();
+   execr();
 } else {
    execr();
 }

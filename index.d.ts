@@ -100,6 +100,8 @@ declare class ILionDB {
    iterator(config: { key: string; limit?: number; start?: number; filter?: Filter }, callback: Function): Promise<void>;
 }
 
-export type Filter = (value: any, key: string) => Promise<boolean> | boolean;
+export type Get = (key: string) => Promise<any>;
+export type Filter = (value: any, key: string, db: { get: Get }) => Promise<boolean> | boolean;
+//export type Filter = (value: any, key: string) => Promise<boolean> | boolean;
 
 export default ILionDB;

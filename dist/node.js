@@ -5806,11 +5806,12 @@ const leveldown_1 = __importDefault(__webpack_require__(717));
 const utils_1 = __webpack_require__(5928);
 const tcfactor_1 = __importDefault(__webpack_require__(9137));
 const liondb_1 = __importDefault(__webpack_require__(910));
+const cluster_1 = __importDefault(__webpack_require__(1531));
 function worker({ filename, env, isMaster, thread, }) {
     let app = filename.replace(/[^a-z0-9]+/g, "_").replace(/^[^a-z0-9]+/, "");
     env = env || "cluster";
     isMaster = isMaster === false ? false : true;
-    thread = thread || (() => __webpack_require__(1531))();
+    thread = thread || cluster_1.default;
     return new tcfactor_1.default({
         app: app || "localdb",
         env: env,
@@ -5844,7 +5845,7 @@ function worker({ filename, env, isMaster, thread, }) {
                     "iterator",
                     "count",
                     "exist",
-                    "getProperty"
+                    "getProperty",
                 ]) {
                     let target = liondb_1.default.prototype[key];
                     if (key.startsWith("_"))
@@ -5862,7 +5863,6 @@ exports.worker = worker;
 class LionDBNode extends liondb_1.default {
     constructor(filename) {
         super();
-        let _this = this;
         utils_1.mkdirs(filename);
         let ldb = leveldown_1.default(filename);
         this.db = new levelup_1.default(ldb, {}, async (err, db) => {
@@ -6087,7 +6087,7 @@ class LionDB {
     }
     async find({ key, limit = 100, start = 0, reverse = false, keys = true, filter, }) {
         let list = [];
-        await this.iterator({ key, limit, start, filter }, (skey, svalue) => {
+        await this.iterator({ key, limit, start, filter: filter }, (skey, svalue) => {
             if (svalue !== undefined)
                 keys ? list.push({ key: skey, value: svalue }) : list.push(svalue);
         });
@@ -6148,7 +6148,11 @@ class LionDB {
                         let value = await _this.get(sKey);
                         if (value != undefined) {
                             if (filter) {
-                                let v = await filter(value, sKey);
+                                let v = await filter(value, sKey, {
+                                    get: async (k) => {
+                                        return _this.get(k);
+                                    },
+                                });
                                 if (v != true)
                                     return next();
                             }
@@ -6387,7 +6391,7 @@ class TCFactor extends events_1.EventEmitter {
         return new Promise((resolve, reject) => {
             let task = "task-" + Math.floor(Math.random() * 9999999999);
             if (args[0].filter instanceof Function) {
-                args[0].filter = `(()=>${args[0].filter.toString()})()`;
+                args[0].filter = `(function(){return ${args[0].filter.toString()}})()`;
             }
             if (args[args.length - 1] instanceof Function) {
                 this.taskCallback[task] = args[args.length - 1];

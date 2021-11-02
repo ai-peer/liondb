@@ -5,6 +5,7 @@ import { mkdirs } from "../utils";
 import { bit2Int, int2Bit } from "../utils/byte";
 import TcFactor from "./tcfactor";
 import LionDB from "./liondb";
+import cluster from "cluster";
 
 export function worker({
    filename,
@@ -28,7 +29,7 @@ export function worker({
    let app = filename.replace(/[^a-z0-9]+/g, "_").replace(/^[^a-z0-9]+/, "");
    env = env || "cluster";
    isMaster = isMaster === false ? false : true;
-   thread = thread || (() => require("cluster"))();
+   thread = thread || cluster;
    return new TcFactor<LionDB>({
       app: app || "localdb",
       env: env,
@@ -61,7 +62,7 @@ export function worker({
                "iterator",
                "count",
                "exist",
-               "getProperty"
+               "getProperty",
             ]) {
                let target = LionDB.prototype[key];
                if (key.startsWith("_")) continue;
@@ -87,11 +88,10 @@ export default class LionDBNode extends LionDB {
    static worker = worker;
    constructor(filename: string) {
       super();
-      let _this = this;
       mkdirs(filename);
       let ldb = leveldown(filename);
       this.db = new levelup(ldb, {}, async (err, db) => {
-/*          setTimeout(async () => {
+         /*          setTimeout(async () => {
             while (true) {
                //自动清理过期内容
                try {
