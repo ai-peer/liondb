@@ -35,6 +35,7 @@ async function execr() {
          },
       },
       (key, value) => {
+          console.info("key", key, value);
          list2.push(value);
       },
    );
