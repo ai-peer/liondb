@@ -3,22 +3,30 @@ import lionDB from "../src";
 const path = require("path");
 const cluster = require("cluster");
 
-let db = lionDB.worker({ filename: path.resolve("_local/2"), env: "cluster", isMaster: true, thread: cluster });
 let db1 = lionDB.worker({ filename: path.resolve("_local/3"), env: "cluster", isMaster: true, thread: cluster });
+let db2 = lionDB.worker({ filename: path.resolve("_local/2"), env: "cluster", isMaster: true, thread: cluster });
 console.info(">>>", path.resolve("_local"));
 
 beforeEach(async function () {
    await wait(1000);
-   await db.del("aa");
-   await db.set("aa", { name: "li lei" });
-});
+   await db1.del("aa");
+   await db1.set("aa", { name: "li lei" });
 
-describe("多进程比较取值", function () {
+   await db2.del("aa");
+   await db2.set("aa", { name: "li leixxx" });
+});
+ 
+describe("多进程比较取值2===================", function () {
    it("比较取值是否相等", async function () {
-      const vv = await db.get("aa");
-      assert.deepStrictEqual(vv.name, "li lei");
-      let count = await db.count("a*");
+      const vv = await db2.get("aa");
+      console.info("vv----===", vv)
+      let count = await db2.count("a*");
       console.info("==count", count);
+      let list = await db2.find({key: "*", filter: (v)=>{
+         console.info("v", v);
+         return true
+      }});
+      console.info("list", list)
    });
 });
 async function wait(ttl) {

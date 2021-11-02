@@ -134,6 +134,10 @@ class TCFactor<T> extends EventEmitter {
                   }
                };
             }
+
+            if (args[0].filter) {
+               args[0].filter = eval(args[0].filter);
+            }
             let target = executor[method];
             let value = undefined;
             if (target instanceof Function) {
@@ -184,6 +188,9 @@ class TCFactor<T> extends EventEmitter {
       let send = makeSend2MainFun(this.env, this.thread);
       return new Promise((resolve, reject) => {
          let task = "task-" + Math.floor(Math.random() * 9999999999);
+         if (args[0].filter instanceof Function) {
+            args[0].filter = `(()=>${args[0].filter.toString()})()`;
+         }
          if (args[args.length - 1] instanceof Function) {
             //最后一个是函数, 约定是回调函数
             this.taskCallback[task] = args[args.length - 1];
@@ -200,6 +207,7 @@ class TCFactor<T> extends EventEmitter {
                reject(new Error(message));
             }
          });
+
          //let send = this.env == 'electron' ? this.options.workerThread.send : this.env == 'cluster' ? process.send : self.postMessage;
          //console.log('send====', this.env, send === process.send );
          //send = makeSendFun(this.env, process.send);

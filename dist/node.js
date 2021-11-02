@@ -6328,6 +6328,9 @@ class TCFactor extends events_1.EventEmitter {
                         }
                     };
                 }
+                if (args[0].filter) {
+                    args[0].filter = eval(args[0].filter);
+                }
                 let target = executor[method];
                 let value = undefined;
                 if (target instanceof Function) {
@@ -6383,6 +6386,9 @@ class TCFactor extends events_1.EventEmitter {
         let send = makeSend2MainFun(this.env, this.thread);
         return new Promise((resolve, reject) => {
             let task = "task-" + Math.floor(Math.random() * 9999999999);
+            if (args[0].filter instanceof Function) {
+                args[0].filter = `(()=>${args[0].filter.toString()})()`;
+            }
             if (args[args.length - 1] instanceof Function) {
                 this.taskCallback[task] = args[args.length - 1];
                 args[args.length - 1] = "[function]";

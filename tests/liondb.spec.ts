@@ -103,9 +103,9 @@ beforeEach(async function () {
    let list = await liondb.find({ key: "*" });
    console.info("list=====>>>", list);
 
-   console.info("stats ", await liondb.getProperty("leveldb.stats"))
+/*    console.info("stats ", await liondb.getProperty("leveldb.stats"))
    console.info("sstables ", await liondb.getProperty("leveldb.sstables"))
-
+ */
 });
 
 describe("单进程比较取值", function () {
@@ -126,20 +126,7 @@ describe("单进程比较取值", function () {
       let count = await liondb.count("*");
       console.info("count===============", count);
    });
-   it("查询", async function () {
-      /*   liondb.iterator({ key: "a*" }, (key, value) => {
-         console.log("v", key, value);
-      }); */
-      let bb = await liondb.find({ key: "b*", limit: 2 });
-      console.log(">>>>bb", bb);
-
-      let list: any[] = await liondb.find({ key: "a1", keys: false });
-      console.log("list ==00", list);
-   });
-   it("count", async () => {
-      let count = await liondb.count("a*");
-      console.info("count", count);
-   });
+ 
 });
 async function wait(ttl) {
    return new Promise((resolve) => {
