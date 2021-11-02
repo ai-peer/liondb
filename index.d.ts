@@ -99,13 +99,14 @@ declare class ILionDB {
       filter?: Filter;
       keys?: boolean;
       isReference?: boolean;
+      [key: string]: any;
    }): Promise<{ key: string; value: any }[] | any[]>;
    /**
     * 递归查询
     * @param config
     * @param callback
     */
-   iterator(config: { key: string; limit?: number; start?: number; filter?: Filter; isReference?: boolean }, callback: Function): Promise<void>;
+   iterator(config: { key: string; limit?: number; start?: number; filter?: Filter; isReference?: boolean; [key: string]: any }, callback: Function): Promise<void>;
 }
 
 export type Get = (key: string) => Promise<any>;

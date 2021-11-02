@@ -24,9 +24,9 @@ async function execr() {
       //query: {},
       //index: "code",
       limit: 3,
+      query: {name: "li lei"},
       filter: async (v, k, db) => {
          let v2 = await db.get("aa");
-         console.info("v2==", v2);
          return /^li/i.test(v.name);
          //return true;
       },
