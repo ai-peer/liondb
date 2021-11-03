@@ -21,10 +21,9 @@ async function execr() {
 
    let list = await db.find({
       key: "a*",
-      //query: {},
       //index: "code",
       limit: 3,
-      query: {name: "li lei"},
+      query: {name: "li lei", xx: 'a'},
       filter: async (v, k, db) => {
          let v2 = await db.get("aa");
          return /^li/i.test(v.name);

@@ -450,9 +450,12 @@ function isUnitType(val: any) {
 }
 function mergeFilter(query: { [key: string]: any }, filter?: Filter) {
    return async function (value: any, key: string, db) {
-      if (value == undefined) return false;
-      let size = 0;
       let isTrue = false;
+      if (value == undefined) return false;
+      if(filter) isTrue = await filter(value, key, db);
+      if(!isTrue) return false;
+
+      let size = 0;
       for (let k in query) {
          size++;
          let v0 = query[k];
@@ -485,8 +488,6 @@ function mergeFilter(query: { [key: string]: any }, filter?: Filter) {
          }
       }
       isTrue = size < 1 ? true : isTrue;
-      if (!isTrue) return isTrue;
-      if (filter) return filter(value, key, db);
-      return true;
+      return isTrue;
    };
 }
