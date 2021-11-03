@@ -16,19 +16,17 @@ async function execr() {
    await db.set("ref_a", "aa2");
    await db.set("aa2", { name: "aa2", age: 12 });
 
-   let refVal = await db.find({key: "ref_a", isReference: true});
-   console.info("===refVal", refVal)
+   let v0 = await db.get("aa2");
+   console.info("v0", v0);
+
+   let refVal = await db.find({ key: "ref_a*", query: {}, isRef: true });
+   console.info("===refVal", refVal);
 
    let list = await db.find({
-      key: "a*",
+      key: "*",
       //index: "code",
       limit: 3,
-      query: {name: "li lei"},
-      filter: async (v, k, db) => {
-         let v2 = await db.get("aa");
-         return /^li/i.test(v.name);
-         //return true;
-      },
+      query: { name: "*2", $lt: { age: 10 } },
    });
    console.info("list==", list);
 
@@ -49,8 +47,8 @@ async function execr() {
 }
 if (cluster.isMaster) {
    console.info("===master");
-   //cluster.fork();
-   execr();
+   cluster.fork();
+   //execr();
 } else {
    execr();
 }

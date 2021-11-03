@@ -2,6 +2,7 @@ import { Type, ILionDB, Filter, IteratorCallback } from "../types";
 import { bit2Int, int2Bit } from "../utils/byte";
 import { Buffer } from "buffer";
 import levelup from "levelup";
+import match from "./match";
 
 const DefaultOptions = {
    sync: false,
@@ -247,7 +248,7 @@ export default class LionDB implements ILionDB {
       reverse = false,
       keys = true,
       filter,
-      isReference = false,
+      isRef = false,
       query = {},
    }: {
       key: string;
@@ -257,12 +258,12 @@ export default class LionDB implements ILionDB {
       reverse?: boolean;
       filter?: Filter;
       keys?: boolean;
-      isReference?: boolean;
+      isRef?: boolean;
       query?: { [key: string]: any };
    }): Promise<{ key: string; value: any }[] | any[]> {
       let list: any[] = [];
       let nfilter = mergeFilter(query || {}, filter);
-      await this.iterator({ key, limit, start, filter: nfilter, isReference }, (skey, svalue) => {
+      await this.iterator({ key, limit, start, filter: nfilter, isRef }, (skey, svalue) => {
          if (svalue !== undefined) keys ? list.push({ key: skey, value: svalue }) : list.push(svalue);
       });
       return reverse ? list.reverse() : list;
@@ -275,14 +276,14 @@ export default class LionDB implements ILionDB {
          start = 0,
          values = true,
          filter,
-         isReference = false,
+         isRef = false,
       }: {
          key: string;
          limit?: number;
          start?: number;
          values?: boolean;
          filter?: Filter;
-         isReference?: boolean;
+         isRef?: boolean;
       },
       callback: IteratorCallback,
    ): Promise<void> {
@@ -361,7 +362,7 @@ export default class LionDB implements ILionDB {
                   }  */
                   let value = await _this.get(sKey);
                   if (value != undefined) {
-                     if (isReference) value = await _this.get(value);
+                     if (isRef) value = await _this.get(value);
                      if (filter) {
                         let v = await filter(value, sKey, {
                            get: async (k) => {
@@ -441,6 +442,31 @@ function analyzeValue(value) {
 async function wait(ttl = 100) {
    return new Promise((resolve) => setTimeout(() => resolve(undefined), ttl));
 }
+
+function mergeFilter(query: { [key: string]: any }, filter?: Filter) {
+   return async function (value: any, key: string, db) {
+      let isTrue = false;
+      if (value == undefined) return false;
+      if (filter) {
+         let funType = Object.prototype.toString.call(filter);
+         try {
+            if (funType == "[object AsyncFunction]") {
+               isTrue = await filter(value, key, db);
+            } else {
+               isTrue = await filter(value, key, db);
+            }
+         } catch (err) {
+            console.warn("filter error ", filter.toString(), err.message);
+         }
+         if (!isTrue) return false;
+      } else {
+         isTrue = true;
+      }
+      isTrue = match(query, value);
+      return isTrue;
+   };
+}
+/* 
 function isUnitType(val: any) {
    let type = typeof val;
    if (type === "string" || type === "number" || type === "boolean" || type === "bigint") {
@@ -455,6 +481,7 @@ function mergeFilter(query: { [key: string]: any }, filter?: Filter) {
       if (filter) {
          let funType = Object.prototype.toString.call(filter);
          try {
+            console.info("filter type", funType);
             if (funType == "[object AsyncFunction]") {
                isTrue = await filter(value, key, db);
             } else {
@@ -501,4 +528,4 @@ function mergeFilter(query: { [key: string]: any }, filter?: Filter) {
       isTrue = size < 1 ? true : isTrue;
       return isTrue;
    };
-}
+} */

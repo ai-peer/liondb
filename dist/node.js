@@ -5891,6 +5891,7 @@ const types_1 = __webpack_require__(9699);
 const byte_1 = __webpack_require__(3388);
 const buffer_1 = __webpack_require__(4293);
 const levelup_1 = __importDefault(__webpack_require__(4918));
+const match_1 = __importDefault(__webpack_require__(4840));
 const DefaultOptions = {
     sync: false,
     infoLog: "error",
@@ -6085,16 +6086,16 @@ class LionDB {
         });
         return count;
     }
-    async find({ key, limit = 100, start = 0, reverse = false, keys = true, filter, isReference = false, query = {}, }) {
+    async find({ key, limit = 100, start = 0, reverse = false, keys = true, filter, isRef = false, query = {}, }) {
         let list = [];
         let nfilter = mergeFilter(query || {}, filter);
-        await this.iterator({ key, limit, start, filter: nfilter, isReference }, (skey, svalue) => {
+        await this.iterator({ key, limit, start, filter: nfilter, isRef }, (skey, svalue) => {
             if (svalue !== undefined)
                 keys ? list.push({ key: skey, value: svalue }) : list.push(svalue);
         });
         return reverse ? list.reverse() : list;
     }
-    async iterator({ key, limit = 100, start = 0, values = true, filter, isReference = false, }, callback) {
+    async iterator({ key, limit = 100, start = 0, values = true, filter, isRef = false, }, callback) {
         let _this = this;
         let searchKey = String(key).trim();
         let isFuzzy = searchKey.endsWith("*");
@@ -6148,7 +6149,7 @@ class LionDB {
                         }
                         let value = await _this.get(sKey);
                         if (value != undefined) {
-                            if (isReference)
+                            if (isRef)
                                 value = await _this.get(value);
                             if (filter) {
                                 let v = await filter(value, sKey, {
@@ -6233,13 +6234,6 @@ function analyzeValue(value) {
 async function wait(ttl = 100) {
     return new Promise((resolve) => setTimeout(() => resolve(undefined), ttl));
 }
-function isUnitType(val) {
-    let type = typeof val;
-    if (type === "string" || type === "number" || type === "boolean" || type === "bigint") {
-        return true;
-    }
-    return false;
-}
 function mergeFilter(query, filter) {
     return async function (value, key, db) {
         let isTrue = false;
@@ -6258,45 +6252,101 @@ function mergeFilter(query, filter) {
             catch (err) {
                 console.warn("filter error ", filter.toString(), err.message);
             }
+            if (!isTrue)
+                return false;
         }
-        if (!isTrue)
-            return false;
-        let size = 0;
-        for (let k in query) {
-            size++;
-            let v0 = query[k];
-            let v1 = value[k];
-            if (v1 === undefined) {
-                isTrue = v0 === undefined;
-                if (!isTrue)
-                    break;
-            }
-            let type0 = isUnitType(v0);
-            let type1 = isUnitType(v1);
-            if (type0 && type1) {
-                isTrue = /[*]$/.test(v0) ? String(v1).startsWith(v0.replace(/[*]+$/, "")) : v1 == v0;
-                if (!isTrue)
-                    break;
-            }
-            if (v1 instanceof Array) {
-                let v0List = v0 instanceof Array ? v0 : [v0];
-                let isTrue0 = false;
-                for (let sv of v0List) {
-                    if (v1.find((v) => (/[*]$/.test(sv) ? String(v).startsWith(sv.replace(/[*]+$/, "")) : v == sv)))
-                        isTrue0 = true;
-                }
-                isTrue = isTrue0;
-            }
-            else if (v0 instanceof Array) {
-                let isTrue0 = false;
-                if (v0.find((v) => (/[*]$/.test(v) ? String(v1).startsWith(v.replace(/[*]+$/, "")) : v == v1)))
-                    isTrue0 = true;
-                isTrue = isTrue0;
-            }
+        else {
+            isTrue = true;
         }
-        isTrue = size < 1 ? true : isTrue;
+        isTrue = match_1.default(query, value);
         return isTrue;
     };
+}
+
+
+/***/ }),
+
+/***/ 4840:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+function exp(query, value, symbol = "$equal") {
+    let size = 0;
+    let isTrue = false;
+    if (isUnitType(value))
+        return false;
+    for (let k in query) {
+        if (/^[$]/.test(k)) {
+            isTrue = exp(query[k], value, k);
+            if (!isTrue)
+                return false;
+            continue;
+        }
+        let v0 = query[k];
+        let v1 = value[k];
+        if (v1 === undefined) {
+            isTrue = v0 === undefined;
+            if (!isTrue)
+                break;
+        }
+        size++;
+        let type0 = isUnitType(v0);
+        let type1 = isUnitType(v1);
+        if (type0 && type1) {
+            isTrue = matchLike(v0, v1, symbol);
+            if (!isTrue)
+                break;
+        }
+        if (v1 instanceof Array) {
+            let v0List = v0 instanceof Array ? v0 : [v0];
+            let isTrue0 = false;
+            for (let sv of v0List) {
+                if (v1.find((v) => matchLike(sv, v, symbol)))
+                    isTrue0 = true;
+            }
+            isTrue = isTrue0;
+        }
+        else if (v0 instanceof Array) {
+            let isTrue0 = false;
+            if (v0.find((v) => matchLike(v, v1, symbol)))
+                isTrue0 = true;
+            isTrue = isTrue0;
+        }
+    }
+    isTrue = size < 1 ? true : isTrue;
+    return isTrue;
+}
+exports.default = exp;
+function matchLike(vs, vt, symbol = "$equal") {
+    vt = String(vt);
+    switch (symbol) {
+        case "$lt":
+            return vs - vt < 0;
+        case "$lte":
+            return vs - vt <= 0;
+        case "$gt":
+            return vs - vt > 0;
+        case "$gte":
+            return vs - vt >= 0;
+        case "$ne":
+            return vs != vt;
+        case "$equal":
+        default:
+            if (/[*]$/.test(vs))
+                return vt.startsWith(vs.replace(/[*]+$/, ""));
+            if (/^[*]/.test(vs))
+                return vt.endsWith(vs.replace(/^[*]+/, ""));
+            return vs == vt;
+    }
+}
+function isUnitType(val) {
+    let type = typeof val;
+    if (type === "string" || type === "number" || type === "boolean" || type === "bigint") {
+        return true;
+    }
+    return false;
 }
 
 

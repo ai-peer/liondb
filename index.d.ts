@@ -98,7 +98,7 @@ declare class ILionDB {
       reverse?: boolean;
       filter?: Filter;
       keys?: boolean;
-      isReference?: boolean;
+      isRef?: boolean;
       [key: string]: any;
    }): Promise<{ key: string; value: any }[] | any[]>;
    /**
@@ -106,7 +106,7 @@ declare class ILionDB {
     * @param config
     * @param callback
     */
-   iterator(config: { key: string; limit?: number; start?: number; filter?: Filter; isReference?: boolean; [key: string]: any }, callback: Function): Promise<void>;
+   iterator(config: { key: string; limit?: number; start?: number; filter?: Filter; isRef?: boolean; [key: string]: any }, callback: Function): Promise<void>;
 }
 
 export type Get = (key: string) => Promise<any>;

@@ -94,7 +94,7 @@ export interface ILionDB {
       reverse?: boolean;
       filter?: Filter;
       keys?: boolean;
-      isReference?: boolean;
+      isRef?: boolean;
    }): Promise<{ key: string; value: any }[] | any[]>;
    iterator(
       config: {
@@ -102,7 +102,7 @@ export interface ILionDB {
          limit?: number;
          start?: number;
          filter?: Filter;
-         isReference?: boolean;
+         isRef?: boolean;
       },
       callback: IteratorCallback,
    ): Promise<void>;
