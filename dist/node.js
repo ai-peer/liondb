@@ -6323,13 +6323,13 @@ function matchLike(vs, vt, symbol = "$equal") {
     vt = String(vt);
     switch (symbol) {
         case "$lt":
-            return vs - vt < 0;
+            return vs > vt;
         case "$lte":
-            return vs - vt <= 0;
+            return vs >= vt;
         case "$gt":
-            return vs - vt > 0;
+            return vs < vt;
         case "$gte":
-            return vs - vt >= 0;
+            return vs <= vt;
         case "$ne":
             return vs != vt;
         case "$equal":

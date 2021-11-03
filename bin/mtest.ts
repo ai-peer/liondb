@@ -26,7 +26,7 @@ async function execr() {
       key: "*",
       //index: "code",
       limit: 3,
-      query: { name: "*2", $lt: { age: 10 } },
+      query: { name: "*2", $gt: { age: 10 } },
    });
    console.info("list==", list);
 
