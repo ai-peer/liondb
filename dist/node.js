@@ -6245,8 +6245,20 @@ function mergeFilter(query, filter) {
         let isTrue = false;
         if (value == undefined)
             return false;
-        if (filter)
-            isTrue = await filter(value, key, db);
+        if (filter) {
+            let funType = Object.prototype.toString.call(filter);
+            try {
+                if (funType == "[object AsyncFunction]") {
+                    isTrue = await filter(value, key, db);
+                }
+                else {
+                    isTrue = await filter(value, key, db);
+                }
+            }
+            catch (err) {
+                console.warn("filter error ", filter.toString(), err.message);
+            }
+        }
         if (!isTrue)
             return false;
         let size = 0;

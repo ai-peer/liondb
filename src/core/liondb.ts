@@ -452,8 +452,19 @@ function mergeFilter(query: { [key: string]: any }, filter?: Filter) {
    return async function (value: any, key: string, db) {
       let isTrue = false;
       if (value == undefined) return false;
-      if(filter) isTrue = await filter(value, key, db);
-      if(!isTrue) return false;
+      if (filter) {
+         let funType = Object.prototype.toString.call(filter);
+         try {
+            if (funType == "[object AsyncFunction]") {
+               isTrue = await filter(value, key, db);
+            } else {
+               isTrue = await filter(value, key, db);
+            }
+         } catch (err) {
+            console.warn("filter error ", filter.toString(), err.message);
+         }
+      }
+      if (!isTrue) return false;
 
       let size = 0;
       for (let k in query) {

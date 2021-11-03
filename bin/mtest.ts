@@ -23,7 +23,7 @@ async function execr() {
       key: "a*",
       //index: "code",
       limit: 3,
-      query: {name: "li lei", xx: 'a'},
+      query: {name: "li lei"},
       filter: async (v, k, db) => {
          let v2 = await db.get("aa");
          return /^li/i.test(v.name);
