@@ -43,22 +43,26 @@ export default function exp(query: { [key: string]: any }, value, symbol: "$lt" 
    return isTrue;
 }
 function matchLike(vs, vt, symbol: "$lt" | "$lte" | "$gt" | "$gte" | "$equal" | "$ne" | string = "$equal") {
-   switch (symbol) {
-      case "$lt":
-         return vs > vt;
-      case "$lte":
-         return vs >= vt;
-      case "$gt":
-         return vs < vt;
-      case "$gte":
-         return vs <= vt;
-      case "$ne":
-         return vs != vt;
-      case "$equal":
-      default:
-         if (/[*]$/.test(vs)) return vt.startsWith(vs.replace(/[*]+$/, ""));
-         if (/^[*]/.test(vs)) return vt.endsWith(vs.replace(/^[*]+/, ""));
-         return vs == vt;
+   try {
+      switch (symbol) {
+         case "$lt":
+            return vs > vt;
+         case "$lte":
+            return vs >= vt;
+         case "$gt":
+            return vs < vt;
+         case "$gte":
+            return vs <= vt;
+         case "$ne":
+            return vs != vt;
+         case "$equal":
+         default:
+            if (/[*]$/.test(vs)) return (vt == undefined ? "" : vt).startsWith(vs.replace(/[*]+$/, ""));
+            if (/^[*]/.test(vs)) return (vt == undefined ? "" : vt).endsWith(vs.replace(/^[*]+/, ""));
+            return vs == vt;
+      }
+   } catch (err) {
+      console.warn("matchLike error", vs, vt, err.stack || err.message);
    }
 }
 
