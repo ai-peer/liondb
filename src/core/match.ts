@@ -21,8 +21,9 @@ export default function exp(query: { [key: string]: any }, value, symbol: "$lt" 
          isTrue = matchLike(v0, v1, symbol);
          if (!isTrue) break;
       }
-
-      if (v1 instanceof Array) {
+      if (v1 === undefined) {
+         isTrue = matchLike(v0, v1, symbol);
+      } else if (v1 instanceof Array) {
          let v0List = v0 instanceof Array ? v0 : [v0];
          let isTrue0 = false;
          for (let sv of v0List) {
