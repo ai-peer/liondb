@@ -11,10 +11,7 @@ export default function exp(query: { [key: string]: any }, value, symbol: "$lt" 
       let v0 = query[k];
       let v1 = value[k];
       //数据库没有存储值
-      if (v1 === undefined) {
-         isTrue = v0 === undefined;
-         if (!isTrue) break;
-      }
+
       size++;
       let type0 = isUnitType(v0);
       let type1 = isUnitType(v1);
@@ -39,12 +36,12 @@ export default function exp(query: { [key: string]: any }, value, symbol: "$lt" 
          if (v0.find((v) => matchLike(v, v1, symbol))) isTrue0 = true;
          isTrue = isTrue0;
       }
+      if (!isTrue) return false;
    }
    isTrue = size < 1 ? true : isTrue;
    return isTrue;
 }
 function matchLike(vs, vt, symbol: "$lt" | "$lte" | "$gt" | "$gte" | "$equal" | "$ne" | string = "$equal") {
-   vt = String(vt);
    switch (symbol) {
       case "$lt":
          return vs > vt;

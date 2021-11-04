@@ -6286,11 +6286,6 @@ function exp(query, value, symbol = "$equal") {
         }
         let v0 = query[k];
         let v1 = value[k];
-        if (v1 === undefined) {
-            isTrue = v0 === undefined;
-            if (!isTrue)
-                break;
-        }
         size++;
         let type0 = isUnitType(v0);
         let type1 = isUnitType(v1);
@@ -6314,13 +6309,14 @@ function exp(query, value, symbol = "$equal") {
                 isTrue0 = true;
             isTrue = isTrue0;
         }
+        if (!isTrue)
+            return false;
     }
     isTrue = size < 1 ? true : isTrue;
     return isTrue;
 }
 exports.default = exp;
 function matchLike(vs, vt, symbol = "$equal") {
-    vt = String(vt);
     switch (symbol) {
         case "$lt":
             return vs > vt;
