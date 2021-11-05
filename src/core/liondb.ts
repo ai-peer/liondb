@@ -236,8 +236,7 @@ export default class LionDB implements ILionDB {
       await this.iterator({ key: key, start: 0, limit: -1, values: false, filter }, async (key, val) => {
          count++;
          //防止超时等待， 超时就返回目前取得的所有数
-         if (Date.now() - startTime >= 5 * 1000) return LionDB.Break;
-         if (count % 100 === 0) await wait(100);
+         if (Date.now() - startTime >= 2500) return LionDB.Break;
       });
       return count;
    }
