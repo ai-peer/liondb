@@ -92,7 +92,7 @@ beforeEach(async function () {
       },
    ]);
    let manyList = await liondb.getMany("b1", "a1", "a2", "b3", "c10");
-   console.info("getMany", manyList);
+   console.info("=====单线程getMany", manyList);
    /*    let list0 = await liondb.find({ key: "b*" });
    console.info("list0", list0);
    let list1 = await liondb.find({ key: "b*", reverse: true });
@@ -103,7 +103,7 @@ beforeEach(async function () {
    let list = await liondb.find({ key: "*" });
    console.info("list=====>>>", list);
 
-/*    console.info("stats ", await liondb.getProperty("leveldb.stats"))
+   /*    console.info("stats ", await liondb.getProperty("leveldb.stats"))
    console.info("sstables ", await liondb.getProperty("leveldb.sstables"))
  */
 });
@@ -126,7 +126,6 @@ describe("单进程比较取值", function () {
       let count = await liondb.count("*");
       console.info("count===============", count);
    });
- 
 });
 async function wait(ttl) {
    return new Promise((resolve) => {
