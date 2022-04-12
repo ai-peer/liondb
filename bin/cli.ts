@@ -23,7 +23,7 @@ let db: ILionDB = new lionDB(path.resolve("_local/1"));
 
 async function start() {
    let start = Date.now();
-   /*    for (let i = 0; i < 100000; i++) {
+   /*    for (let i = 0; i < 5; i++) {
       await db.set("kid-" + i + "-" + Math.ceil(Math.random() * 999999), {
          text: toRandString(),
          name: "name-" + i,
@@ -36,13 +36,18 @@ async function start() {
    console.info("v", v);
    let count = await db.count("kid-*");
    console.info("output ", Date.now() - start, count);
+   let list0 = await db.find({ key: "kid-*", limit: 2 });
+   console.info("list0", list0);
+   let list1 = await db.getMany("kid-0-485283", "kid-0-273632");
+   console.info("list1", list1);
+   await db.del("kid-*")
 }
 
 function toRandString() {
    let list: string[] = [];
    let chars: string[] = [];
    for (let i = 65; i < 122; i++) chars.push(String.fromCharCode(i));
-   for (let i = 0; i < 1000; i++) {
+   for (let i = 0; i < 10; i++) {
       list.push(chars[Math.floor(Math.random() * chars.length)]);
    }
    return list.join("");

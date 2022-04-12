@@ -27,6 +27,9 @@ describe("多进程比较取值2===================", function () {
          return true
       }});
       console.info("list", list)
+
+      let manyList = await db2.getMany("aa", "a1", "a2", "b3", "c10");
+      console.info("多进程 getMany", manyList);
    });
 });
 async function wait(ttl) {
