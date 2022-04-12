@@ -40,6 +40,9 @@ declare class ILionDB {
     * @param extension 是否自动延期(默认false, 如果在put时,设置的过期时间, 才会起作用)
     */
    get(key: string, extension?: boolean): Promise<any>;
+   /**
+    * 获取多条数据
+    */
    getMany(...keys: string[]): Promise<any[]>;
    getProperty(property: "leveldb.num-files-at-levelN" | "leveldb.stats" | "leveldb.sstables"): Promise<any>;
    /**

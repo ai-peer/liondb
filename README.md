@@ -5,7 +5,7 @@
 ### nodejs环境
 ``` 
    
-    // liondb.js
+    // liondb.js ok
     import LionDB from "@ai-lion/liondb";
     
     //单个线程：

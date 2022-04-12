@@ -5991,7 +5991,7 @@ class LionDB {
         return undefined;
     }
     async getMany(...keys) {
-        let bufs = await this.db.getMany(keys, {}).catch((e) => []);
+        let bufs = await this.db.getMany(keys, {}).catch((err) => []);
         let vals = [];
         for (let i = 0; i < bufs.length; i++) {
             let key = keys[i];

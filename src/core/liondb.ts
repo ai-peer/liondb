@@ -119,7 +119,7 @@ export default class LionDB implements ILionDB {
       return undefined;
    }
    async getMany(...keys: string[]): Promise<any[]> {
-      let bufs = await this.db.getMany(keys, {}).catch((e) => []);
+      let bufs = await this.db.getMany(keys, {}).catch((err) => []);
       let vals: any[] = [];
       for (let i = 0; i < bufs.length; i++) {
          let key = keys[i];
