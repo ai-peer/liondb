@@ -106,7 +106,7 @@ const config = {
       }), */
 
       new CopyPlugin({
-         patterns: [{ from: path.resolve("libs/prebuilds"), to: "prebuilds" }],
+         patterns: [{ from: path.resolve("node_modules/leveldown/prebuilds"), to: "prebuilds" }],
       }),
    ],
    optimization: {
