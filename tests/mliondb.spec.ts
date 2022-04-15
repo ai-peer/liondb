@@ -14,6 +14,8 @@ beforeEach(async function () {
 
    await db2.del("aa");
    await db2.set("aa", { name: "li leixxx" });
+   await db2.set("bb", { name: "li lei bbb" });
+   await db2.set("cc", { name: "li lei ccc" });
 });
  
 describe("多进程比较取值2===================", function () {
@@ -30,6 +32,13 @@ describe("多进程比较取值2===================", function () {
 
       let manyList = await db2.getMany("aa", "a1", "a2", "b3", "c10");
       console.info("多进程 getMany", manyList);
+
+      let startTime = Date.now();
+      await db2.iterator({key: "a*", limit: -1}, async(key, value)=>{
+         let s = await db2.get("aa");
+         console.info("ite==========>", key, value, s);
+      });
+      console.info("ttl====", Date.now() - startTime);
    });
 });
 async function wait(ttl) {
