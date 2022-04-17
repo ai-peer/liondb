@@ -6022,7 +6022,7 @@ class LionDB {
     }
     async exist(key) {
         let ex = false;
-        await this.iterator({ key, limit: 1, values: false }, (skey) => {
+        await this.iterator({ key, limit: 1 }, (skey) => {
             ex = skey === key;
         });
         return ex;
@@ -6077,11 +6077,34 @@ class LionDB {
     async count(key, filter) {
         let count = 0;
         let startTime = Date.now();
-        await this.iterator({ key: key, start: 0, limit: -1, values: false, filter }, async (key, val) => {
+        await this.iterator({ key: key, start: 0, limit: -1, filter }, async (key, val) => {
             count++;
-            if (Date.now() - startTime >= 2500)
+            if (Date.now() - startTime >= 10000)
                 return LionDB.Break;
         });
+        return count;
+    }
+    async countQuick(key = "*") {
+        let count = 0;
+        let startTime = Date.now();
+        let searchKey = String(key).trim();
+        let options = Object.assign({}, { key, limit: -1, keys: false, values: false }, { gte: searchKey });
+        let iterator = this.db.iterator(options);
+        iterator.seek(searchKey);
+        await new Promise((resolve) => {
+            (function next() {
+                iterator.next(async (err, bufKey, bufValue) => {
+                    if (Date.now() - startTime >= 10000 || err || !bufKey) {
+                        iterator.end((err) => { });
+                        resolve(undefined);
+                    }
+                    else {
+                        count++;
+                        next();
+                    }
+                });
+            })();
+        }).catch((err) => console.warn("countQuick error", err.message));
         return count;
     }
     async find({ key, limit = 100, start = 0, reverse = false, keys = true, filter, isRef = false, query = {}, }) {
@@ -6093,15 +6116,13 @@ class LionDB {
         });
         return reverse ? list.reverse() : list;
     }
-    async iterator({ key, limit = 100, start = 0, values = true, filter, isRef = false, }, callback) {
+    async iterator({ key, limit = 100, start = 0, filter, isRef = false, }, callback) {
         let _this = this;
         let searchKey = String(key).trim();
         let isFuzzy = searchKey.endsWith("*");
         let isSearchAll = searchKey === "*";
         searchKey = isSearchAll ? searchKey : searchKey.replace(/^\*|\*$/g, "");
-        if (values === false && filter)
-            values = true;
-        let options = Object.assign({}, { key, limit: -1, values: false }, { gte: searchKey });
+        let options = Object.assign({}, { key, limit: -1, values: true }, { gte: searchKey });
         let iterator = this.db.iterator(options);
         return new Promise((resolve, reject) => {
             let itSize = 0;
@@ -6110,26 +6131,25 @@ class LionDB {
                 return resolve();
             iterator.seek(searchKey);
             (function next() {
-                iterator.next(async (...args) => {
-                    let error = args[0], k = args[1], v = args[2];
-                    if (args.length < 1 || !k || error) {
-                        iterator.end((err) => err && console.error("err", err.message));
-                        return resolve();
-                    }
+                iterator.next(async (error, bufKey, bufVal) => {
                     try {
+                        if (!bufKey || error) {
+                            iterator.end((err) => err && console.error("liondb err", err.message));
+                            return resolve();
+                        }
                         itIndex++;
                         if (start > itIndex)
                             return next();
-                        let sKey = String(k);
+                        let sKey = String(bufKey);
                         if (!isFuzzy) {
                             if (sKey != searchKey) {
-                                iterator.end((err) => err && console.error("err", err.message));
+                                iterator.end((err) => err && console.error("liondb err", err.message));
                                 return resolve();
                             }
                         }
                         else {
                             if (limit > 0 && itSize >= limit) {
-                                iterator.end((err) => err && console.error("err", err.message));
+                                iterator.end((err) => err && console.error("liondb err", err.message));
                                 return resolve();
                             }
                             if (!isSearchAll && !sKey.startsWith(searchKey)) {
@@ -6137,33 +6157,30 @@ class LionDB {
                                 return resolve();
                             }
                         }
-                        if (values === false) {
-                            let callbackResult = await callback(sKey);
-                            if (callbackResult === LionDB.Break) {
-                                iterator.end((err) => err && console.error("err break", err.message));
-                                return resolve();
-                            }
-                            return next();
+                        let res = analyzeValue(bufVal);
+                        let curTime = Math.ceil(Date.now() / 1000);
+                        if (res.ttl > 0 && res.startAt + res.ttl < curTime) {
+                            _this.del(sKey);
+                            await wait(5);
                         }
-                        let value = await _this.get(sKey);
-                        if (value != undefined) {
+                        else {
+                            let value = res.value();
                             if (isRef)
                                 value = await _this.get(value);
                             if (filter) {
-                                let v = await filter(value, sKey, {
-                                    get: async (k) => {
-                                        return _this.get(k);
-                                    },
+                                let v = await filter(value, key, {
+                                    get: async (k) => _this.get(k),
+                                    getMany: async (...ks) => _this.getMany(...ks),
                                 });
                                 if (v != true)
                                     return next();
                             }
+                            itSize++;
                             let callbackResult = await callback(sKey, value);
                             if (callbackResult === LionDB.Break) {
-                                iterator.end((err) => err && console.error("err break", err.message));
+                                iterator.end((err) => err && console.error("liondb err break", err.message));
                                 return resolve();
                             }
-                            itSize++;
                         }
                         next();
                     }

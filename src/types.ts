@@ -79,6 +79,7 @@ export interface ILionDB {
    clear(ops?): Promise<void>;
    close(): Promise<void>;
    count(key: string, filter?: Filter): Promise<number>;
+   countQuick(key?: string): Promise<number>;
    /**
     * 查找
     * @param config
@@ -94,7 +95,7 @@ export interface ILionDB {
       reverse?: boolean;
       filter?: Filter;
       keys?: boolean;
-      isRef?: boolean;
+      //isRef?: boolean;
    }): Promise<{ key: string; value: any }[] | any[]>;
    iterator(
       config: {
@@ -108,6 +109,7 @@ export interface ILionDB {
    ): Promise<void>;
 }
 type Get = (key: string) => Promise<any>;
-export type Filter = (value: any, key: string, db: { get: Get }) => Promise<boolean> | boolean;
+type GetMany = (...key: string[]) => Promise<any[]>;
+export type Filter = (value: any, key: string, db: { get: Get; getMany: GetMany }) => Promise<boolean> | boolean;
 
 export type IteratorCallback = (key: string, value?: any) => Promise<"break"> | "break" | Promise<any> | any;

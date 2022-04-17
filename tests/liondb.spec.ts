@@ -99,9 +99,9 @@ beforeEach(async function () {
    console.info("list1", list1); */
    // console.info("count=", await db.count("kid-*"));
 
-   await liondb.del("b*", "b2");
-   let list = await liondb.find({ key: "*" });
-   console.info("list=====>>>", list);
+/*    await liondb.del("b*", "b2");
+   let list = await liondb.find({ key: "*", limit: 10 });
+   console.info("list=====>>>0", list); */
 
    /*    console.info("stats ", await liondb.getProperty("leveldb.stats"))
    console.info("sstables ", await liondb.getProperty("leveldb.sstables"))
@@ -116,10 +116,10 @@ describe("单进程比较取值", function () {
       let list = await liondb.find({
          key: "中国*",
          filter: (value) => {
-            return /^中国广/.test(value.name); // value.name == "b1";
+            return /^中国广/.test(value.name); 
          },
       });
-      console.info("list===", list);
+      console.info("list===>>1", list);
       /*    let count = await liondb.count("中国*", (value) => {
          return /^中国广/.test(value.name); // value.name == "b1";
       }); */

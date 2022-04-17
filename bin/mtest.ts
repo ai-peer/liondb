@@ -6,7 +6,7 @@ import LionDB from "../src";
 console.info("init==========");
 //let db = LionDB.worker({ filename: path.resolve("_local/3"), env: "cluster", isMaster: false, thread: cluster });
 let db = LionDB.worker({
-   filename: path.resolve("_local/3"),
+   filename: path.resolve("_local/1"),
    env: "cluster",
    isMaster: cluster.isMaster,
    thread: cluster.isMaster ? cluster : cluster.worker,
@@ -44,11 +44,28 @@ async function execr() {
       },
    );
    console.info("list2==", list2);
+
+   //////////////////////////
+   let itCount = 0,
+      start = 0;
+   while (true) {
+      start = Date.now();
+      console.info("start", ++itCount);
+      await db.iterator({ key: "task-*", limit: 999 }, async (key, value) => {
+         //console.info("key", key)
+         await wait(10);
+      });
+      console.info("ttl=", Math.ceil((Date.now() - start) / 1000), itCount);
+   }
+}
+async function wait(ttl) {
+   return new Promise((resolve) => {
+      setTimeout(() => resolve(undefined), ttl);
+   });
 }
 if (cluster.isMaster) {
    console.info("===master");
    cluster.fork();
-   //execr();
 } else {
    execr();
 }

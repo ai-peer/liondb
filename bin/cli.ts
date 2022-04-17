@@ -16,17 +16,23 @@ let config: any = program
    .parse(process.argv)
    .opts();
  */
-import lionDB from "../src";
+import LionDB from "../src";
 import path from "path";
 import { ILionDB } from "../src/types";
-let db: ILionDB = new lionDB(path.resolve("_local/1"));
+import cluster from "cluster";
+//let db: ILionDB = new lionDB(path.resolve("_local/1"));
+let db = LionDB.worker({
+   filename: path.resolve("_local/1"),
+   env: "cluster",
+   isMaster: cluster.isMaster,
+   thread: cluster.isMaster ? cluster : cluster.worker,
+});
 
 async function start() {
-   let start = Date.now();
-   /*    for (let i = 0; i < 5; i++) {
-      await db.set("kid-" + i + "-" + Math.ceil(Math.random() * 999999), {
+   /*    for (let i = 0; i < 100000; i++) {
+      await db.set("task-" + i, {
          text: toRandString(),
-         name: "name-" + i,
+         name: "task-" + i,
          id: i,
       });
    } */
@@ -34,15 +40,34 @@ async function start() {
    await db.set(key, 1);
    let v = await db.get(key);
    console.info("v", v);
-   let count = await db.count("kid-*");
-   console.info("output ", Date.now() - start, count);
+   let startTime = Date.now();
+   let count0 = await db.count("*");
+   console.info("count ttl=", count0, Date.now() - startTime, (startTime = Date.now()));
+   let count = await db.countQuick();
+   console.info("output ttl=", Date.now() - startTime, "s count=", count, count0);
    let list0 = await db.find({ key: "kid-*", limit: 2 });
    console.info("list0", list0);
    let list1 = await db.getMany("kid-0-485283", "kid-0-273632");
-   console.info("list1", list1);
-   await db.del("kid-*")
-}
+   let list = await db.find({ key: "task-*", limit: 10 });
+   console.info("list", list);
 
+   //////////////////////////
+   let itCount = 0,
+      start = 0;
+   // while (true) {
+   start = Date.now();
+   await db.iterator({ key: "task-*", limit: 99 }, async (key, value) => {
+      //console.info("key", key)
+      await wait(100);
+   });
+   console.info("ttl=", Math.ceil((Date.now() - start) / 1000), ++itCount);
+   //}
+}
+async function wait(ttl) {
+   return new Promise((resolve) => {
+      setTimeout(() => resolve(undefined), ttl);
+   });
+}
 function toRandString() {
    let list: string[] = [];
    let chars: string[] = [];
