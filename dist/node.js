@@ -6168,7 +6168,7 @@ class LionDB {
                             if (isRef)
                                 value = await _this.get(value);
                             if (filter) {
-                                let v = await filter(value, key, {
+                                let v = await filter(value, sKey, {
                                     get: async (k) => _this.get(k),
                                     getMany: async (...ks) => _this.getMany(...ks),
                                 });
@@ -6291,7 +6291,7 @@ function exp(query, value, symbol = "$equal") {
     let size = 0;
     let isTrue = false;
     if (isUnitType(value))
-        return false;
+        return true;
     for (let k in query) {
         if (/^[$]/.test(k)) {
             isTrue = exp(query[k], value, k);

@@ -1,7 +1,7 @@
 export default function exp(query: { [key: string]: any }, value, symbol: "$lt" | "$lte" | "$gt" | "$gte" | "$ne" | "$equal" | string = "$equal") {
    let size = 0;
    let isTrue = false;
-   if (isUnitType(value)) return false;
+   if (isUnitType(value)) return true;
    for (let k in query) {
       if (/^[$]/.test(k)) {
          isTrue = exp(query[k], value, k);

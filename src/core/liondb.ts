@@ -367,7 +367,7 @@ export default class LionDB implements ILionDB {
                      let value = res.value();
                      if (isRef) value = await _this.get(value);
                      if (filter) {
-                        let v = await filter(value, key, {
+                        let v = await filter(value, sKey, {
                            get: async (k) => _this.get(k),
                            getMany: async (...ks) => _this.getMany(...ks),
                         });
