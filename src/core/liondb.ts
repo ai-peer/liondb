@@ -232,11 +232,11 @@ export default class LionDB implements ILionDB {
    }
    async count(key: string, filter?: Filter): Promise<number> {
       let count = 0;
-      let startTime = Date.now();
+      //let startTime = Date.now();
       await this.iterator({ key: key, start: 0, limit: -1, filter }, async (key, val) => {
          count++;
          //防止超时等待， 超时就返回目前取得的所有数
-         if (Date.now() - startTime >= 10000) return LionDB.Break;
+         //if (Date.now() - startTime >= 10000) return LionDB.Break;
       });
       return count;
    }
@@ -250,13 +250,15 @@ export default class LionDB implements ILionDB {
       await new Promise((resolve) => {
          (function next() {
             iterator.next(async (err, bufKey, bufValue) => {
-               if (Date.now() - startTime >= 10000 || err || !bufKey) {
+               /*  if (Date.now() - startTime >= 10000 || err || !bufKey) {
                   iterator.end((err) => {});
                   resolve(undefined);
                } else {
                   count++;
                   next();
-               }
+               } */
+               count++;
+               next();
             });
          })();
       }).catch((err) => console.warn("countQuick error", err.message));
@@ -284,10 +286,11 @@ export default class LionDB implements ILionDB {
    }): Promise<{ key: string; value: any }[] | any[]> {
       let list: any[] = [];
       let nfilter = mergeFilter(query || {}, filter);
-      await this.iterator({ key, limit, start, filter: nfilter, isRef }, (skey, svalue) => {
+      await this.iterator({ key, limit, start, filter: nfilter, reverse, isRef }, (skey, svalue) => {
          if (svalue !== undefined) keys ? list.push({ key: skey, value: svalue }) : list.push(svalue);
       });
-      return reverse ? list.reverse() : list;
+      //return reverse ? list.reverse() : list;
+      return list;
    }
 
    async iterator(
@@ -297,34 +300,46 @@ export default class LionDB implements ILionDB {
          start = 0,
          filter,
          isRef = false,
+         reverse = false,
       }: {
          key: string;
          limit?: number;
          start?: number;
          filter?: Filter;
          isRef?: boolean;
+         reverse?: boolean;
       },
       callback: IteratorCallback,
    ): Promise<void> {
       let _this = this;
       let searchKey = String(key).trim();
+
       let isFuzzy = searchKey.endsWith("*");
       let isSearchAll = searchKey === "*";
       searchKey = isSearchAll ? searchKey : searchKey.replace(/^\*|\*$/g, "");
-      //if (values === false && filter) values = true;
 
-      let options = Object.assign({}, { key, limit: -1, values: true }, { gte: searchKey });
+      let endKey = searchKey.replace(/[\*]+$/, "").trim();
+      //console.info("start search===", searchKey, endKey);
+      endKey = endKey.length < 1 ? "" : endKey.slice(0, endKey.length - 1) + String.fromCharCode(endKey[endKey.length - 1].charCodeAt(0) + 1); // endKey[endKey.length -1]
+      //if (values === false && filter) values = true;
+      //console.info("search----", searchKey, endKey, key, "isFuzzy", isFuzzy, "isSearchAll", isSearchAll, "reverse=", reverse);
+
+      let options: any = Object.assign({}, { key, limit: -1, values: true, reverse, gte: searchKey }); //{ gte: searchKey, reverse: reverse, lt: endKey }
+      /*      if (reverse) options.lt = endKey;
+      else options.gte = searchKey; */
+
       let iterator = this.db.iterator(options);
 
-      return new Promise((resolve, reject) => {
+      return new Promise(async (resolve, reject) => {
          let itSize = 0;
          let itIndex = -1;
          if (!iterator) return resolve();
-         iterator.seek(searchKey);
+         iterator.seek(reverse ? endKey : searchKey);
          (function next() {
             iterator.next(async (error, bufKey, bufVal) => {
                try {
                   if (!bufKey || error) {
+                     //console.info("end===", !bufKey, error?.message);
                      iterator.end((err) => err && console.error("liondb err", err.message));
                      return resolve();
                   }
@@ -332,6 +347,7 @@ export default class LionDB implements ILionDB {
                   if (start > itIndex) return next();
 
                   let sKey = String(bufKey);
+                  //console.info("find item", sKey);
                   if (!isFuzzy) {
                      if (sKey != searchKey) {
                         iterator.end((err) => err && console.error("liondb err", err.message));

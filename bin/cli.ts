@@ -36,7 +36,7 @@ async function start() {
          id: i,
       });
    } */
-   let key = "abc51";
+   /*  let key = "abc51";
    await db.set(key, 1);
    let v = await db.get(key);
    console.info("v", v);
@@ -60,8 +60,21 @@ async function start() {
       //console.info("key", key)
       await wait(100);
    });
-   console.info("ttl=", Math.ceil((Date.now() - start) / 1000), ++itCount);
+   console.info("ttl=", Math.ceil((Date.now() - start) / 1000), ++itCount); */
    //}
+   let list = await db.find({
+      key: "task*",
+      limit: 10,
+      start: 10
+   });
+   console.info("find list===>>1", list);
+
+   list = await db.find({
+      key: "task*",
+      reverse: true,
+      limit: 10,
+   });
+   console.info("find reverse list===>>1", list);
 }
 async function wait(ttl) {
    return new Promise((resolve) => {

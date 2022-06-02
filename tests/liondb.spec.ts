@@ -115,14 +115,21 @@ describe("单进程比较取值", function () {
       assert.deepStrictEqual(vv.name, "li lei");
       let list = await liondb.find({
          key: "中国*",
-         filter: (value) => {
+    /*      filter: (value) => {
             return /^中国广/.test(value.name); 
-         },
+         }, */
       });
-      console.info("list===>>1", list);
+      console.info("find list===>>1", list);
+
+      list = await liondb.find({
+         key: "中国*",
+         reverse: true,
+      });
+      console.info("find reverse list===>>1", list);
       /*    let count = await liondb.count("中国*", (value) => {
          return /^中国广/.test(value.name); // value.name == "b1";
       }); */
+      console.info("start====count");
       let count = await liondb.count("*");
       console.info("count===============", count);
    });
