@@ -94,6 +94,7 @@ declare class ILionDB {
     *    start: 开始位置 默认 0
     *    limit: 限制 默认100条， -1 表示无限
     *    reverse: 倒序查询， 默认false
+    *    keys: 搜索结果是否包含key, 默认false
     */
    find(config: {
       key: string;
@@ -101,6 +102,7 @@ declare class ILionDB {
       start?: number;
       filter?: Filter;
       keys?: boolean;
+      reverse?: boolean;
       isRef?: boolean;
       [key: string]: any;
    }): Promise<{ key: string; value: any }[] | any[]>;

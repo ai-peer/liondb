@@ -6076,11 +6076,8 @@ class LionDB {
     }
     async count(key, filter) {
         let count = 0;
-        let startTime = Date.now();
         await this.iterator({ key: key, start: 0, limit: -1, filter }, async (key, val) => {
             count++;
-            if (Date.now() - startTime >= 10000)
-                return LionDB.Break;
         });
         return count;
     }
@@ -6094,42 +6091,38 @@ class LionDB {
         await new Promise((resolve) => {
             (function next() {
                 iterator.next(async (err, bufKey, bufValue) => {
-                    if (Date.now() - startTime >= 10000 || err || !bufKey) {
-                        iterator.end((err) => { });
-                        resolve(undefined);
-                    }
-                    else {
-                        count++;
-                        next();
-                    }
+                    count++;
+                    next();
                 });
             })();
         }).catch((err) => console.warn("countQuick error", err.message));
         return count;
     }
-    async find({ key, limit = 100, start = 0, reverse = false, keys = true, filter, isRef = false, query = {}, }) {
+    async find({ key, limit = 100, start = 0, reverse = false, keys = false, filter, isRef = false, query = {}, }) {
         let list = [];
         let nfilter = mergeFilter(query || {}, filter);
-        await this.iterator({ key, limit, start, filter: nfilter, isRef }, (skey, svalue) => {
+        await this.iterator({ key, limit, start, filter: nfilter, reverse, isRef }, (skey, svalue) => {
             if (svalue !== undefined)
                 keys ? list.push({ key: skey, value: svalue }) : list.push(svalue);
         });
-        return reverse ? list.reverse() : list;
+        return list;
     }
-    async iterator({ key, limit = 100, start = 0, filter, isRef = false, }, callback) {
+    async iterator({ key, limit = 100, start = 0, filter, isRef = false, reverse = false, }, callback) {
         let _this = this;
         let searchKey = String(key).trim();
         let isFuzzy = searchKey.endsWith("*");
         let isSearchAll = searchKey === "*";
         searchKey = isSearchAll ? searchKey : searchKey.replace(/^\*|\*$/g, "");
-        let options = Object.assign({}, { key, limit: -1, values: true }, { gte: searchKey });
+        let endKey = searchKey.replace(/[\*]+$/, "").trim();
+        endKey = endKey.length < 1 ? "" : endKey.slice(0, endKey.length - 1) + String.fromCharCode(endKey[endKey.length - 1].charCodeAt(0) + 1);
+        let options = Object.assign({}, { key, limit: -1, values: true, reverse, gte: searchKey });
         let iterator = this.db.iterator(options);
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             let itSize = 0;
             let itIndex = -1;
             if (!iterator)
                 return resolve();
-            iterator.seek(searchKey);
+            iterator.seek(reverse ? endKey : searchKey);
             (function next() {
                 iterator.next(async (error, bufKey, bufVal) => {
                     try {

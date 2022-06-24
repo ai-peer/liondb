@@ -8,18 +8,20 @@ let liondb: ILionDB = new LionDB(path.resolve("_local/1"));
 beforeEach(async function () {
    await wait(1000);
    //await db.del("aa");
-   await liondb.set("aa", { name: "li lei" });
+  /*  await liondb.set("aa", { name: "li lei" });
    console.info(">>>>aa", await liondb.get("aa"));
    await liondb.set("a1", { name: "a1" });
    console.info(">>>>existt a1", await liondb.exist("a1"));
-   console.info(">>>>existt a1xxxxxx", await liondb.exist("a1xxxxxx"));
+   console.info(">>>>existt a1xxxxxx", await liondb.exist("a1xxxxxx")); */
+   let vv = await liondb.get("adfasdfsdf");
+   console.info("vv", vv);
    /*    await db.set("a2", { name: "a2" });
    await db.set("a3", { name: "a3" });
    await db.set("a4", { name: "a4" });
    await db.set("b1", { name: "b1" });
    await db.set("b2", { name: "b2" }); */
 
-   await liondb.batch([
+  /*  await liondb.batch([
       {
          type: "put",
          key: "a2",
@@ -92,7 +94,7 @@ beforeEach(async function () {
       },
    ]);
    let manyList = await liondb.getMany("b1", "a1", "a2", "b3", "c10");
-   console.info("=====单线程getMany", manyList);
+   console.info("=====单线程getMany", manyList); */
    /*    let list0 = await liondb.find({ key: "b*" });
    console.info("list0", list0);
    let list1 = await liondb.find({ key: "b*", reverse: true });

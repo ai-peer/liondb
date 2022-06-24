@@ -264,12 +264,26 @@ export default class LionDB implements ILionDB {
       }).catch((err) => console.warn("countQuick error", err.message));
       return count;
    }
+   /**
+    * 查询
+    * @param param0 
+    * {
+    *    key,
+         limit = 100,
+         start = 0,
+         reverse = false,
+         keys = true,
+         filter,
+         isRef = false, 是否引用
+         query = {},
+    * }
+    */
    async find({
       key,
       limit = 100,
       start = 0,
       reverse = false,
-      keys = true,
+      keys = false,
       filter,
       isRef = false,
       query = {},
