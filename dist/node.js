@@ -6021,8 +6021,11 @@ class LionDB {
         return this.put(key, value, ttl);
     }
     async exist(key) {
+        return this.has(key);
+    }
+    async has(key) {
         let ex = false;
-        await this.iterator({ key, limit: 1 }, (skey) => {
+        await this.iterator({ key, limit: 1, values: false }, (skey) => {
             ex = skey === key;
         });
         return ex;
@@ -6107,7 +6110,7 @@ class LionDB {
         });
         return list;
     }
-    async iterator({ key, limit = 100, start = 0, filter, isRef = false, reverse = false, }, callback) {
+    async iterator({ key, limit = 100, start = 0, filter, isRef = false, reverse = false, values = true, }, callback) {
         let _this = this;
         let searchKey = String(key).trim();
         let isFuzzy = searchKey.endsWith("*");
@@ -6115,7 +6118,7 @@ class LionDB {
         searchKey = isSearchAll ? searchKey : searchKey.replace(/^\*|\*$/g, "");
         let endKey = searchKey.replace(/[\*]+$/, "").trim();
         endKey = endKey.length < 1 ? "" : endKey.slice(0, endKey.length - 1) + String.fromCharCode(endKey[endKey.length - 1].charCodeAt(0) + 1);
-        let options = Object.assign({}, { key, limit: -1, values: true, reverse, gte: searchKey });
+        let options = Object.assign({}, { key, limit: -1, values: values, reverse, gte: searchKey });
         let iterator = this.db.iterator(options);
         return new Promise(async (resolve, reject) => {
             let itSize = 0;

@@ -51,8 +51,14 @@ export interface ILionDB {
    /**
     * 存在
     * @param key
+    * @deprecated
     */
    exist(key: string): Promise<boolean>;
+   /**
+    * 是否存在
+    * @param key 
+    */
+   has(key: string):Promise<boolean>;
    /**
     * 取得增量后的值,并存储
     * @param key

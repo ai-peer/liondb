@@ -62,10 +62,12 @@ async function start() {
    });
    console.info("ttl=", Math.ceil((Date.now() - start) / 1000), ++itCount); */
    //}
+   console.info("has== task-1001", await db.has("task-10012"));
    let list = await db.find({
       key: "task*",
       limit: 10,
-      start: 10
+      start: 10,
+      keys: true
    });
    console.info("find list===>>1", list);
 

@@ -156,8 +156,11 @@ export default class LionDB implements ILionDB {
     * @param key
     */
    async exist(key: string): Promise<boolean> {
+      return this.has(key);
+   }
+   async has(key: string): Promise<boolean> {
       let ex = false;
-      await this.iterator({ key, limit: 1 }, (skey) => {
+      await this.iterator({ key, limit: 1, values: false }, (skey) => {
          ex = skey === key;
       });
       return ex;
@@ -315,6 +318,7 @@ export default class LionDB implements ILionDB {
          filter,
          isRef = false,
          reverse = false,
+         values = true,
       }: {
          key: string;
          limit?: number;
@@ -322,6 +326,7 @@ export default class LionDB implements ILionDB {
          filter?: Filter;
          isRef?: boolean;
          reverse?: boolean;
+         values?: boolean;
       },
       callback: IteratorCallback,
    ): Promise<void> {
@@ -338,7 +343,7 @@ export default class LionDB implements ILionDB {
       //if (values === false && filter) values = true;
       //console.info("search----", searchKey, endKey, key, "isFuzzy", isFuzzy, "isSearchAll", isSearchAll, "reverse=", reverse);
 
-      let options: any = Object.assign({}, { key, limit: -1, values: true, reverse, gte: searchKey }); //{ gte: searchKey, reverse: reverse, lt: endKey }
+      let options: any = Object.assign({}, { key, limit: -1, values: values, reverse, gte: searchKey }); //{ gte: searchKey, reverse: reverse, lt: endKey }
       /*      if (reverse) options.lt = endKey;
       else options.gte = searchKey; */
 
