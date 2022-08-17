@@ -250,7 +250,7 @@ export default class LionDB implements ILionDB {
       await new Promise((resolve) => {
          (function next() {
             iterator.next(async (err, bufKey, bufValue) => {
-               if(!bufKey) return resolve(count);
+               if (!bufKey) return resolve(count);
                count++;
                next();
             });
@@ -385,6 +385,7 @@ export default class LionDB implements ILionDB {
                   } */
 
                   let res: any = analyzeValue(bufVal);
+                  if (res === undefined) return next();
                   let curTime = Math.ceil(Date.now() / 1000);
                   if (res.ttl > 0 && res.startAt + res.ttl < curTime) {
                      _this.del(sKey);
