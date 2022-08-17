@@ -29,7 +29,7 @@ let db = LionDB.worker({
 });
 
 async function start() {
-   /*    for (let i = 0; i < 100000; i++) {
+/*    for (let i = 0; i < 100; i++) {
       await db.set("task-" + i, {
          text: toRandString(),
          name: "task-" + i,
@@ -62,12 +62,14 @@ async function start() {
    });
    console.info("ttl=", Math.ceil((Date.now() - start) / 1000), ++itCount); */
    //}
+   let count = await db.countQuick("*");
+   console.info("count=", count);
    console.info("has== task-1001", await db.has("task-10012"));
    let list = await db.find({
       key: "task*",
       limit: 10,
       start: 10,
-      keys: true
+      keys: true,
    });
    console.info("find list===>>1", list);
 

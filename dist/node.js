@@ -6086,14 +6086,15 @@ class LionDB {
     }
     async countQuick(key = "*") {
         let count = 0;
-        let startTime = Date.now();
         let searchKey = String(key).trim();
-        let options = Object.assign({}, { key, limit: -1, keys: false, values: false }, { gte: searchKey });
+        let options = Object.assign({}, { key, limit: -1, keys: true, values: false }, { gte: searchKey });
         let iterator = this.db.iterator(options);
         iterator.seek(searchKey);
         await new Promise((resolve) => {
             (function next() {
                 iterator.next(async (err, bufKey, bufValue) => {
+                    if (!bufKey)
+                        return resolve(count);
                     count++;
                     next();
                 });

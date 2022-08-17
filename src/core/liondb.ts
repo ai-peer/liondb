@@ -238,28 +238,19 @@ export default class LionDB implements ILionDB {
       //let startTime = Date.now();
       await this.iterator({ key: key, start: 0, limit: -1, filter }, async (key, val) => {
          count++;
-         //防止超时等待， 超时就返回目前取得的所有数
-         //if (Date.now() - startTime >= 10000) return LionDB.Break;
       });
       return count;
    }
    async countQuick(key: string = "*"): Promise<number> {
       let count = 0;
-      let startTime = Date.now();
       let searchKey = String(key).trim();
-      let options = Object.assign({}, { key, limit: -1, keys: false, values: false }, { gte: searchKey });
+      let options = Object.assign({}, { key, limit: -1, keys: true, values: false }, { gte: searchKey });
       let iterator = this.db.iterator(options);
       iterator.seek(searchKey);
       await new Promise((resolve) => {
          (function next() {
             iterator.next(async (err, bufKey, bufValue) => {
-               /*  if (Date.now() - startTime >= 10000 || err || !bufKey) {
-                  iterator.end((err) => {});
-                  resolve(undefined);
-               } else {
-                  count++;
-                  next();
-               } */
+               if(!bufKey) return resolve(count);
                count++;
                next();
             });
