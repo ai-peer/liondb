@@ -6155,10 +6155,8 @@ class LionDB {
                             }
                         }
                         let res = analyzeValue(bufVal);
-                        if (res === undefined) {
-                            _this.del(sKey);
+                        if (res === undefined)
                             return next();
-                        }
                         let curTime = Math.ceil(Date.now() / 1000);
                         if (res.ttl > 0 && res.startAt + res.ttl < curTime) {
                             _this.del(sKey);
@@ -6211,10 +6209,6 @@ function analyzeValue(value) {
         let startAt = byte_1.bit2Int(value.slice(1, 6));
         let ttl = byte_1.bit2Int(value.slice(6, 10));
         let val = value.slice(10);
-        if (String(startAt).startsWith("63")) {
-            startAt = Math.floor(Date.now() / 1000) - 1;
-            ttl = 1;
-        }
         return {
             ttl,
             value: () => {
@@ -6243,7 +6237,8 @@ function analyzeValue(value) {
             buffer: val,
         };
     }
-    catch (e) {
+    catch (err) {
+        console.debug("liondb analyzeValue error", value === null || value === void 0 ? void 0 : value.length, err);
         return undefined;
     }
 }
