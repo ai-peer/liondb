@@ -20,6 +20,7 @@ import LionDB from "../src";
 import path from "path";
 import { ILionDB } from "../src/types";
 import cluster from "cluster";
+import {Buffer} from "buffer";
 //let db: ILionDB = new lionDB(path.resolve("_local/1"));
 let db = LionDB.worker({
    filename: path.resolve("_local/1"),
@@ -62,6 +63,9 @@ async function start() {
    });
    console.info("ttl=", Math.ceil((Date.now() - start) / 1000), ++itCount); */
    //}
+   let buf = Buffer.from("abc");
+   await db.set("buf", buf);
+   console.info("====>", await db.get("buf"));
    let count = await db.countQuick("*");
    console.info("count=", count);
    console.info("has== task-1001", await db.has("task-10012"));

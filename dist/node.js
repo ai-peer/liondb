@@ -6155,8 +6155,10 @@ class LionDB {
                             }
                         }
                         let res = analyzeValue(bufVal);
-                        if (res === undefined)
+                        if (res === undefined) {
+                            _this.del(sKey);
                             return next();
+                        }
                         let curTime = Math.ceil(Date.now() / 1000);
                         if (res.ttl > 0 && res.startAt + res.ttl < curTime) {
                             _this.del(sKey);
