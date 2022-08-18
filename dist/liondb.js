@@ -10363,6 +10363,8 @@ exports.default = LionDB;
 LionDB.Break = "break";
 function analyzeValue(value) {
     try {
+        if (value === undefined || value === null)
+            return;
         let type = value[0];
         let startAt = byte_1.bit2Int(value.slice(1, 6));
         let ttl = byte_1.bit2Int(value.slice(6, 10));

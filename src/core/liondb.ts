@@ -386,7 +386,7 @@ export default class LionDB implements ILionDB {
 
                   let res: any = analyzeValue(bufVal);
                   if (res === undefined) return next();
-                  
+
                   let curTime = Math.ceil(Date.now() / 1000);
                   if (res.ttl > 0 && res.startAt + res.ttl < curTime) {
                      _this.del(sKey);
@@ -446,12 +446,13 @@ export default class LionDB implements ILionDB {
 
 function analyzeValue(value) {
    try {
+      if (value === undefined || value === null) return;
       let type = value[0];
       let startAt = bit2Int(value.slice(1, 6));
       let ttl = bit2Int(value.slice(6, 10));
       let val = value.slice(10);
 
-/*       if (String(startAt).startsWith("63")) {
+      /*       if (String(startAt).startsWith("63")) {
          startAt = Math.floor(Date.now() / 1000) - 1;
          ttl = 1;
       } */
