@@ -14,10 +14,11 @@ const config = {
    entry: {
       browser: {
          import: "./src/index.browser.ts",
+         filename: "dist/[name].js",
       },
       liondb: {
          import: "./src/index.browser.ts",
-         filename: "[name].js",
+         filename: "dist/[name].js",
          library: {
             // all options under `output.library` can be used here
             name: "LionDB",
@@ -27,7 +28,7 @@ const config = {
       },
    },
    output: {
-      path: path.resolve(__dirname, "dist"),
+      path: path.resolve(__dirname, "publish"),
       /*       chunkFormat: "commonjs",
       libraryTarget: "commonjs",
       globalObject: 'this',, */

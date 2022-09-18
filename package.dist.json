@@ -1,0 +1,40 @@
+{
+  "name": "@ai-lion/liondb",
+  "version": "4.4.9",
+  "main": "dist/node.js",
+  "browser": "dist/browser.js",
+  "license": "MIT",
+  "bin": {},
+  "types": "index.d.ts",
+  "scripts": { },
+  "engines": {
+    "node": ">=8.0.0"
+  },
+  "keywords": [
+    "liondb",
+    "leveldb",
+    "cache",
+    "db",
+    "nosql",
+    "数据库",
+    "本地数据库",
+    "浏览器数据库"
+  ],
+  "repository": "https://github.com/ai-lion/liondb",
+  "dependencies": {
+    "buffer": "^6.0.3",
+    "level-js": "^6.1.0",
+    "leveldown": "^6.1.0",
+    "levelup": "^5.1.1"
+  },
+  "devDependencies": {
+  },
+  "description": "liondb是一个基于leveldb的本地磁盘存储数据库， 数据可以持久存储， 性能高效， 容量受限于磁盘大小",
+
+  "files": [
+    "dist",
+    "package.json",
+    "index.d.ts",
+    "README.md"
+  ]
+}

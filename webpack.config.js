@@ -7,17 +7,18 @@ const path = require("path");
 const isProduction = process.env.NODE_ENV == "production";
 const webpack = require("webpack");
 const CopyPlugin = require("copy-webpack-plugin");
-const stylesHandler = "style-loader";
+//const stylesHandler = "style-loader";
 const TerserPlugin = require("terser-webpack-plugin");
 
 const config = {
    entry: {
       node: {
          import: "./src/index.ts",
+         filename: "dist/node.js",
       },
    },
    output: {
-      path: path.resolve(__dirname, "dist"),
+      path: path.resolve(__dirname, "publish"),
       clean: {
          keep: /(test)\.js/, // 保留 'ignored/dir' 下的静态资源
       },
@@ -106,7 +107,13 @@ const config = {
       }), */
 
       new CopyPlugin({
-         patterns: [{ from: path.resolve("node_modules/leveldown/prebuilds"), to: "prebuilds" }],
+         patterns: [
+            { from: "node_modules/leveldown/prebuilds", to: "dist/prebuilds" },
+            { from: "package.dist.json", to: "package.json" },
+            { from: "README.md", to: "README.md" },
+            { from: "index.d.ts", to: "index.d.ts" },
+
+         ],
       }),
    ],
    optimization: {
