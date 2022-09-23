@@ -84,11 +84,11 @@ async function start() {
 
    let startTime = Date.now();
    let list0: any[] = [];
-   for (let i = 0; i < 10; i++) {
-      await db.iterator({ key: "task*", start: 130000+i*10, limit: 10 }, (key, val) => {
-         //list0.push(val);
-      });
-   }
+   //for (let i = 0; i < 10; i++) {
+   await db.iterator({ key: "task*", start: 130000 + 10, limit: 10 }, (key, val) => {
+      list0.push(val);
+   });
+   //}
 
    console.info("find reverse list===>>1", Math.ceil((Date.now() - startTime) / 10) + "ms", list0);
 }
