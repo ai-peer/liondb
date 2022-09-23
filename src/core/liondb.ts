@@ -241,10 +241,10 @@ export default class LionDB implements ILionDB {
       });
       return count;
    }
-   async countQuick(key: string = "*"): Promise<number> {
+   async total(): Promise<number> {
       let count = 0;
-      let searchKey = String(key).trim();
-      let options = Object.assign({}, { key, limit: -1, keys: true, values: false }, { gte: searchKey });
+      let searchKey = Buffer.from([0]);
+      let options = Object.assign({}, { limit: -1, keys: true, values: false }, { gte: searchKey });
       let iterator = this.db.iterator(options);
       iterator.seek(searchKey);
       await new Promise((resolve) => {
@@ -322,6 +322,7 @@ export default class LionDB implements ILionDB {
       callback: IteratorCallback,
    ): Promise<void> {
       let _this = this;
+      const db = this.db;
       let searchKey = String(key).trim();
 
       let isFuzzy = searchKey.endsWith("*");
@@ -333,7 +334,7 @@ export default class LionDB implements ILionDB {
       endKey = endKey.length < 1 ? "" : endKey.slice(0, endKey.length - 1) + String.fromCharCode(endKey[endKey.length - 1].charCodeAt(0) + 1); // endKey[endKey.length -1]
       //if (values === false && filter) values = true;
       //console.info("search----", searchKey, endKey, key, "isFuzzy", isFuzzy, "isSearchAll", isSearchAll, "reverse=", reverse);
-
+      if (start > 100) values = false;
       let options: any = Object.assign({}, { key, limit: -1, values: values, reverse, gte: searchKey }); //{ gte: searchKey, reverse: reverse, lt: endKey }
       /*      if (reverse) options.lt = endKey;
       else options.gte = searchKey; */
@@ -383,7 +384,7 @@ export default class LionDB implements ILionDB {
                      }
                      return next();
                   } */
-
+                  if (!values) bufVal = await db.get(bufKey).catch((err) => undefined);
                   let res: any = analyzeValue(bufVal);
                   if (res === undefined) return next();
 
@@ -408,6 +409,7 @@ export default class LionDB implements ILionDB {
                         return resolve();
                      }
                   }
+
                   /*  let value = await _this.get(sKey);
                   if (value != undefined) {
                      if (isRef) value = await _this.get(value);

@@ -85,7 +85,8 @@ export interface ILionDB {
    clear(ops?): Promise<void>;
    close(): Promise<void>;
    count(key: string, filter?: Filter): Promise<number>;
-   countQuick(key?: string): Promise<number>;
+   /** 总条数 */
+   total(): Promise<number>;
    /**
     * 查找
     * @param config

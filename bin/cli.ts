@@ -20,7 +20,7 @@ import LionDB from "../src";
 import path from "path";
 import { ILionDB } from "../src/types";
 import cluster from "cluster";
-import {Buffer} from "buffer";
+import { Buffer } from "buffer";
 //let db: ILionDB = new lionDB(path.resolve("_local/1"));
 let db = LionDB.worker({
    filename: path.resolve("_local/1"),
@@ -30,9 +30,9 @@ let db = LionDB.worker({
 });
 
 async function start() {
-/*    for (let i = 0; i < 100; i++) {
+   /*    for (let i = 100000; i < 200000; i++) {
       await db.set("task-" + i, {
-         text: toRandString(),
+         text: Date.now().toString(36) + "-" + Math.random().toString(36).slice(2) + "-" + Math.random().toString(36).slice(2),
          name: "task-" + i,
          id: i,
       });
@@ -63,26 +63,34 @@ async function start() {
    });
    console.info("ttl=", Math.ceil((Date.now() - start) / 1000), ++itCount); */
    //}
-   let buf = Buffer.from("abc");
+   /* let buf = Buffer.from("abc");
    await db.set("buf", buf);
    console.info("====>", await db.get("buf"));
-   let count = await db.countQuick("*");
-   console.info("count=", count);
+   let startTime0=Date.now();
+   let count = await db.total();
+   console.info("count1=", count, Date.now() - startTime0);
+   startTime0=Date.now();
+   count = await db.count("*");
+   console.info("count2=", count, Date.now() - startTime0);
+
    console.info("has== task-1001", await db.has("task-10012"));
    let list = await db.find({
       key: "task*",
       limit: 10,
       start: 10,
       keys: true,
-   });
-   console.info("find list===>>1", list);
+   }); */
+   //console.info("find list===>>1", list);
 
-   list = await db.find({
-      key: "task*",
-      reverse: true,
-      limit: 10,
-   });
-   console.info("find reverse list===>>1", list);
+   let startTime = Date.now();
+   let list0: any[] = [];
+   for (let i = 0; i < 10; i++) {
+      await db.iterator({ key: "task*", start: 130000+i*10, limit: 10 }, (key, val) => {
+         //list0.push(val);
+      });
+   }
+
+   console.info("find reverse list===>>1", Math.ceil((Date.now() - startTime) / 10) + "ms", list0);
 }
 async function wait(ttl) {
    return new Promise((resolve) => {

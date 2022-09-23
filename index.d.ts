@@ -59,7 +59,7 @@ declare class ILionDB {
    exist(key: string): Promise<boolean>;
    /**
     * 是否存在
-    * @param key 
+    * @param key
     */
    has(key: string): Promise<boolean>;
    /**
@@ -92,7 +92,9 @@ declare class ILionDB {
    clear(ops?): Promise<void>;
    close(): Promise<void>;
    count(key: string, filter?: Filter): Promise<number>;
-   countQuick(key?: string): Promise<number>;
+
+   /** 总条数 */
+   total(): Promise<number>;
    /**
     * 查找
     * @param config
