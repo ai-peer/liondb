@@ -9,7 +9,7 @@
       <h2>Tip: Check your console</h2>
       <div id="app"></div>
    </body>
-   <script src="/dist/main.js"></script>
+   <script src="/publish/dist/liondb.js"></script>
    <script>
       if ("serviceWorker" in navigator) {
          window.addEventListener("load", () => {
@@ -23,5 +23,6 @@
                });
          });
       }
+      var liondb = new LionDB("ivs");
    </script>
 </html>

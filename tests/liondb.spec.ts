@@ -1,14 +1,16 @@
 import assert from "assert";
 import LionDB from "../src";
 import path from "path";
-import { ILionDB } from "../src/types";
 
-let liondb: ILionDB = new LionDB(path.resolve("_local/1"));
-
+let liondb: LionDB = new LionDB(path.resolve("_local/1"));
+liondb.once("open", () => {
+   console.info("open==========");
+});
 beforeEach(async function () {
    await wait(1000);
+
    //await db.del("aa");
-  /*  await liondb.set("aa", { name: "li lei" });
+   /*  await liondb.set("aa", { name: "li lei" });
    console.info(">>>>aa", await liondb.get("aa"));
    await liondb.set("a1", { name: "a1" });
    console.info(">>>>existt a1", await liondb.exist("a1"));
@@ -21,7 +23,7 @@ beforeEach(async function () {
    await db.set("b1", { name: "b1" });
    await db.set("b2", { name: "b2" }); */
 
-  /*  await liondb.batch([
+   /*  await liondb.batch([
       {
          type: "put",
          key: "a2",
@@ -101,7 +103,7 @@ beforeEach(async function () {
    console.info("list1", list1); */
    // console.info("count=", await db.count("kid-*"));
 
-/*    await liondb.del("b*", "b2");
+   /*    await liondb.del("b*", "b2");
    let list = await liondb.find({ key: "*", limit: 10 });
    console.info("list=====>>>0", list); */
 
@@ -114,10 +116,10 @@ describe("单进程比较取值", function () {
    it("比较取值是否相等", async function () {
       const vv = await liondb.get("aa");
       console.info(">>>vv2", vv);
-      assert.deepStrictEqual(vv.name, "li lei");
+      //assert.deepStrictEqual(vv.name, "li lei");
       let list = await liondb.find({
          key: "中国*",
-    /*      filter: (value) => {
+         /*      filter: (value) => {
             return /^中国广/.test(value.name); 
          }, */
       });
@@ -131,9 +133,9 @@ describe("单进程比较取值", function () {
       /*    let count = await liondb.count("中国*", (value) => {
          return /^中国广/.test(value.name); // value.name == "b1";
       }); */
-      console.info("start====count");
-      let count = await liondb.count("*");
-      console.info("count===============", count);
+      //console.info("start====count");
+      //let count = await liondb.count("*");
+      //console.info("count===============", count);
    });
 });
 async function wait(ttl) {

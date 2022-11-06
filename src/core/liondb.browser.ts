@@ -44,7 +44,8 @@ export default class LionDBBrowser extends LionDB {
       super();
       let _this = this;
       let ldb = leveljs(filename);
-      this.db = new levelup(ldb, {}, async (err, db) => {
+      this.db = new levelup(ldb, {}, async (err) => {
+         this.emit("open");
          callback && callback(err, _this);
       });
    }

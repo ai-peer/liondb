@@ -22,12 +22,13 @@
   ],
   "repository": "https://github.com/ai-lion/liondb",
   "dependencies": {
-    "buffer": "^6.0.3",
-    "level-js": "^6.1.0",
-    "leveldown": "^6.1.0",
-    "levelup": "^5.1.1"
+    
   },
   "devDependencies": {
+    "buffer": "^6.0.3",
+    "level-js": "^6.1.0",
+    "leveldown": "^6.1.1",
+    "levelup": "^5.1.1"
   },
   "description": "liondb是一个基于leveldb的本地磁盘存储数据库， 数据可以持久存储， 性能高效， 容量受限于磁盘大小",
 

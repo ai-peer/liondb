@@ -3,16 +3,24 @@ import { bit2Int, int2Bit } from "../utils/byte";
 import { Buffer } from "buffer";
 import levelup from "levelup";
 import match from "./match";
+import EventEmitter from "eventemitter3";
 
+export type Event = {
+   open: () => void;
+   error: (err: Error) => void;
+};
 const DefaultOptions = {
    sync: false,
    infoLog: "error",
    errorIfExists: false,
 };
 levelup.prototype.set = levelup.prototype.put;
-export default class LionDB implements ILionDB {
+export default class LionDB extends EventEmitter<Event> implements ILionDB {
    public static readonly Break = "break";
    protected db;
+   constructor() {
+      super();
+   }
 
    /**
     * 设置值

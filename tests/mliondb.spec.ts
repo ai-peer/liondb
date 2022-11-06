@@ -1,12 +1,12 @@
 const assert = require("assert");
-import lionDB from "../src";
+import LionDB from "../src";
 const path = require("path");
 const cluster = require("cluster");
 
-let db1 = lionDB.worker({ filename: path.resolve("_local/3"), env: "cluster", isMaster: true, thread: cluster });
-let db2 = lionDB.worker({ filename: path.resolve("_local/2"), env: "cluster", isMaster: true, thread: cluster });
+let db1 = LionDB.worker({ filename: path.resolve("_local/3"), env: "cluster", isMaster: true, thread: cluster });
+let db2 = LionDB.worker({ filename: path.resolve("_local/2"), env: "cluster", isMaster: true, thread: cluster });
 console.info(">>>", path.resolve("_local"));
-
+db1.once("open", () => console.info("===>open db1"));
 beforeEach(async function () {
    await wait(1000);
    await db1.del("aa");
@@ -49,8 +49,6 @@ describe("多进程比较取值2===================", function () {
 
       count = await db2.count("*");
       console.info("all count:", count);
-
-   
    });
 });
 async function wait(ttl) {

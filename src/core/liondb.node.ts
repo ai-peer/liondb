@@ -1,12 +1,11 @@
 import levelup from "levelup";
 import leveldown from "leveldown";
-import { ILionDB, Type, LionDBOptions } from "../types";
 import { mkdirs } from "../utils";
-import { bit2Int, int2Bit } from "../utils/byte";
 import TcFactor from "./tcfactor";
-import LionDB from "./liondb";
+import LionDB, { Event } from "./liondb";
 import cluster from "cluster";
-
+import EventEmitter from "eventemitter3";
+import { ILionDB } from "../types";
 export function worker({
    filename,
    env, //: "cluster" | "electron" | "egg";
@@ -39,7 +38,8 @@ export function worker({
          if (isMaster) {
             return new LionDBNode(filename);
          } else {
-            let res = {};
+            class Sub extends EventEmitter<Event> {}
+            let res = new Sub();
             for (let key of [
                "set",
                "get",
@@ -71,6 +71,9 @@ export function worker({
                   res[key] = () => {};
                }
             }
+            setTimeout(() => {
+               res.emit("open");
+            }, 1000);
             return res;
          }
       },
@@ -90,23 +93,15 @@ export default class LionDBNode extends LionDB {
       super();
       mkdirs(filename);
       let ldb = leveldown(filename);
-      this.db = new levelup(ldb, {}, async (err, db) => {
-         /*          setTimeout(async () => {
-            while (true) {
-               //自动清理过期内容
-               try {
-                  await _this.iterator({ key: "*", limit: 0 }, async (key, value) => {
-                     await wait(100);
-                  });
-               } finally {
-                  await wait(1 * 60 * 60); //暂停1小时
-               }
-            }
-         }, 2000); */
-         //callback && callback(err, _this);
+      this.db = new levelup(ldb, {}, async (err) => {
+         if (err) {
+            this.emit("error", err);
+            return;
+         }
+         this.emit("open");
       });
    }
 }
-async function wait(ttl = 100) {
+/* async function wait(ttl = 100) {
    return new Promise((resolve) => setTimeout(() => resolve(undefined), ttl));
-}
+} */
