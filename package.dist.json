@@ -1,11 +1,11 @@
 {
   "name": "@ai-lion/liondb",
-  "version": "4.5.0",
+  "version": "4.6.0",
   "main": "dist/node.js",
   "browser": "dist/browser.js",
   "license": "MIT",
   "bin": {},
-  "types": "index.d.ts",
+  "types": "dist/src/index.d.ts",
   "scripts": { },
   "engines": {
     "node": ">=8.0.0"

@@ -168,7 +168,7 @@ class TCFactor<T> extends EventEmitter {
             this.emit(task, { code, value, key });
          });
          for (let key in this.executor) {
-            if (key.startsWith("_")) continue;
+            if (key.startsWith("_") || ["on", "emit", "once", "off", "removeAllListeners", "removeAllListener"].includes(key)) continue;
             let targetFun = this.executor[key];
             if (targetFun instanceof Function) {
                this.executor[key] = new Proxy(this.executor[key], {
