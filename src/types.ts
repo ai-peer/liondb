@@ -131,7 +131,7 @@ export interface ILionDB {
     * @param list
     * @param filter
     */
-   filter(item: any, query: { [key: string]: any }, filter: Filter): Promise<boolean>;
+   filter(item: any, query: { [key: string]: any }, filter: (item: any) => boolean | Promise<boolean>): Promise<boolean>;
 }
 type Get = (key: string) => Promise<any>;
 type GetMany = (...key: string[]) => Promise<any[]>;

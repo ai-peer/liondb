@@ -441,7 +441,7 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
          return undefined;
       }
    }
-   async filter(item: any, query: { [key: string]: any }, filter: Filter): Promise<boolean> {
+   async filter(item: any, query: { [key: string]: any }, filter: (item: any) => boolean | Promise<boolean>): Promise<boolean> {
       let _this = this;
       let nfilter = mergeFilter(query || {}, filter);
       let checked = await nfilter(item, "", {
@@ -523,66 +523,3 @@ function mergeFilter(query: { [key: string]: any }, filter?: Filter) {
       return isTrue;
    };
 }
-/* 
-function isUnitType(val: any) {
-   let type = typeof val;
-   if (type === "string" || type === "number" || type === "boolean" || type === "bigint") {
-      return true;
-   }
-   return false;
-}
-function mergeFilter(query: { [key: string]: any }, filter?: Filter) {
-   return async function (value: any, key: string, db) {
-      let isTrue = false;
-      if (value == undefined) return false;
-      if (filter) {
-         let funType = Object.prototype.toString.call(filter);
-         try {
-            console.info("filter type", funType);
-            if (funType == "[object AsyncFunction]") {
-               isTrue = await filter(value, key, db);
-            } else {
-               isTrue = await filter(value, key, db);
-            }
-         } catch (err) {
-            console.warn("filter error ", filter.toString(), err.message);
-         }
-      }
-      if (!isTrue) return false;
-
-      let size = 0;
-      for (let k in query) {
-         size++;
-         let v0 = query[k];
-         let v1 = value[k];
-         //数据库没有存储值
-         if (v1 === undefined) {
-            isTrue = v0 === undefined;
-            if (!isTrue) break;
-         }
-
-         let type0 = isUnitType(v0);
-         let type1 = isUnitType(v1);
-         //都是基本类型
-         if (type0 && type1) {
-            isTrue = /[*]$/.test(v0) ? String(v1).startsWith(v0.replace(/[*]+$/, "")) : v1 == v0;
-            if (!isTrue) break;
-         }
-
-         if (v1 instanceof Array) {
-            let v0List = v0 instanceof Array ? v0 : [v0];
-            let isTrue0 = false;
-            for (let sv of v0List) {
-               if (v1.find((v) => (/[*]$/.test(sv) ? String(v).startsWith(sv.replace(/[*]+$/, "")) : v == sv))) isTrue0 = true;
-            }
-            isTrue = isTrue0;
-         } else if (v0 instanceof Array) {
-            let isTrue0 = false;
-            if (v0.find((v) => (/[*]$/.test(v) ? String(v1).startsWith(v.replace(/[*]+$/, "")) : v == v1))) isTrue0 = true;
-            isTrue = isTrue0;
-         }
-      }
-      isTrue = size < 1 ? true : isTrue;
-      return isTrue;
-   };
-} */

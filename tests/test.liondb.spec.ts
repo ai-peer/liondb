@@ -139,6 +139,18 @@ describe("单进程比较取值", function () {
 
       let total = await liondb.total();
       console.info("start====total", total, Date.now() - startTime, (startTime = Date.now()));
+
+
+      let item = {
+         name: "zhanli",
+         age: 12
+      };
+      let checked = await liondb.filter(item, {name: "zhanli", $lt: {age: 13}}, (item)=>{
+         console.info("item", item);
+         return true;
+      });
+      console.info("check", checked);
+
    });
 });
 async function wait(ttl) {
