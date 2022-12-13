@@ -1,4 +1,3 @@
-
 export const Type = {
    String: 1,
    Number: 2,
@@ -105,7 +104,7 @@ export interface ILionDB {
       keys?: boolean;
       //isRef?: boolean;
    }): Promise<{ key: string; value: any }[] | any[]>;
-      /**
+   /**
     * 递归查询
     * @param param0 {
     *    key: 查询词, 结尾*表示模糊搜索
@@ -126,6 +125,13 @@ export interface ILionDB {
       },
       callback: IteratorCallback,
    ): Promise<void>;
+
+   /**
+    * 过滤
+    * @param list
+    * @param filter
+    */
+   filter(item: any, query: { [key: string]: any }, filter: Filter): Promise<boolean>;
 }
 type Get = (key: string) => Promise<any>;
 type GetMany = (...key: string[]) => Promise<any[]>;

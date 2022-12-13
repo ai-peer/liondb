@@ -1,6 +1,6 @@
 {
   "name": "@ai-lion/liondb",
-  "version": "5.0.1",
+  "version": "5.0.2",
   "main": "dist/node.js",
   "browser": "dist/browser.js",
   "license": "MIT",

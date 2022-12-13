@@ -441,6 +441,15 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
          return undefined;
       }
    }
+   async filter(item: any, query: { [key: string]: any }, filter: Filter): Promise<boolean> {
+      let _this = this;
+      let nfilter = mergeFilter(query || {}, filter);
+      let checked = await nfilter(item, "", {
+         get: async (k) => _this.get(k),
+         getMany: async (...ks) => _this.getMany(...ks),
+      });
+      return checked;
+   }
 }
 
 function analyzeValue(value) {
