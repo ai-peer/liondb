@@ -167,11 +167,13 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
       return this.has(key);
    }
    async has(key: string): Promise<boolean> {
-      let ex = false;
+      /*      let ex = false;
       await this.iterator({ key, limit: 1, values: false }, (skey) => {
          ex = skey === key;
       });
-      return ex;
+      return ex; */
+      let res = await this.get(key);
+      return !!res;
    }
    /**
     * 取得增量后的值,并存储
@@ -243,7 +245,6 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
    }
    async count(key: string, filter?: Filter): Promise<number> {
       let count = 0;
-      //let startTime = Date.now();
       await this.iterator({ key: key, start: 0, limit: -1, filter }, async (key, val) => {
          count++;
       });
@@ -276,7 +277,7 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
          reverse = false,
          keys = true,
          filter,
-         isRef = false, 是否引用
+         flow: boolean, 顺流查找(模糊搜索才有效), 在查询关键字不匹配时,自动往下查询,默认false
          query = {},
     * }
     */
@@ -286,8 +287,9 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
       start = 0,
       reverse = false,
       keys = false,
+      flow = false,
       filter,
-      isRef = false,
+      //isRef = false,
       query = {},
    }: {
       key: string;
@@ -297,35 +299,48 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
       reverse?: boolean;
       filter?: Filter;
       keys?: boolean;
-      isRef?: boolean;
+      //isRef?: boolean;
+      flow?: boolean;
       query?: { [key: string]: any };
    }): Promise<{ key: string; value: any }[] | any[]> {
       let list: any[] = [];
       let nfilter = mergeFilter(query || {}, filter);
-      await this.iterator({ key, limit, start, filter: nfilter, reverse, isRef }, (skey, svalue) => {
+      await this.iterator({ key, limit, start, flow, filter: nfilter, reverse }, (skey, svalue) => {
          if (svalue !== undefined) keys ? list.push({ key: skey, value: svalue }) : list.push(svalue);
       });
       //return reverse ? list.reverse() : list;
       return list;
    }
-
+   /**
+    *
+    * @param param0 {
+    *    key: 查询词, 结尾*表示模糊搜索
+    *    limit: 查询限制条数,默认100条
+    *    filter: 过滤器 (value: any, key: string) => boolean || Promise<boolean>
+    *    reverse: boolean, 逆转,默认false true=逆转 false=正常
+    *    flow: boolean, 顺流查找(模糊搜索才有效), 在查询关键字不匹配时,自动往下查询,默认false
+    * }
+    * @param callback
+    */
    async iterator(
       {
          key,
          limit = 100,
          start = 0,
          filter,
-         isRef = false,
+         //isRef = false,
          reverse = false,
-         values = true,
+         //values = true,
+         flow = false,
       }: {
          key: string;
          limit?: number;
          start?: number;
          filter?: Filter;
-         isRef?: boolean;
+         //isRef?: boolean;
          reverse?: boolean;
-         values?: boolean;
+         //values?: boolean;
+         flow?: boolean;
       },
       callback: IteratorCallback,
    ): Promise<void> {
@@ -333,19 +348,15 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
       const db = this.db;
       let searchKey = String(key).trim();
 
+      /** 模糊搜索 */
       let isFuzzy = searchKey.endsWith("*");
       let isSearchAll = searchKey === "*";
       searchKey = isSearchAll ? searchKey : searchKey.replace(/^\*|\*$/g, "");
 
       let endKey = searchKey.replace(/[\*]+$/, "").trim();
-      //console.info("start search===", searchKey, endKey);
       endKey = endKey.length < 1 ? "" : endKey.slice(0, endKey.length - 1) + String.fromCharCode(endKey[endKey.length - 1].charCodeAt(0) + 1); // endKey[endKey.length -1]
-      //if (values === false && filter) values = true;
-      //console.info("search----", searchKey, endKey, key, "isFuzzy", isFuzzy, "isSearchAll", isSearchAll, "reverse=", reverse);
-      if (start > 100) values = false;
-      let options: any = Object.assign({}, { key, limit: -1, values: values, reverse, gte: searchKey }); //{ gte: searchKey, reverse: reverse, lt: endKey }
-      /*      if (reverse) options.lt = endKey;
-      else options.gte = searchKey; */
+      //if (start > 100) values = false;
+      let options: any = Object.assign({}, { key, limit: -1, values: true, reverse, gte: searchKey }); //{ gte: searchKey, reverse: reverse, lt: endKey }
 
       let iterator = this.db.iterator(options);
 
@@ -366,7 +377,6 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
                   if (start > itIndex) return next();
 
                   let sKey = String(bufKey);
-                  //console.info("find item", sKey);
                   if (!isFuzzy) {
                      if (sKey != searchKey) {
                         iterator.end((err) => err && console.error("liondb err", err.message));
@@ -378,21 +388,17 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
                         iterator.end((err) => err && console.error("liondb err", err.message));
                         return resolve();
                      }
-                     if (!isSearchAll && !sKey.startsWith(searchKey)) {
+                     //不是顺流查询
+                     if (!flow) {
                         //不是全局搜索， 发现开头不匹配，返回
-                        iterator.end((err) => err && console.error("err", err.message));
-                        return resolve();
+                        if (!isSearchAll && !sKey.startsWith(searchKey)) {
+                           iterator.end((err) => err && console.error("err", err.message));
+                           return resolve();
+                        }
                      }
                   }
-                  /* if (values === false) {
-                     let callbackResult = await callback(sKey);
-                     if (callbackResult === LionDB.Break) {
-                        iterator.end((err) => err && console.error("err break", err.message));
-                        return resolve();
-                     }
-                     return next();
-                  } */
-                  if (!values) bufVal = await db.get(bufKey).catch((err) => undefined);
+
+                  //if (!values) bufVal = await db.get(bufKey).catch((err) => undefined);
                   let res: any = analyzeValue(bufVal);
                   if (res === undefined) return next();
 
@@ -402,7 +408,7 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
                      await wait(5);
                   } else {
                      let value = res.value();
-                     if (isRef) value = await _this.get(value);
+                     //if (isRef) value = await _this.get(value);
                      if (filter) {
                         let v = await filter(value, sKey, {
                            get: async (k) => _this.get(k),
@@ -418,23 +424,6 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
                      }
                   }
 
-                  /*  let value = await _this.get(sKey);
-                  if (value != undefined) {
-                     if (isRef) value = await _this.get(value);
-                     if (filter) {
-                        let v = await filter(value, sKey, {
-                           get: async (k) => _this.get(k),
-                           getMany: async (...ks) => _this.getMany(...ks),
-                        });
-                        if (v != true) return next();
-                     }
-                     let callbackResult = await callback(sKey, value);
-                     if (callbackResult === LionDB.Break) {
-                        iterator.end((err) => err && console.error("err break", err.message));
-                        return resolve();
-                     }
-                     itSize++;
-                  } */
                   next();
                } catch (err) {
                   console.info("err", err.stack);

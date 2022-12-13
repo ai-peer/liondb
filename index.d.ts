@@ -103,6 +103,7 @@ declare class ILionDB {
     *    limit: 限制 默认100条， -1 表示无限
     *    reverse: 倒序查询， 默认false
     *    keys: 搜索结果是否包含key, 默认false
+    *    flow: boolean, 顺流查找(模糊搜索才有效), 在查询关键字不匹配时,自动往下查询,默认false
     */
    find(config: {
       key: string;
@@ -111,15 +112,30 @@ declare class ILionDB {
       filter?: Filter;
       keys?: boolean;
       reverse?: boolean;
-      isRef?: boolean;
       [key: string]: any;
    }): Promise<{ key: string; value: any }[] | any[]>;
    /**
     * 递归查询
-    * @param config
+    * @param param0 {
+    *    key: 查询词, 结尾*表示模糊搜索
+    *    limit: 查询限制条数,默认100条
+    *    filter: 过滤器 (value: any, key: string) => boolean || Promise<boolean>
+    *    reverse: boolean, 逆转,默认false true=逆转 false=正常
+    *    flow: boolean, 顺流查找(模糊搜索才有效), 在查询关键字不匹配时,自动往下查询,默认false
+    * }
     * @param callback
     */
-   iterator(config: { key: string; limit?: number; start?: number; filter?: Filter; isRef?: boolean; [key: string]: any }, callback: IteratorCallback): Promise<void>;
+   iterator(
+      config: {
+         key: string; //
+         limit?: number;
+         start?: number;
+         flow?: boolean;
+         filter?: Filter;
+         [key: string]: any;
+      },
+      callback: IteratorCallback,
+   ): Promise<void>;
 }
 
 type Get = (key: string) => Promise<any>;

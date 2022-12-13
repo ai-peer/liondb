@@ -9,6 +9,7 @@ console.info(">>>", path.resolve("_local"));
 db1.once("open", () => console.info("===>open db1"));
 beforeEach(async function () {
    await wait(1000);
+
    await db1.del("aa");
    await db1.set("aa", { name: "li lei" });
 
@@ -24,6 +25,8 @@ beforeEach(async function () {
 
 describe("多进程比较取值2===================", function () {
    it("比较取值是否相等", async function () {
+      let startTime = Date.now();
+
       const vv = await db2.get("aa");
       console.info("vv----===", vv);
       let count = await db2.count("a*");
@@ -40,15 +43,14 @@ describe("多进程比较取值2===================", function () {
       let manyList = await db2.getMany("aa", "a1", "a2", "b3", "c10");
       console.info("多进程 getMany", manyList);
 
-      let startTime = Date.now();
       await db2.iterator({ key: "a*", limit: -1 }, async (key, value) => {
          let s = await db2.get("aa");
          console.info("ite==========>", key, value, s);
       });
-      console.info("ttl====", Date.now() - startTime);
+      console.info("ttl====", Date.now() - startTime, (startTime = Date.now()));
 
       count = await db2.count("*");
-      console.info("all count:", count);
+      console.info("all count:", count, Date.now() - startTime, (startTime = Date.now()));
    });
 });
 async function wait(ttl) {

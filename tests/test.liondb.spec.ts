@@ -114,6 +114,8 @@ beforeEach(async function () {
 
 describe("单进程比较取值", function () {
    it("比较取值是否相等", async function () {
+      let startTime = Date.now();
+
       const vv = await liondb.get("aa");
       console.info(">>>vv2", vv);
       //assert.deepStrictEqual(vv.name, "li lei");
@@ -129,13 +131,14 @@ describe("单进程比较取值", function () {
          key: "中国*",
          reverse: true,
       });
-      console.info("find reverse list===>>1", list);
-      /*    let count = await liondb.count("中国*", (value) => {
+      console.info("find reverse list===>>1", list, Date.now() - startTime, (startTime = Date.now()));
+      let count = await liondb.count("中国*", (value) => {
          return /^中国广/.test(value.name); // value.name == "b1";
-      }); */
-      //console.info("start====count");
-      //let count = await liondb.count("*");
-      //console.info("count===============", count);
+      });
+      console.info("start====count", count, Date.now() - startTime, (startTime = Date.now()));
+
+      let total = await liondb.total();
+      console.info("start====total", total, Date.now() - startTime, (startTime = Date.now()));
    });
 });
 async function wait(ttl) {
