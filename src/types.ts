@@ -1,4 +1,3 @@
-import LionDB from "./core";
 
 export const Type = {
    String: 1,
@@ -92,8 +91,10 @@ export interface ILionDB {
     * @param config
     *    key: 搜索词 结尾 * 表示匹配所有
     *    start: 开始位置 默认 0
-    *    limit: 限制 默认-1，表示无限
+    *    limit: 限制 默认100条， -1 表示无限
     *    reverse: 倒序查询， 默认false
+    *    keys: 搜索结果是否包含key, 默认false
+    *    flow: boolean, 顺流查找(模糊搜索才有效), 在查询关键字不匹配时,自动往下查询,默认false
     */
    find(config: {
       key: string;
@@ -104,13 +105,24 @@ export interface ILionDB {
       keys?: boolean;
       //isRef?: boolean;
    }): Promise<{ key: string; value: any }[] | any[]>;
+      /**
+    * 递归查询
+    * @param param0 {
+    *    key: 查询词, 结尾*表示模糊搜索
+    *    limit: 查询限制条数,默认100条
+    *    filter: 过滤器 (value: any, key: string) => boolean || Promise<boolean>
+    *    reverse: boolean, 逆转,默认false true=逆转 false=正常
+    *    flow: boolean, 顺流查找(模糊搜索才有效), 在查询关键字不匹配时,自动往下查询,默认false
+    * }
+    * @param callback
+    */
    iterator(
       config: {
          key: string;
          limit?: number;
          start?: number;
          filter?: Filter;
-         isRef?: boolean;
+         //isRef?: boolean;
       },
       callback: IteratorCallback,
    ): Promise<void>;
