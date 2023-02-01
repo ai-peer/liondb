@@ -85,7 +85,8 @@ async function start() {
    let startTime = Date.now();
    let list0: any[] = [];
    //for (let i = 0; i < 10; i++) {
-   await db.iterator({ key: "task*", start: 130000 + 10, limit: 10 }, (key, val) => {
+   await db.iterator({ key: "task*", start: 130000 + 10, limit: 10 }, async (_key, val) => {
+      if (list0.length > 10) return "break";
       list0.push(val);
    });
    //}
