@@ -214,12 +214,11 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
    }
    /**
   * 
+  * 批处理
+  * ttl: 过期时间, 默认没有, 单位秒
   * @param {
   *  {  type : 'del' | 'put' ,  key : string  } , 
-  {  type : 'put' ,  key : 'name' ,  value : 'Yuri Irsenovich Kim'  } , 
-  {  type : 'put' ,  key : ' dob' ,  value : '16 February 1941'  } , 
-  {  type : 'put' ,  key : 'spouse' , 价值: 'Kim Young-sook'  } , 
-  {  type : 'put' ,  key : 'occupation' ,  value : 'Clown'  } 
+  *  {  type : 'put' ,  key : 'name' ,  value : 'Yuri Irsenovich Kim', ttl: 60  } , 
   * } ops 
   * @returns 
   */
