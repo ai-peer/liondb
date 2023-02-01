@@ -137,4 +137,4 @@ type Get = (key: string) => Promise<any>;
 type GetMany = (...key: string[]) => Promise<any[]>;
 export type Filter = (value: any, key: string, db: { get: Get; getMany: GetMany }) => Promise<boolean> | boolean;
 
-export type IteratorCallback = (key: string, value?: any) => Promise<"break"> | "break" | Promise<any> | any;
+export type IteratorCallback = (key: string, value?: any) => Promise<"break"> | "break" | Promise<void> | void;
