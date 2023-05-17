@@ -30,8 +30,8 @@ class UserDAO extends Model<User> {
    let userDAO = new UserDAO();
    async function save() {
       let user = new User({
-         title: "zhougo",
-         age: 38,
+         title: "lilei",
+         age: (Date.now() % 50) + 10,
          addr: "sun fixed",
       });
       await userDAO.create(user);
@@ -39,13 +39,19 @@ class UserDAO extends Model<User> {
    }
    async function search() {
       //let list = await userDAO.find({});
-      let list = await userDAO.find({ index: { name: "com", fields: ["zhougo"] } });
+      let list = await userDAO.find({ index: { name: "com", fields: ["li"] } });
       console.info("list", list);
       let en = await userDAO.get("rusgdbzzwK4UE");
       console.info("en", en);
-      console.info("==list", await userDAO.gets("rusgdbzzwK4UE"))
-      await userDAO.delete("rusgdbzzwK4UE");
+      //console.info("==list", await userDAO.gets("rusgdbzzwK4UE"))
+   }
+   async function update() {
+      const id = "ruttmwzzw4FVu";
+      await userDAO.save(id, new User({ title: "liming" }));
+      let en = await userDAO.get(id);
+      console.info("update end", en);
    }
    //await save();
-   search();
+   await search();
+   //await update();
 })();

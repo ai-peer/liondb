@@ -111,12 +111,17 @@ export class Model<T extends Schema> {
     * @param ttl
     */
    async save(id: string, data: T): Promise<T> {
-      if (!data.id) {
-         data.id = sequenceId();
+      let video = await this.get(id);
+      if (video) {
+         let masterKey = this.masterKey(id);
+         data = Object.assign({}, video, data);
+         await this.masterdb.set(masterKey, data);
+         await this.deleteIndexs(video);
+         await this.saveIndexs(data);
+      } else {
+         data.id = id;
+         return this.create(data);
       }
-      let masterKey = this.masterKey(id);
-      await this.masterdb.set(masterKey, data);
-      await this.saveIndexs(data);
       return data;
    }
    /**
@@ -151,8 +156,13 @@ export class Model<T extends Schema> {
       await this.masterdb.del(...masterKeys);
       return list;
    }
-   async deleteIndexs(...ids: string[]) {
-      let items = await this.gets(...ids);
+   async deleteIndexs(...ids: (string | T)[]) {
+      let strids = ids.filter((v: any) => {
+         return typeof v === "string";
+      }) as string[];
+      let items = await this.gets(...strids);
+      ids.forEach((v) => typeof v != "string" && items.push(v));
+      //let items = await this.gets(...ids.filter((v) => typeof v === "string"));
       let batchs: { type: "del"; key: string }[] = [];
       items.forEach((item) => {
          if (!item) return;
