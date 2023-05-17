@@ -181,7 +181,8 @@ export class Model<T extends Schema> {
       return this.masterdb.get(this.masterKey(id));
    }
 
-   gets(...ids: string[]): Promise<T[]> {
+   async gets(...ids: string[]): Promise<T[]> {
+      if (ids.length < 1) return [];
       return this.masterdb.getMany(...ids.map((id) => this.masterKey(id)));
    }
 
