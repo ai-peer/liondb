@@ -9,6 +9,7 @@ export type Index = {
    name: string;
    fields: string[];
 };
+
 export class Model<T extends Schema> {
    private static _app: string;
    //static createSchema = createModel;
@@ -27,6 +28,9 @@ export class Model<T extends Schema> {
    }
    static setApp(app: string) {
       Model._app = app;
+   }
+   static get app() {
+      return Model._app;
    }
    /**
     * 生成索引 key
@@ -85,7 +89,7 @@ export class Model<T extends Schema> {
     */
    async create(data: T, ttl: number = 0): Promise<T> {
       if (!data.id) data.id = sequenceId();
-      data.valid()
+      data.valid();
       const id = data.id;
       let masterKey = this.masterKey(id);
       ttl = ttl > 0 ? ttl : 0;

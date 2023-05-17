@@ -23,10 +23,9 @@ function isNode() {
    }
 }
 function createLiondb(app: string, name: string): LionDB {
-   console.info("env====", isNode());
    if (isNode()) {
       let filename = path.join(os.homedir(), app, `${name}`);
-      console.info("flie", filename);
+      console.info("create liondb", filename);
       mkdirs(filename);
       let master: LionDB = LionDB.worker({
          filename: filename,
