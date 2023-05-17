@@ -19,14 +19,13 @@
 
       class User extends Schema {
          constructor(data) {
-            super(data);
+            super({});
+            this.patch(data);
          }
-      
          title;
          age;
          addr;
-
-         mobile;
+         sn;
       }
       class UserDAO extends Model {
          constructor() {
@@ -40,8 +39,11 @@
                title: "zhougo",
                age: 38,
                addr: "sun fixed",
+               createAt: new Date(),
+               sn: Date.now()
             });
-            console.info("==valid",user.valid());
+            user.age = 18;
+            console.info("==user>>", user, user.title);
             await userDAO.create(user);
             console.info("user", user);
          }

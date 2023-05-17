@@ -85,7 +85,7 @@ export class Model<T extends Schema> {
     */
    async create(data: T, ttl: number = 0): Promise<T> {
       if (!data.id) data.id = sequenceId();
-      assert.ok(data.valid(), "valid fail");
+      data.valid()
       const id = data.id;
       let masterKey = this.masterKey(id);
       ttl = ttl > 0 ? ttl : 0;

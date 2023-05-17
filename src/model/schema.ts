@@ -12,7 +12,6 @@ export default class Schema {
    createAt: Date;
 
    constructor(data?: { [key: string]: any }) {
-      // data && setObject.bind(this)(data);
       data && this.patch(data);
    }
 
@@ -23,7 +22,16 @@ export default class Schema {
     */
    patch(object?: { [key: string]: any }): this {
       object = object || this;
-      if (typeof object === "object") {
+      if (!!globalThis.document) {
+         if (object === this) return this;
+         for (let key of Object.keys(object)) {
+            let val = object[key];
+            if (val != undefined && val != null) {
+               this[key] = val;
+            }
+         }
+         return this;
+      } else if (typeof object === "object") {
          let tableColumns = this.getColumns(); // this["_entityColumns"];
          for (let key in tableColumns) {
             let val = object[key];
@@ -129,7 +137,7 @@ export default class Schema {
    /**
     * 定义字段列表
     */
-   get fields(): string[] {
+   getFields(): string[] {
       let list: string[] = [];
       for (let key in this.getColumns()) {
          list.push(key);
@@ -139,8 +147,8 @@ export default class Schema {
    valid() {
       let checks = validateSync(this);
       if (checks.length < 1) return true;
-
       assert.ok(checks.length < 1, errorCheck(this.constructor.name, checks));
+      return false;
    }
 }
 function errorCheck(tableName: string, list: any[]) {
