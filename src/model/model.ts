@@ -95,14 +95,14 @@ export class Model<T extends Schema> {
     * @param data
     * @param ttl
     */
-   async create(data: T, ttl: number = 0): Promise<T> {
+   async create(data: T): Promise<T> {
       if (!data.id) data.id = sequenceId();
       data.valid();
       const id = data.id;
       let masterKey = this.masterKey(id);
-      ttl = ttl > 0 ? ttl : 0;
-      await this.masterdb.set(masterKey, data, ttl);
-      await this.saveIndexs(data, ttl);
+      //ttl = ttl > 0 ? ttl : 0;
+      await this.masterdb.set(masterKey, data);
+      await this.saveIndexs(data);
       return data;
    }
    /**
@@ -113,16 +113,17 @@ export class Model<T extends Schema> {
    async save(id: string, data: T): Promise<T> {
       let video = await this.get(id);
       if (video) {
-         let masterKey = this.masterKey(id);
-         data = Object.assign({}, video, data);
-         await this.masterdb.set(masterKey, data);
          await this.deleteIndexs(video);
-         await this.saveIndexs(data);
+         let masterKey = this.masterKey(id);
+         Object.assign(video, data);
+         Object.assign(data, video);
+         await this.masterdb.set(masterKey, video);
+         await this.saveIndexs(video);
+         return data;
       } else {
          data.id = id;
          return this.create(data);
       }
-      return data;
    }
    /**
     * 保存索引
