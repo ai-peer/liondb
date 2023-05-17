@@ -60,6 +60,10 @@ export class Model<T extends Schema> {
                filter: async (id, key) => {
                   if (ids.has(id)) return false;
                   let entity = await this.get(id);
+                  if (!entity) {
+                     this.indexdb.del(key);
+                     return;
+                  }
                   let check = await filter(entity, key);
                   if (check) list.push(entity);
                   return check;
@@ -81,6 +85,10 @@ export class Model<T extends Schema> {
       }
 
       return list;
+   }
+   async findOne(opts: { id?: string; index?: Index; start?: number; limit?: number; filter?: (entity: T, key: string) => Promise<boolean> }): Promise<T | undefined> {
+      let list = await this.find(opts);
+      return list[0];
    }
    /**
     * 保存数据
@@ -138,22 +146,24 @@ export class Model<T extends Schema> {
     * @param indexs
     */
    async delete(...ids: string[]) {
+      await this.deleteIndexs(...ids);
       let masterKeys: string[] = ids.map((id) => this.masterKey(id));
       await this.masterdb.del(...masterKeys);
    }
    async deleteIndexs(...ids: string[]) {
-      let items = await this.masterdb.getMany(...ids.map((id) => this.masterKey(id)));
+      let items = await this.gets(...ids);
       let batchs: { type: "del"; key: string }[] = [];
       items.forEach((item) => {
          if (!item) return;
-         this.indexs.forEach((index) =>
+         this.indexs.forEach((index) => {
             batchs.push({
                type: "del",
                key: this.indexKey(index.name, ...index.fields.map((key) => item[key]), item.id),
-            }),
-         );
+            });
+         });
       });
       await this.indexdb.batch(batchs);
+      return items;
    }
 
    get(id: string): Promise<T> {

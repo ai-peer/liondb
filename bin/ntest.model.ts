@@ -32,7 +32,7 @@ class UserDAO extends Model<User> {
       let user = new User({
          title: "zhougo",
          age: 38,
-         addr: 'sun fixed'
+         addr: "sun fixed",
       });
       await userDAO.create(user);
       console.info("user", user);
@@ -41,9 +41,11 @@ class UserDAO extends Model<User> {
       //let list = await userDAO.find({});
       let list = await userDAO.find({ index: { name: "com", fields: ["zhougo"] } });
       console.info("list", list);
-      let en = await userDAO.get("ruse53zzwDdrX");
+      let en = await userDAO.get("rusgdbzzwK4UE");
       console.info("en", en);
+      console.info("==list", await userDAO.gets("rusgdbzzwK4UE"))
+      await userDAO.delete("rusgdbzzwK4UE");
    }
-   await save();
+   //await save();
    search();
 })();
