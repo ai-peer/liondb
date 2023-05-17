@@ -146,9 +146,10 @@ export class Model<T extends Schema> {
     * @param indexs
     */
    async delete(...ids: string[]) {
-      await this.deleteIndexs(...ids);
+      let list = await this.deleteIndexs(...ids);
       let masterKeys: string[] = ids.map((id) => this.masterKey(id));
       await this.masterdb.del(...masterKeys);
+      return list;
    }
    async deleteIndexs(...ids: string[]) {
       let items = await this.gets(...ids);
