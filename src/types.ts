@@ -1,3 +1,22 @@
+export {
+   Contains,
+   IsInt,
+   Length,
+   IsEmail,
+   IsFQDN,
+   IsDate,
+   IsBoolean,
+   IsString,
+   IsNumber,
+   IsArray,
+   IsEnum,
+   Min,
+   Max,
+   IsNotEmpty,
+   IsEmpty,
+   validate,
+   validateOrReject,
+} from "class-validator";
 export const Type = {
    String: 1,
    Number: 2,

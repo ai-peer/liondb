@@ -213,15 +213,15 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
       await this.batch(batchs);
    }
    /**
-  * 
-  * 批处理
-  * ttl: 过期时间, 默认没有, 单位秒
-  * @param {
-  *  {  type : 'del' | 'put' ,  key : string  } , 
-  *  {  type : 'put' ,  key : 'name' ,  value : 'Yuri Irsenovich Kim', ttl: 60  } , 
-  * } ops 
-  * @returns 
-  */
+    *
+    * 批处理
+    * ttl: 过期时间, 默认没有, 单位秒
+    * @param {
+    *  {  type : 'del' | 'put' ,  key : string  } ,
+    *  {  type : 'put' ,  key : 'name' ,  value : 'Yuri Irsenovich Kim', ttl: 60  } ,
+    * } ops
+    * @returns
+    */
    async batch(ops: { type: "del" | "put"; key: string; value?: any; ttl?: number }[]) {
       if (ops instanceof Array) {
          ops = ops.map((v) => {
