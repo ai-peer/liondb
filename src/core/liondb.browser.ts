@@ -1,10 +1,6 @@
 import levelup from "levelup";
 import leveljs from "level-js";
-/* import { ILionDB, Type } from "../types";
-import { bit2Int, int2Bit } from "../utils/byte";
-import { Buffer } from "buffer"; */
 import LionDB from "./liondb";
-//import cluster from "cluster";
 
 const DefaultOptions = {
    sync: false,
@@ -12,23 +8,15 @@ const DefaultOptions = {
    errorIfExists: false,
 };
 
-export function worker({
+export function worker(opts: {
    /** 数据库文件名 */
-   filename,
-   /** 运行环境, cluster集群, electron, browser:流星器 */
-   env, //: "browser";
-   /** 是否是主线程 */
-   isMaster,
-   /** 当前线程 */
-   thread,
-}: {
    filename: string;
    app: string;
    env: "browser";
    isMaster: boolean;
    thread: any;
 }): LionDB {
-   return new LionDBBrowser(filename);
+   return new LionDBBrowser(opts);
 }
 //levelup.prototype.set = levelup.prototype.put;
 /**
@@ -40,13 +28,13 @@ export function worker({
  */
 export default class LionDBBrowser extends LionDB {
    static worker = worker;
-   constructor(filename: string, callback?: Function) {
+   constructor(opts: { filename: string; [key: string]: any }) {
       super();
       let _this = this;
-      let ldb = leveljs(filename);
+      let ldb = leveljs(opts.filename);
       this.db = new levelup(ldb, {}, async (err) => {
          this.emit("open");
-         callback && callback(err, _this);
+         //callback && callback(err, _this);
       });
    }
 }

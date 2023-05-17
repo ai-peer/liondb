@@ -3,4 +3,4 @@ import Schema from "./schema";
 export { create, createModel } from "./db";
 export { Column } from "./orm";
 
-export { Model, Schema };
+export { Schema, Model };

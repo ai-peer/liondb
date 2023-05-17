@@ -6,10 +6,10 @@ const path = require("path");
 //const { VueLoaderPlugin } = require("vue-loader");
 const isProduction = process.env.NODE_ENV == "production";
 const webpack = require("webpack");
-const CopyPlugin = require("copy-webpack-plugin");
-const stylesHandler = "style-loader";
+//const CopyPlugin = require("copy-webpack-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
-
+const root = path.resolve();
+console.info("root", root);
 const config = {
    entry: {
       browser: {
@@ -80,7 +80,11 @@ const config = {
          //components: path.join(root, 'src/components'),
          //views: path.join(root, 'src/views'),
          //styles: path.join(root, 'src/styles'),
-         //store: path.join(root, 'src/store')
+         //store: path.join(root, 'src/store'),
+         "@": path.join(root, "src"),
+         "~": root,
+         "../core/liondb.node": path.join(root, "src/core/liondb.browser.ts"),
+         "liondb": path.join(root, "src/core/liondb.browser.ts")
       },
       fallback: {
          //自定义require的模块
@@ -91,6 +95,7 @@ const config = {
          crypto: require.resolve("./src/browser/none"),
          fs: require.resolve("./src/browser/none"),
          os: require.resolve("./src/browser/none"),
+         cluster: require.resolve("./src/browser/none"),
       },
    },
    node: {
@@ -126,7 +131,7 @@ const config = {
       }), */
    ],
    optimization: {
-      minimize: false,//isProduction ? true : false,
+      minimize: false, //isProduction ? true : false,
       minimizer: [
          new TerserPlugin({
             extractComments: false, //不将注释提取到单独的文件中

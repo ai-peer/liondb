@@ -11,18 +11,49 @@
    </body>
    <script src="/publish/dist/liondb.js"></script>
    <script>
-      if ("serviceWorker" in navigator) {
-         window.addEventListener("load", () => {
-            navigator.serviceWorker
-               .register("service-worker.js")
-               .then((registration) => {
-                  console.log("Service Worker registered: ", registration);
-               })
-               .catch((registrationError) => {
-                  console.error("Service Worker registration failed: ", registrationError);
-               });
-         });
+      console.info("LionDB", LionDB);
+      var liondb = new LionDB.default({ filename: "ivs" });
+
+      const { Model, Schema, IsNotEmpty, Max, Column } = LionDB;
+      Model.setApp("demo-app");
+
+      class User extends Schema {
+         constructor(data) {
+            super(data);
+         }
+      
+         title;
+         age;
+         addr;
+
+         mobile;
       }
-      var liondb = new LionDB("ivs");
+      class UserDAO extends Model {
+         constructor() {
+            super({ table: "user", indexs: [{ name: "com", fields: ["title", "age"] }] });
+         }
+      }
+      (async () => {
+         let userDAO = new UserDAO();
+         async function save() {
+            let user = new User({
+               title: "zhougo",
+               age: 38,
+               addr: "sun fixed",
+            });
+            console.info("==valid",user.valid());
+            await userDAO.create(user);
+            console.info("user", user);
+         }
+         async function search() {
+            //let list = await userDAO.find({});
+            let list = await userDAO.find({ index: { name: "com", fields: ["zhougo"] } });
+            console.info("list", list);
+            let en = await userDAO.get("ruse53zzwDdrX");
+            console.info("en", en);
+         }
+         await save();
+         search();
+      })();
    </script>
 </html>

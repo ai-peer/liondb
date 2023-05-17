@@ -72,6 +72,11 @@
     ],
     "ui": "bdd"
   },
+  "imports": {
+    "~/*": "./*",
+    "@/*": "./src/*",
+    "liondb": "./src/core/liondb.node.ts"
+  },
   "files": [
     "dist",
     "package.json",

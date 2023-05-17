@@ -5,7 +5,7 @@ import TcFactor from "./tcfactor";
 import LionDB, { Event } from "./liondb";
 import cluster from "cluster";
 import EventEmitter from "eventemitter3";
-import { ILionDB } from "../types";
+
 export function worker({
    filename,
    env, //: "cluster" | "electron" | "egg";

@@ -1,8 +1,8 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
-import LionDB from "../index";
 import cluster from "cluster";
+import LionDB from "../core/liondb.node";
 
 function mkdirs(dir) {
    if (!fs.existsSync(dir)) {
@@ -15,38 +15,45 @@ function mkdirs(dir) {
       }
    }
 }
-
+function isNode() {
+   try {
+      return !!process.platform && !!process.cwd() && !globalThis.document;
+   } catch (err) {
+      return false;
+   }
+}
+function createLiondb(app: string, name: string): LionDB {
+   console.info("env====", isNode());
+   if (isNode()) {
+      let filename = path.join(os.homedir(), app, `${name}`);
+      console.info("flie", filename);
+      mkdirs(filename);
+      let master: LionDB = LionDB.worker({
+         filename: filename,
+         env: "cluster",
+         isMaster: cluster.isMaster,
+         thread: cluster.isMaster ? cluster : cluster.worker,
+      });
+      return master;
+   } else {
+      let filename = app + "-" + name;
+      let master: LionDB = LionDB.worker({ filename: filename });
+      return master;
+   }
+}
 export function create(app: string, name: string): LionDB {
-   let filenameMaster = path.join(os.homedir(), app, `liondb-${name}`);
-   mkdirs(filenameMaster);
-
-   let master: LionDB = LionDB.worker({
-      filename: filenameMaster,
-      env: "cluster",
-      isMaster: cluster.isMaster,
-      thread: cluster.isMaster ? cluster : cluster.worker,
-   });
+   let master: LionDB = createLiondb(app, `liondb-${name}`);
    return master;
 }
+
 export function createModel(app: string, tableName: string) {
-   let filenameMaster = path.join(os.homedir(), app, "ldb", tableName, `model`);
+   /* let filenameMaster = path.join(os.homedir(), app, "ldb", tableName, `model`);
    mkdirs(filenameMaster);
-
    let filenameMasterIndex = path.join(os.homedir(), app, "ldb", tableName, `index`);
-   mkdirs(filenameMasterIndex);
+   mkdirs(filenameMasterIndex); */
 
-   let master: LionDB = LionDB.worker({
-      filename: filenameMaster,
-      env: "cluster",
-      isMaster: cluster.isMaster,
-      thread: cluster.isMaster ? cluster : cluster.worker,
-   });
-   let index: LionDB = LionDB.worker({
-      filename: filenameMasterIndex,
-      env: "cluster",
-      isMaster: cluster.isMaster,
-      thread: cluster.isMaster ? cluster : cluster.worker,
-   });
+   let master: LionDB = createLiondb(app, `ldb/${tableName}/model`);
+   let index: LionDB = createLiondb(app, `ldb/${tableName}/index`);
    return {
       masterdb: master,
       indexdb: index,

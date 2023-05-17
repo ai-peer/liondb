@@ -31,7 +31,7 @@ class UserDAO extends Model<User> {
    async function save() {
       let user = new User({
          title: "zhougo",
-         age: 28,
+         age: 38,
          addr: 'sun fixed'
       });
       await userDAO.create(user);

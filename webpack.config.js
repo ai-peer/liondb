@@ -9,7 +9,8 @@ const webpack = require("webpack");
 const CopyPlugin = require("copy-webpack-plugin");
 //const stylesHandler = "style-loader";
 const TerserPlugin = require("terser-webpack-plugin");
-
+const root = path.resolve();
+console.info("root", root);
 const config = {
    entry: {
       node: {
@@ -74,6 +75,9 @@ const config = {
          //views: path.join(root, 'src/views'),
          //styles: path.join(root, 'src/styles'),
          //store: path.join(root, 'src/store')
+         "@": path.join(root, "src"),
+         "~": root,
+         "liondb": path.join(root, "src/core/liondb.node.ts")
       },
       fallback: {
          //自定义require的模块 如 require("os") 等
@@ -112,7 +116,6 @@ const config = {
             { from: "package.dist.json", to: "package.json" },
             { from: "README.md", to: "README.md" },
             { from: "index.d.ts", to: "index.d.ts" },
-
          ],
       }),
    ],
