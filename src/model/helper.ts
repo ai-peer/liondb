@@ -9,14 +9,15 @@ export function uuid(size: number = 9) {
    return nanoid(size);
 }
 //let LastIds: Map<string, number> = new Map();
-const Max = num62to10("ZZZ");
+const Max = num62to10("zzz");
 let lastSeq = Max;
 
 /**
  * 创建uuid, 使用增量方式创建
  */
 export function uuidSeq(): string {
-   let prefix = num10to62(Math.ceil(Date.now() / 100));
+   let date = new Date();
+   let prefix = num10to62(Math.ceil(Date.now() / 1000));
    lastSeq = lastSeq - 1;
    if (lastSeq < num62to10("111")) lastSeq = Max;
    let id = prefix + num10to62(lastSeq);
@@ -24,7 +25,7 @@ export function uuidSeq(): string {
 }
 
 function num10to62(val: number) {
-   var chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""),
+   var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".split(""),
       radix = chars.length,
       qutient = +val,
       arr: string[] = [];
@@ -38,7 +39,7 @@ function num10to62(val: number) {
 }
 
 function num62to10(val: number | string) {
-   var chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
+   var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
       radix = chars.length,
       number_code = String(val),
       len = number_code.length,
