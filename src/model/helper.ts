@@ -1,32 +1,54 @@
 import { customAlphabet } from "nanoid";
 
-const nanoid = customAlphabet("1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", 12);
+const nanoid = customAlphabet("1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", 9);
 /**
  * 创建uuid
  * @param size uuid长度，默认12
  */
-export function uuid(size: number = 11) {
+export function uuid(size: number = 9) {
    return nanoid(size);
 }
-let LastIds: Map<string, number> = new Map();
+//let LastIds: Map<string, number> = new Map();
+const Max = num62to10("ZZZ");
+let lastSeq = Max;
+
 /**
- * 创建增量id
- * @param key 表名，默认用id名
+ * 创建uuid, 使用增量方式创建
  */
-export function sequenceId(key: string = "id"): string {
-   let prefix = Math.ceil(Date.now() / 1000).toString(36);
-   let lastId = LastIds.get(key) || parseInt("zzz", 36);
-   lastId = lastId - 1;
-   if (lastId < parseInt("11", 36)) lastId = parseInt("zz", 36) - 1;
-   LastIds.set(key, lastId);
-   let id = prefix + lastId.toString(36) + uuid(4);
+export function uuidSeq(): string {
+   let prefix = num10to62(Math.ceil(Date.now() / 100));
+   lastSeq = lastSeq - 1;
+   if (lastSeq < num62to10("111")) lastSeq = Max;
+   let id = prefix + num10to62(lastSeq);
    return id;
 }
 
-function to62bit(val: number) {
-   let s = Math.floor(val / 62);
+function num10to62(val: number) {
+   var chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""),
+      radix = chars.length,
+      qutient = +val,
+      arr: string[] = [];
+   let mod = 0;
+   do {
+      mod = qutient % radix;
+      qutient = (qutient - mod) / radix;
+      arr.unshift(chars[mod]);
+   } while (qutient);
+   return arr.join("");
 }
-console.info(sequenceId(), sequenceId().length);
+
+function num62to10(val: number | string) {
+   var chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
+      radix = chars.length,
+      number_code = String(val),
+      len = number_code.length,
+      i = 0,
+      origin_number = 0;
+   while (i < len) {
+      origin_number += Math.pow(radix, i++) * chars.indexOf(number_code.charAt(len - i) || "0");
+   }
+   return origin_number;
+}
 
 function makePrefix() {
    let date = new Date();

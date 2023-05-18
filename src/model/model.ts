@@ -3,7 +3,7 @@ import LionDB, { Filter } from "../index";
 import assert from "assert";
 import Schema from "./schema";
 import { validateSync } from "class-validator";
-import { uuid, sequenceId } from "./helper";
+import { uuid, uuidSeq } from "./helper";
 
 export type Index = {
    name: string;
@@ -96,7 +96,7 @@ export class Model<T extends Schema> {
     * @param ttl
     */
    async create(data: T): Promise<T> {
-      if (!data.id) data.id = sequenceId();
+      if (!data.id) data.id = uuidSeq();
       data.valid();
       const id = data.id;
       let masterKey = this.masterKey(id);

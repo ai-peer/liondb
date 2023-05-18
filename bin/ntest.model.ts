@@ -32,7 +32,8 @@ class UserDAO extends Model<User> {
       let user = new User({
          title: "lilei",
          age: (Date.now() % 50) + 10,
-         addr: "sun fixed",
+         addr: "sun fixed s",
+         sex: "man"
       });
       await userDAO.create(user);
       console.info("user", user);
@@ -52,7 +53,7 @@ class UserDAO extends Model<User> {
       let en = await userDAO.get(id);
       console.info("update end", en, sdata, nv, sdata === nv);
    }
-   //await save();
+   await save();
    await search();
-   await update();
+   //await update();
 })();
