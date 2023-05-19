@@ -46,10 +46,83 @@ export class Model<T extends Schema> {
    protected masterKey(id: string) {
       return this.indexKey("m", id);
    }
-   async find(opts: { id?: string; index?: Index; start?: number; limit?: number; filter?: (entity: T, key: string) => Promise<boolean> }): Promise<T[]> {
+   /**
+    * 统计
+    * @param opts
+    * @param opts.id: 根据主键id查询
+    * @param opts.index: 根据自定义索引查询
+    * @param opts.filter: 查询过滤方法,异步, async(item, key) => Promise<boolean>
+    * @returns
+    */
+   async count(opts: { id?: string; index?: Index; filter?: (entity: T, key: string) => Promise<boolean> }): Promise<number> {
+      let count = 0;
       let index = opts.index;
       let ids: Set<string> = new Set();
-      const filter: any = opts.filter ? opts.filter : () => true;
+      if (index) {
+         await this.indexdb.iterator(
+            {
+               key: this.indexKey(index.name, ...index.fields) + "*",
+               filter: async (id, key) => {
+                  if (ids.has(id)) return false;
+                  if (!opts.filter) return true;
+                  let entity = await this.get(id);
+                  if (!entity) {
+                     this.indexdb.del(key);
+                     return false;
+                  }
+                  let check = await opts.filter(entity, key);
+                  return check;
+               },
+            },
+            (k, id) => {
+               ids.add(id);
+               count++;
+            },
+         );
+      } else {
+         await this.masterdb.iterator(
+            {
+               key: this.masterKey(opts.id || "") + "*",
+               filter: async (entity, key) => {
+                  if (!opts.filter) return true;
+                  if (!entity) {
+                     this.masterdb.del(key);
+                     return false;
+                  }
+                  let check = await opts.filter(entity, key);
+                  return check;
+               },
+            },
+            (k, item) => {
+               count++;
+            },
+         );
+      }
+
+      return count;
+   }
+   /**
+    * 查询
+    * @param opts
+    * @param opts.id: 根据主键id查询
+    * @param opts.index: 根据自定义索引查询
+    * @param opts.start: 开始位置
+    * @param opts.limit: 查询结果限制条数
+    * @param opts.reverse: 是否倒序,默认true
+    * @param opts.filter: 查询过滤方法,异步, async(item, key) => Promise<boolean>
+    * @returns
+    */
+   async find(opts: {
+      id?: string;
+      index?: Index;
+      start?: number;
+      limit?: number; //
+      reverse?: boolean;
+      filter?: (entity: T, key: string) => Promise<boolean>;
+   }): Promise<T[]> {
+      let index = opts.index;
+      const reverse = opts.reverse != false ? true : false;
+      let ids: Set<string> = new Set();
       let list: T[] = [];
       if (index) {
          await this.indexdb.iterator(
@@ -57,14 +130,15 @@ export class Model<T extends Schema> {
                key: this.indexKey(index.name, ...index.fields) + "*",
                start: opts.start || 0,
                limit: opts.limit || 24,
+               reverse: reverse,
                filter: async (id, key) => {
                   if (ids.has(id)) return false;
                   let entity = await this.get(id);
                   if (!entity) {
                      this.indexdb.del(key);
-                     return;
+                     return false;
                   }
-                  let check = await filter(entity, key);
+                  let check = opts.filter ? await opts.filter(entity, key) : true;
                   if (check) list.push(entity);
                   return check;
                },
@@ -80,7 +154,16 @@ export class Model<T extends Schema> {
             key: this.masterKey(opts.id || "") + "*",
             start: opts.start || 0,
             limit: opts.limit || 24,
-            filter: async (entity: T, key) => filter(entity, key),
+            reverse: reverse,
+            filter: async (entity, key) => {
+               if (!opts.filter) return true;
+               if (!entity) {
+                  this.masterdb.del(key);
+                  return false;
+               }
+               let check = await opts.filter(entity, key);
+               return check;
+            },
          })) as T[];
       }
 
@@ -97,6 +180,7 @@ export class Model<T extends Schema> {
     */
    async create(data: T): Promise<T> {
       if (!data.id) data.id = uuidSeq();
+      data.patch();
       data.valid();
       const id = data.id;
       let masterKey = this.masterKey(id);

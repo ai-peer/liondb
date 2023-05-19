@@ -12,7 +12,7 @@ export default class Schema {
    createAt: Date;
 
    constructor(data?: { [key: string]: any }) {
-      data && this.patch(data);
+      data && this.reduce(data);
    }
 
    /**
@@ -54,11 +54,21 @@ export default class Schema {
     * @param object
     * @returns
     */
-   reduce(object: { [key: string]: any }): this {
+   reduce(object?: { [key: string]: any }): this {
       //let tableName = this.constructor.name;
-      let TS: any = this.constructor;
-      let res = new TS();
-      if (typeof object === "object") {
+      //let TS: any = this.constructor;
+      //let res = new TS();
+      object = object || this;
+      if (!!globalThis.document) {
+         if (object === this) return this;
+         for (let key of Object.keys(object)) {
+            let val = object[key];
+            if (val != undefined && val != null) {
+               this[key] = val;
+            }
+         }
+         return this;
+      } else if (typeof object === "object") {
          //let entityColumns = this["_entityColumns"];
          for (let key in object) {
             let val = object[key];
@@ -72,11 +82,11 @@ export default class Schema {
                   val = val.trim();
                }
                //res[key] = val;
-               res[key] = handleValue(column, val);
+               this[key] = handleValue(column, val);
             }
          }
       }
-      return res;
+      return this;
    }
    xss(fieldName: string) {
       let v = this[fieldName];
