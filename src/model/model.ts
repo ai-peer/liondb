@@ -37,6 +37,7 @@ export class Model<T extends Schema> {
     * @param args
     */
    protected indexKey(...args: string[]) {
+      args = args.filter((v) => !!v);
       return `t-${this.table}-` + args.join("-");
    }
    /**

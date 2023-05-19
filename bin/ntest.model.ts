@@ -31,12 +31,14 @@ class UserDAO extends Model<User> {
    async function save() {
       let user = new User({
          title: "chenkun",
-         age: 10,
-         addr: "sun fixed 10",
+         //age: 10,
+         //addr: "sun fixed 10",
          sex: "man",
       });
-      await userDAO.create(user);
-      console.info("user", user);
+      console.info("user1", user);
+
+      //await userDAO.create(user);
+      //console.info("user", user);
    }
    async function search() {
       //let list = await userDAO.find({});
@@ -73,7 +75,7 @@ class UserDAO extends Model<User> {
       let en = await userDAO.get(id);
       console.info("update end", en, sdata, nv, sdata === nv);
    }
-   //await save();
+   await save();
    await search();
    //await update();
 })();
