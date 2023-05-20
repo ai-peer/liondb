@@ -35,8 +35,6 @@ export class Model<T extends Schema> {
       const { masterdb, indexdb } = createModel(Model._app, this.table);
       this.masterdb = masterdb;
       this.indexdb = indexdb;
-      masterdb.clear();
-      indexdb.clear();
    }
    static setApp(app: string) {
       Model._app = app;
