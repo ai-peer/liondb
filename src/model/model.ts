@@ -239,7 +239,7 @@ export class Model<T extends Schema> {
          return video;
       } else {
          data.id = id;
-         return this.create(new this.SchemaClass(data));
+         return this.create(this.toSchema(data));
       }
    }
    /**
