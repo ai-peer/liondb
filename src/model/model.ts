@@ -212,6 +212,7 @@ export class Model<T extends Schema> {
       data.valid();
       const id = data.id;
       let masterKey = this.masterKey(id);
+      data.updateAt = data.updateAt || new Date();
       //ttl = ttl > 0 ? ttl : 0;
       await this.masterdb.set(masterKey, data);
       await this.saveIndexs(data);

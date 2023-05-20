@@ -234,7 +234,7 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
       }
       await new Promise((resolve) => this.db.batch(ops, DefaultOptions, () => resolve(undefined)));
    }
-   async clear(ops) {
+   async clear(ops?) {
       return this.db.clear(ops);
    }
    async close(): Promise<undefined> {
