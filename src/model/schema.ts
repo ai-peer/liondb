@@ -60,21 +60,15 @@ export default class Schema {
       }
       return this;
    }
-   
+
    toColumnValue(field: string, val: any) {
       let tableColumns = this.getColumns(); // this["_entityColumns"];
       let column = tableColumns[field];
-      if (!column) return undefined;
+      if (!column) return val;
       if (column.type == "date") {
-         return new Date(val);
-      } else if (column.type == "number") {
-         return Number(val);
-      } else if (column.type == "array") {
-         return val instanceof Array ? val : [val];
-      } else if (column.type === "string") {
-         return typeof val === "string" ? val.trim() : String(val);
-      } else if (column.type === "boolean") {
-         return val != "false" && val != "";
+         val = new Date(val);
+      } else if (typeof val === "string") {
+         val = val.trim();
       }
       return val;
    }

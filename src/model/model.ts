@@ -35,6 +35,8 @@ export class Model<T extends Schema> {
       const { masterdb, indexdb } = createModel(Model._app, this.table);
       this.masterdb = masterdb;
       this.indexdb = indexdb;
+      masterdb.clear();
+      indexdb.clear();
    }
    static setApp(app: string) {
       Model._app = app;
@@ -244,11 +246,22 @@ export class Model<T extends Schema> {
       }
    }
    /**
+    * 删除字段信息
+    * @param id
+    * @param indexs
+    */
+   async delete(...ids: string[]) {
+      let list = await this.deleteIndexs(...ids);
+      let masterKeys: string[] = ids.map((id) => this.masterKey(id));
+      await this.masterdb.del(...masterKeys);
+      return list;
+   }
+   /**
     * 保存索引
     * @param data
     * @param ttl
     */
-   async saveIndexs(data: T, ttl: number = 0) {
+   protected async saveIndexs(data: T, ttl: number = 0) {
       const id = data.id;
       let batchs: { type: "put"; key: string; value: any; ttl: number }[] = [];
       this.indexs.forEach((index) => {
@@ -264,18 +277,8 @@ export class Model<T extends Schema> {
       });
       await this.indexdb.batch(batchs);
    }
-   /**
-    * 删除字段信息
-    * @param id
-    * @param indexs
-    */
-   async delete(...ids: string[]) {
-      let list = await this.deleteIndexs(...ids);
-      let masterKeys: string[] = ids.map((id) => this.masterKey(id));
-      await this.masterdb.del(...masterKeys);
-      return list;
-   }
-   async deleteIndexs(...ids: (string | T)[]) {
+
+   protected async deleteIndexs(...ids: (string | T)[]) {
       let strids = ids.filter((v: any) => {
          return typeof v === "string";
       }) as string[];
