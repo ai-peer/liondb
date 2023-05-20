@@ -21,7 +21,7 @@ class User extends Schema {
 }
 class UserDAO extends Model<User> {
    constructor() {
-      super({ table: "user", indexs: [{ name: "com", fields: ["title", "age"] }] });
+      super({ table: "user", indexs: [{ name: "com", fields: ["title", "age"] }], SchemaClass: User });
    }
 }
 (async () => {
@@ -29,15 +29,13 @@ class UserDAO extends Model<User> {
 
    let userDAO = new UserDAO();
    async function save() {
-      let user = new User({
+      let user = ({
          title: "chenkun",
-         //age: 10,
-         //addr: "sun fixed 10",
+         age: Math.ceil(Math.random() * 50 + 10),
+         addr: "sun two 10",
          sex: "man",
       });
-      console.info("user1", user);
-
-      //await userDAO.create(user);
+      await userDAO.create(user as any);
       //console.info("user", user);
    }
    async function search() {
@@ -46,14 +44,14 @@ class UserDAO extends Model<User> {
       let list = await userDAO.find({
          index: { name: "com", fields: ["chenkun"] },
          filter: async (entity, key) => {
-            return entity.age < 12;
+            return entity.age < 100;
          },
       });
       console.info("list by index", list);
       let count = await userDAO.count({
          index: { name: "com", fields: ["chenkun"] },
          filter: async (entity, key) => {
-            return entity.age < 12;
+            return entity.age < 100;
          },
       });
       console.info("count by index", count);

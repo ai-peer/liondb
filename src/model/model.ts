@@ -17,11 +17,21 @@ export class Model<T extends Schema> {
    readonly indexdb: LionDB;
    readonly table: string;
    readonly indexs: Index[];
-   constructor(options: { readonly table: string; readonly indexs: Index[] }) {
+   private SchemaClass;
+
+   /**
+    * 构造
+    * @param opts
+    * @param opts.table 表名
+    * @param opts.indexs 索引
+    * @param opts.SchemaClass Schema类
+    */
+   constructor(opts: { readonly table: string; readonly indexs: Index[]; readonly SchemaClass }) {
       assert(!!Model._app, "app is null");
-      assert(!!options.table, "table is null");
-      this.table = options.table;
-      this.indexs = options.indexs;
+      assert(!!opts.table, "table is null");
+      this.SchemaClass = opts.SchemaClass;
+      this.table = opts.table;
+      this.indexs = opts.indexs;
       const { masterdb, indexdb } = createModel(Model._app, this.table);
       this.masterdb = masterdb;
       this.indexdb = indexdb;
@@ -31,6 +41,9 @@ export class Model<T extends Schema> {
    }
    static get app() {
       return Model._app;
+   }
+   protected toSchema(data: { [key: string]: any }): T {
+      return new this.SchemaClass(data);
    }
    /**
     * 生成索引 key
@@ -170,7 +183,7 @@ export class Model<T extends Schema> {
          })) as T[];
       }
 
-      return list;
+      return list.map((v) => this.toSchema(v));
    }
    async findOne(opts: { id?: string; index?: Index; start?: number; limit?: number; filter?: (entity: T, key: string) => Promise<boolean> }): Promise<T | undefined> {
       let list = await this.find(opts);
@@ -183,6 +196,7 @@ export class Model<T extends Schema> {
     */
    async create(data: T): Promise<T> {
       if (!data.id) data.id = uuidSeq();
+      data = data instanceof this.SchemaClass ? data : this.toSchema(data);
       data.patch();
       data.valid();
       const id = data.id;
@@ -197,7 +211,8 @@ export class Model<T extends Schema> {
     * @param data
     * @param ttl
     */
-   async save(id: string, data: T): Promise<T> {
+   async save(id: string, updateData: { [key: string]: any }): Promise<T> {
+      let data = updateData instanceof this.SchemaClass ? (updateData as T) : this.toSchema(updateData);
       let video = await this.get(id);
       if (video) {
          await this.deleteIndexs(video);
@@ -208,7 +223,7 @@ export class Model<T extends Schema> {
          Object.assign(data, video);
          await this.masterdb.set(masterKey, video);
          await this.saveIndexs(video);
-         return data;
+         return video;
       } else {
          data.id = id;
          return this.create(data);
@@ -268,13 +283,15 @@ export class Model<T extends Schema> {
       return items;
    }
 
-   get(id: string): Promise<T> {
-      return this.masterdb.get(this.masterKey(id));
+   async get(id: string): Promise<T> {
+      let t = await this.masterdb.get(this.masterKey(id));
+      return this.toSchema(t);
    }
 
    async gets(...ids: string[]): Promise<T[]> {
       if (ids.length < 1) return [];
-      return this.masterdb.getMany(...ids.map((id) => this.masterKey(id)));
+      let list = await this.masterdb.getMany(...ids.map((id) => this.masterKey(id)));
+      return list.map((v) => this.toSchema(v));
    }
 
    valid(data) {
