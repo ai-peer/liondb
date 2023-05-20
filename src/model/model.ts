@@ -202,7 +202,8 @@ export class Model<T extends Schema> {
       if (video) {
          await this.deleteIndexs(video);
          let masterKey = this.masterKey(id);
-         data.updateAt = new Date();
+         video.updateAt = data.updateAt = new Date();
+         data.reduce();
          Object.assign(video, data);
          Object.assign(data, video);
          await this.masterdb.set(masterKey, video);
@@ -256,9 +257,10 @@ export class Model<T extends Schema> {
       items.forEach((item) => {
          if (!item) return;
          this.indexs.forEach((index) => {
+            let vals = index.fields.map((v) => item[v]);
             batchs.push({
                type: "del",
-               key: this.indexKey(index.name, ...index.fields.map((key) => item[key]), item.id),
+               key: this.indexKey(index.name, ...vals, item.id),
             });
          });
       });
