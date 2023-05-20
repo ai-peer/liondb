@@ -220,7 +220,6 @@ export class Model<T extends Schema> {
          video.updateAt = data.updateAt = new Date();
          data.reduce();
          Object.assign(video, data);
-         Object.assign(data, video);
          await this.masterdb.set(masterKey, video);
          await this.saveIndexs(video);
          return video;
