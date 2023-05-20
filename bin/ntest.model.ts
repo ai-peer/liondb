@@ -68,12 +68,12 @@ class UserDAO extends Model<User> {
    }
    async function update() {
       const id = "ruttmwzzw4FVu";
-      const sdata = new User({ title: "liguo", age: 31 });
+      const sdata = ({ title: "liguo", age: 99 });
       let nv = await userDAO.save(id, sdata);
       let en = await userDAO.get(id);
       console.info("update end", en, sdata, nv, sdata === nv);
    }
    await save();
    await search();
-   //await update();
+   await update();
 })();
