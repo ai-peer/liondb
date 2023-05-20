@@ -63,6 +63,7 @@ export class Model<T extends Schema> {
          await this.indexdb.iterator(
             {
                key: this.indexKey(index.name, ...index.fields) + "*",
+               limit: -1,
                filter: async (id, key) => {
                   if (ids.has(id)) return false;
                   if (!opts.filter) return true;
@@ -84,6 +85,7 @@ export class Model<T extends Schema> {
          await this.masterdb.iterator(
             {
                key: this.masterKey(opts.id || "") + "*",
+               limit: -1,
                filter: async (entity, key) => {
                   if (!opts.filter) return true;
                   if (!entity) {
