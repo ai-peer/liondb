@@ -61,12 +61,12 @@ export class Model<T extends Schema> {
       return this.indexKey("m", id);
    }
 
-   async get(id: string): Promise<T | undefined> {
+   async get(id: string): Promise<T> {
       let t = await this.masterdb.get(this.masterKey(id));
       return this.toSchema(t);
    }
 
-   async gets(...ids: string[]): Promise<(T | undefined)[]> {
+   async gets(...ids: string[]): Promise<T[]> {
       if (ids.length < 1) return [];
       let list = await this.masterdb.getMany(...ids.map((id) => this.masterKey(id)));
       return list.map((v) => this.toSchema(v));
