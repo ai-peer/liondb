@@ -6,10 +6,21 @@ export default class Schema {
    @Column({ column: "id", type: "string" })
    public id: string;
 
+   /**
+    * 创建时间
+    */
    @IsDate()
    @IsNotEmpty()
    @Column({ column: "createAt", type: "date", default: new Date() })
    createAt: Date;
+
+   /**
+    * 更新时间
+    */
+   @IsDate()
+   @IsNotEmpty()
+   @Column({ column: "updateAt", type: "date", default: new Date() })
+   updateAt: Date;
 
    constructor(data?: { [key: string]: any }) {
       data && this.reduce(data);

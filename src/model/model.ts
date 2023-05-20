@@ -202,6 +202,7 @@ export class Model<T extends Schema> {
       if (video) {
          await this.deleteIndexs(video);
          let masterKey = this.masterKey(id);
+         data.updateAt = new Date();
          Object.assign(video, data);
          Object.assign(data, video);
          await this.masterdb.set(masterKey, video);
