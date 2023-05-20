@@ -17,6 +17,10 @@ class User extends Schema {
    @IsNotEmpty()
    addr: number;
 
+   @Column({ default: [] })
+   @IsNotEmpty()
+   pwds: string[];
+
    mobile: string;
 }
 class UserDAO extends Model<User> {
@@ -34,9 +38,10 @@ class UserDAO extends Model<User> {
          age: Math.ceil(Math.random() * 50 + 10),
          addr: "sun two 10",
          sex: "man",
+         pwds: ["a", "b", "c"],
       };
-      await userDAO.create(user as any);
-      //console.info("user", user);
+      let euser = await userDAO.create(user as any);
+      console.info("save user", euser);
    }
    async function search() {
       //let list = await userDAO.find({});
@@ -70,13 +75,16 @@ class UserDAO extends Model<User> {
       console.info("v", v);
    }
    async function update() {
-      const id = "ruttmwzzw4FVu";
-      const sdata = new User({ title: "liguo", age: 99 });
-      let nv = await userDAO.save(id, sdata);
+      const id = "1q0I33zzy";
+      let nv = await userDAO.save(id, {
+         pwds: ["ax", "b13"],
+         age: 19,
+         mdi: 'mdi'
+      });
       let en = await userDAO.get(id);
-      console.info("update ", sdata, en, nv, en === nv);
+      console.info("update ", en, nv);
    }
    //await save();
-   await search();
-   //await update();
+   //await search();
+   await update();
 })();

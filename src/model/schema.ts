@@ -165,6 +165,7 @@ export default class Schema {
       }
       return list;
    }
+
    valid() {
       let checks = validateSync(this);
       if (checks.length < 1) return true;

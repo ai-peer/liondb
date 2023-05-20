@@ -222,21 +222,24 @@ export class Model<T extends Schema> {
     * @param data
     * @param ttl
     */
-   async save(id: string, updateData: { [key: string]: any }): Promise<T> {
-      let data = updateData instanceof this.SchemaClass ? (updateData as T) : this.toSchema(updateData);
+   async save(id: string, data: { [key: string]: any }): Promise<T> {
       let video = await this.get(id);
       if (video) {
          await this.deleteIndexs(video);
          let masterKey = this.masterKey(id);
-         video.updateAt = data.updateAt = new Date();
-         data.reduce();
-         Object.assign(video, data);
+         video.updateAt = new Date();
+         for (let field of Object.keys(data)) {
+            let val = data[field];
+            if (video.isField(field)) {
+               video[field] = val;
+            }
+         }
          await this.masterdb.set(masterKey, video);
          await this.saveIndexs(video);
          return video;
       } else {
          data.id = id;
-         return this.create(data);
+         return this.create(new this.SchemaClass(data));
       }
    }
    /**
