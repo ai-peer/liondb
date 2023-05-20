@@ -29,12 +29,12 @@ class UserDAO extends Model<User> {
 
    let userDAO = new UserDAO();
    async function save() {
-      let user = ({
+      let user = {
          title: "chenkun",
          age: Math.ceil(Math.random() * 50 + 10),
          addr: "sun two 10",
          sex: "man",
-      });
+      };
       await userDAO.create(user as any);
       //console.info("user", user);
    }
@@ -65,15 +65,18 @@ class UserDAO extends Model<User> {
 
       count = await userDAO.count({});
       console.info("count total", count);
+
+      let v = await userDAO.get("ruttmwzzw4FVu1");
+      console.info("v", v);
    }
    async function update() {
       const id = "ruttmwzzw4FVu";
-      const sdata = ({ title: "liguo", age: 99 });
+      const sdata = new User({ title: "liguo", age: 99 });
       let nv = await userDAO.save(id, sdata);
       let en = await userDAO.get(id);
-      console.info("update end", en, sdata, nv, sdata === nv);
+      console.info("update ", sdata, en, nv, en === nv);
    }
-   await save();
+   //await save();
    await search();
-   await update();
+   //await update();
 })();

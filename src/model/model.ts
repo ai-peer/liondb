@@ -43,7 +43,7 @@ export class Model<T extends Schema> {
       return Model._app;
    }
    protected toSchema(data: { [key: string]: any }): T {
-      return new this.SchemaClass(data);
+      return !!data ? new this.SchemaClass(data) : undefined;
    }
    /**
     * 生成索引 key
@@ -59,6 +59,17 @@ export class Model<T extends Schema> {
     */
    protected masterKey(id: string) {
       return this.indexKey("m", id);
+   }
+
+   async get(id: string): Promise<T | undefined> {
+      let t = await this.masterdb.get(this.masterKey(id));
+      return this.toSchema(t);
+   }
+
+   async gets(...ids: string[]): Promise<(T | undefined)[]> {
+      if (ids.length < 1) return [];
+      let list = await this.masterdb.getMany(...ids.map((id) => this.masterKey(id)));
+      return list.map((v) => this.toSchema(v));
    }
    /**
     * 统计
@@ -280,17 +291,6 @@ export class Model<T extends Schema> {
       });
       await this.indexdb.batch(batchs);
       return items;
-   }
-
-   async get(id: string): Promise<T> {
-      let t = await this.masterdb.get(this.masterKey(id));
-      return this.toSchema(t);
-   }
-
-   async gets(...ids: string[]): Promise<T[]> {
-      if (ids.length < 1) return [];
-      let list = await this.masterdb.getMany(...ids.map((id) => this.masterKey(id)));
-      return list.map((v) => this.toSchema(v));
    }
 
    valid(data) {
