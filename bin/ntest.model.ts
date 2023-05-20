@@ -79,10 +79,11 @@ class UserDAO extends Model<User> {
       let nv = await userDAO.save(id, {
          pwds: ["ax", "b13"],
          age: 19,
-         mdi: 'mdi'
+         mdi: "mdi",
       });
       let en = await userDAO.get(id);
       console.info("update ", en, nv);
+      console.info("===", nv.toColumnValue("updateAt", "2022/01/01"));
    }
    //await save();
    //await search();

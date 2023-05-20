@@ -60,6 +60,24 @@ export default class Schema {
       }
       return this;
    }
+   
+   toColumnValue(field: string, val: any) {
+      let tableColumns = this.getColumns(); // this["_entityColumns"];
+      let column = tableColumns[field];
+      if (!column) return undefined;
+      if (column.type == "date") {
+         return new Date(val);
+      } else if (column.type == "number") {
+         return Number(val);
+      } else if (column.type == "array") {
+         return val instanceof Array ? val : [val];
+      } else if (column.type === "string") {
+         return typeof val === "string" ? val.trim() : String(val);
+      } else if (column.type === "boolean") {
+         return val != "false" && val != "";
+      }
+      return val;
+   }
    /**
     * schema, 清除非定义字段
     * @param object
@@ -141,7 +159,14 @@ export default class Schema {
       let schemaMap = this["_tableColumn"]["Schema"];
       return map[name] || schemaMap[name];
    }
-   protected getColumns() {
+   protected getColumns(): {
+      [key: string]: {
+         column: string;
+         type: "date" | "string" | "boolean" | "number" | "array" | "map";
+         default?: any;
+         xss: boolean;
+      };
+   } {
       let tableName = this.constructor.name;
       let map = this["_tableColumn"][tableName];
       let schemaMap = this["_tableColumn"]["Schema"];

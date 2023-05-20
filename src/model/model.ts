@@ -232,7 +232,7 @@ export class Model<T extends Schema> {
          for (let field of Object.keys(data)) {
             let val = data[field];
             if (video.isField(field)) {
-               video[field] = val;
+               video[field] = video.toColumnValue(field, val);
             }
          }
          await this.masterdb.set(masterKey, video);
