@@ -21,9 +21,19 @@ export type ColumnConfig = {
    /**
     * 格式输入值
     * @param val
+    * @param data
+    * @param data.row 数据库里的值(行纪录),只有在更新时才有
+    * @param data.update 要更新的的值(行对象),只有在更新时才有
     * @returns
     */
-   format?: (val: any, target?: any) => any;
+   format?: (val: any, db: { row?: any; update: any }) => any;
+   /**
+    * 字段索引值生成
+    * @param val 值
+    * @param target 数据对象
+    * @returns
+    */
+   index?: (val: any, target: any) => string;
    [key: string]: any;
 };
 const TableColumn: { [key: string]: ColumnConfig } = {};
@@ -44,9 +54,11 @@ export function Column(config: ColumnConfig | object, name: string | void) {
       handle(arguments[0], name);
    }
    function handle(target, name) {
-      TableColumn[target.constructor.name] = TableColumn[target.constructor.name] || [];
-      TableColumn[target.constructor.name][name] = conf;
-      target._tableColumn = TableColumn;
+      //TableColumn[target.constructor.name] = TableColumn[target.constructor.name] || [];
+      //TableColumn[target.constructor.name][name] = conf;
+      //target._tableColumn = TableColumn;
+      target.constructor._columns = target.constructor._columns || Object.create({});
+      target.constructor._columns[name] = conf;
    }
 }
 /* function getFormat(target: any, propertyKey: string) {

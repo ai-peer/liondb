@@ -208,7 +208,7 @@ export class Model<T extends Schema> {
    async create(data: T): Promise<T> {
       if (!data.id) data.id = uuidSeq();
       data = data instanceof this.SchemaClass ? data : this.toSchema(data);
-      data.patch();
+      this.patch(data);
       data.valid();
       const id = data.id;
       let masterKey = this.masterKey(id);
@@ -228,13 +228,8 @@ export class Model<T extends Schema> {
       if (video) {
          await this.deleteIndexs(video);
          let masterKey = this.masterKey(id);
+         this.patch(video, data);
          video.updateAt = new Date();
-         for (let field of Object.keys(data)) {
-            let val = data[field];
-            if (video.isField(field)) {
-               video[field] = video.toColumnValue(field, val);
-            }
-         }
          await this.masterdb.set(masterKey, video);
          await this.saveIndexs(video);
          return video;
@@ -263,7 +258,13 @@ export class Model<T extends Schema> {
       const id = data.id;
       let batchs: { type: "put"; key: string; value: any; ttl: number }[] = [];
       this.indexs.forEach((index) => {
-         let vals = index.fields.map((v) => data[v]);
+         let vals = index.fields.map((v) => {
+            let column = data.getColumn(v);
+            if (!column) throw new Error(`[${data.constructor.name}][${v}] is not exist`);
+            let rv = data[v];
+            if (typeof column.index == "function") rv = column.index(rv, data) || rv;
+            return rv;
+         });
          if (vals.length > 0) {
             batchs.push({
                type: "put",
@@ -287,7 +288,14 @@ export class Model<T extends Schema> {
       items.forEach((item) => {
          if (!item) return;
          this.indexs.forEach((index) => {
-            let vals = index.fields.map((v) => item[v]);
+            //let vals = index.fields.map((v) => item[v]);
+            let vals = index.fields.map((v) => {
+               let column = item.getColumn(v);
+               if (!column) throw new Error(`[${item.constructor.name}][${v}] is not exist`);
+               let rv = item[v];
+               if (typeof column.index == "function") rv = column.index(rv, item) || rv;
+               return rv;
+            });
             batchs.push({
                type: "del",
                key: this.indexKey(index.name, ...vals, item.id),
@@ -296,6 +304,28 @@ export class Model<T extends Schema> {
       });
       await this.indexdb.batch(batchs);
       return items;
+   }
+   private patch(target: T, updateData?: { [key: string]: any }): Schema {
+      updateData = updateData || target;
+      if (!updateData) return updateData;
+      if (!!globalThis.document) {
+         if (updateData === target) return target;
+         for (let key of Object.keys(updateData)) {
+            let val = updateData[key];
+            if (val != undefined && val != null) {
+               target[key] = val;
+            }
+         }
+         return target;
+      } else if (typeof updateData === "object") {
+         let tableColumns = target.getColumns(); // this["_entityColumns"];
+         for (let key in tableColumns) {
+            //let val = updateData[key];
+            let column = tableColumns[key];
+            target.updateColumnValue({ column, updateData, field: key });
+         }
+      }
+      return target;
    }
 
    valid(data) {

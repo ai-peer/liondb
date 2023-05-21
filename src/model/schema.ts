@@ -3,6 +3,7 @@ import { Entity, Column, ColumnConfig } from "./orm";
 import { Contains, IsInt, Length, IsEmail, IsFQDN, IsDate, Min, Max, IsNotEmpty, IsEmpty, validateSync } from "class-validator";
 import xss from "xss";
 export default class Schema {
+   private static readonly _columns: { [key: string]: ColumnConfig } = Object.create({});
    @Column({ column: "id", type: "string" })
    public id: string;
 
@@ -45,18 +46,9 @@ export default class Schema {
       } else if (typeof object === "object") {
          let tableColumns = this.getColumns(); // this["_entityColumns"];
          for (let key in tableColumns) {
-            let val = object[key];
+            //let val = object[key];
             let column = tableColumns[key];
-            if (val === undefined || val === null) val = makeColumnDefault(object, column);
-            if (val != undefined && val != null && !/^_{1,}/.test(key)) {
-               if (column.type == "date") {
-                  val = val instanceof Date ? val : new Date(val);
-               } else if (typeof val === "string") {
-                  val = val.trim();
-               }
-               if (column.format) val = column.format(val, object);
-               this[key] = handleValue(column, val);
-            }
+            this.updateColumnValue({ column, field: key, updateData: object });
          }
       }
       return this;
@@ -95,18 +87,10 @@ export default class Schema {
       } else if (typeof object === "object") {
          //let entityColumns = this["_entityColumns"];
          for (let key of Object.keys(object)) {
-            let val = object[key];
+            //let val = object[key];
             let column = this.getColumn(key); //entityColumns[key];
             if (!column) continue;
-            if (val === undefined || val === null) val = makeColumnDefault(this, column);
-            if (val != undefined && val != null && !/^_{1,}/.test(key)) {
-               if (column.type == "date") {
-                  val = new Date(val);
-               } else if (typeof val === "string") {
-                  val = val.trim();
-               }
-               this[key] = handleValue(column, val);
-            }
+            this.updateColumnValue({ column, field: key, updateData: object });
          }
       }
       return this;
@@ -126,48 +110,36 @@ export default class Schema {
       return column?.xss != false;
    }
 
-   toJSON() {
-      let map: { [key: string]: any } = {};
-      // let entityColumns = this["_entityColumns"];
-      for (let key in this) {
-         if (/^_/.test(key)) continue;
-         let val: any = this[key];
-         let column = this.getColumn(key); //entityColumns[key] || "";
-         val = handleValue(column, val);
-         if (column && column.type == "date") {
-            map[key] = new Date(val).getTime();
-         } else {
-            map[key] = val;
-         }
-      }
-      return map;
-   }
    /**
     * 是否是定义的字段
     * @param name
     * @returns
     */
-   protected getColumn(name: string): ColumnConfig {
-      let tableName = this.constructor.name;
+   getColumn(name: string): ColumnConfig {
+      /*    let tableName = this.constructor.name;
       let map = this["_tableColumn"][tableName] || {};
       let schemaMap = this["_tableColumn"]["Schema"];
-      return map[name] || schemaMap[name];
+      return map[name] || schemaMap[name]; */
+      let columns = this.constructor["_columns"];
+      return columns[name];
    }
-   protected getColumns(): {
+   getColumns(): {
       [key: string]: ColumnConfig;
    } {
-      let tableName = this.constructor.name;
-      let map = this["_tableColumn"][tableName];
-      let schemaMap = this["_tableColumn"]["Schema"];
-      return { ...schemaMap, ...map };
+      //let tableName = this.constructor.name;
+      //let map = this["_tableColumn"][tableName];
+      //let schemaMap = this["_tableColumn"]["Schema"];
+      //return { ...schemaMap, ...map };
+      let columns = this.constructor["_columns"];
+      return { ...columns };
    }
    /**
-    * 是不是字段
+    * 是不是列
     * @param name
     * @returns
     */
-   isField(name: string) {
-      return !!this.getColumns()[name];
+   isColumn(name: string) {
+      return !!this.getColumn(name);
    }
    /**
     * 定义字段列表
@@ -186,6 +158,31 @@ export default class Schema {
       assert.ok(checks.length < 1, errorCheck(this.constructor.name, checks));
       return false;
    }
+   /**
+    * 获取列默认值
+    * @param column
+    * @returns
+    */
+   getDefaultValue(column: ColumnConfig) {
+      return typeof column.default === "function" ? column.default(this) : column.default;
+   }
+   updateColumnValue({ column, field, updateData }: { column: ColumnConfig; field: string; updateData: any }) {
+      let value = updateData[field];
+      if (value === undefined || value === null) value = this.getDefaultValue(column);
+      if (typeof value === "function") value = value(this[field]);
+      if (value != undefined && value != null && !/^_{1,}/.test(field)) {
+         if (column.type == "date") {
+            value = value instanceof Date ? value : new Date(value);
+         } else if (typeof value === "string") {
+            value = value.trim();
+         }
+         if (typeof column.format === "function") {
+            let v = column.format(value, { update: updateData, row: this });
+            if (!(v === undefined || v === null)) value = v;
+         }
+         this[field] = handleValue(column, value);
+      }
+   }
 }
 function errorCheck(tableName: string, list: any[]) {
    let p: any[] = [];
@@ -193,10 +190,6 @@ function errorCheck(tableName: string, list: any[]) {
       for (let key in item.constraints || {}) p.push(item.constraints[key]);
    }
    return tableName + "=>" + p.join(", ");
-}
-
-function makeColumnDefault(target: object, column: ColumnConfig) {
-   return typeof column.default === "function" ? column.default(target) : column.default;
 }
 
 function handleValue(column: ColumnConfig, val: any) {

@@ -8,38 +8,53 @@ class User extends Schema {
    @Column({ type: "string", default: "" })
    @IsNotEmpty()
    title: string;
-
-   @Column({})
+   @Column({
+      format(val, { row, update }) {
+         return (parseInt(row.age) || 0) + val;
+      },
+   })
    @Max(200)
    age: number;
 
+   @Column({})
+   @IsNotEmpty()
+   addr: string;
+
    @Column({
-      format(val, target) {
-         console.info("format", val, target);
-         return val.trim() + ">>>>ok|<";
-      },
+      default: [],
    })
    @IsNotEmpty()
-   addr: number;
-
-   @Column({ default: [] })
-   @IsNotEmpty()
    pwds: string[];
+
+   @Column({
+      default: 0,
+      index(val, target) {
+         return val + "<<==>>";
+      },
+   })
+   score: number;
 
    mobile: string;
 }
 class UserDAO extends Model<User> {
    constructor() {
-      super({ table: "user", indexs: [{ name: "com", fields: ["title", "age"] }], SchemaClass: User });
+      super({
+         table: "user",
+         indexs: [
+            { name: "com", fields: ["title", "age"] },
+            { name: "score", fields: ["score", "title"] },
+         ],
+         SchemaClass: User,
+      });
    }
 }
 (async () => {
-   console.info("model", Model, Schema);
+   //console.info("model", Model, Schema);
 
    let userDAO = new UserDAO();
    async function save() {
       let user = {
-         title: "chenkun",
+         title: "chenkun33",
          age: Math.ceil(Math.random() * 50 + 10),
          addr: "sun two 10",
          sex: "man",
@@ -64,7 +79,7 @@ class UserDAO extends Model<User> {
             return entity.age < 100;
          },
       });
-      console.info("count by index", count);
+      console.info("count by index com", count);
 
       //      master
       list = await userDAO.find({ filter: async (user) => user.title.startsWith("chenkun") });
@@ -83,14 +98,15 @@ class UserDAO extends Model<User> {
       const id = "1q0I33zzy";
       let nv = await userDAO.save(id, {
          pwds: ["ax===", "b13"],
-         age: 39,
+         age: 18,
          mdi: "mdi",
+         score: (v) => v + 2,
       });
       let en = await userDAO.get(id);
       console.info("update ", en, nv);
       console.info("===", nv.toColumnValue("updateAt", "2022/01/01"));
    }
-   //await save();
+   await save();
    await search();
    await update();
 })();
