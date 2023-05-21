@@ -8,24 +8,20 @@ export function Entity(constructor: Function) {
    Object.seal(constructor);
    Object.seal(constructor.prototype);
 }
-
-const TableColumn: { [key: string]: any } = {};
-export function Column(
-   config:
-      | {
-           /** 列名 */
-           column: string;
-           /** 类型 */
-           type: "date" | "string" | "boolean" | "number" | "array" | "map";
-           /** 默认值 */
-           default?: any;
-           /** 处理跨站脚本攻击 */
-           xss: boolean;
-           [key: string]: any;
-        }
-      | object,
-   name: string | void,
-) {
+type HandleDefault = (target) => any;
+export type ColumnConfig = {
+   /** 列名 */
+   column: string;
+   /** 类型 */
+   type: "date" | "string" | "boolean" | "number" | "array" | "map";
+   /** 默认值 */
+   default?: string | Array<any> | number | boolean | object | HandleDefault;
+   /** 处理跨站脚本攻击 */
+   xss: boolean;
+   [key: string]: any;
+};
+const TableColumn: { [key: string]: ColumnConfig } = {};
+export function Column(config: ColumnConfig | object, name: string | void) {
    let conf: any = {};
    if (arguments.length == 1) {
       conf = { ...config };

@@ -5,7 +5,7 @@ class User extends Schema {
    constructor(data?) {
       super(data);
    }
-   @Column
+   @Column({ type: "string", default: "" })
    @IsNotEmpty()
    title: string;
 
@@ -13,7 +13,7 @@ class User extends Schema {
    @Max(200)
    age: number;
 
-   @Column
+   @Column({})
    @IsNotEmpty()
    addr: number;
 
@@ -36,7 +36,7 @@ class UserDAO extends Model<User> {
       let user = {
          title: "chenkun",
          age: Math.ceil(Math.random() * 50 + 10),
-         addr: "sun two 10",
+         //addr: "sun two 10",
          sex: "man",
          pwds: ["a", "b", "c"],
       };
@@ -85,7 +85,7 @@ class UserDAO extends Model<User> {
       console.info("update ", en, nv);
       console.info("===", nv.toColumnValue("updateAt", "2022/01/01"));
    }
-   //await save();
+   await save();
    //await search();
-   await update();
+   //await update();
 })();

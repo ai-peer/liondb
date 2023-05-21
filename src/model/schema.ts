@@ -1,5 +1,5 @@
 import assert from "assert";
-import { Entity, Column } from "./orm";
+import { Entity, Column, ColumnConfig } from "./orm";
 import { Contains, IsInt, Length, IsEmail, IsFQDN, IsDate, Min, Max, IsNotEmpty, IsEmpty, validateSync } from "class-validator";
 import xss from "xss";
 export default class Schema {
@@ -47,7 +47,7 @@ export default class Schema {
          for (let key in tableColumns) {
             let val = object[key];
             let column = tableColumns[key];
-            if (val === undefined || val === null) val = column.default;
+            if (val === undefined || val === null) val = makeColumnDefault(object, column);
             if (val != undefined && val != null && !/^_{1,}/.test(key)) {
                if (column.type == "date") {
                   val = new Date(val);
@@ -93,11 +93,11 @@ export default class Schema {
          return this;
       } else if (typeof object === "object") {
          //let entityColumns = this["_entityColumns"];
-         for (let key in object) {
+         for (let key of Object.keys(object)) {
             let val = object[key];
             let column = this.getColumn(key); //entityColumns[key];
             if (!column) continue;
-            if (val === undefined || val === null) val = column.default;
+            if (val === undefined || val === null) val = makeColumnDefault(this, column);
             if (val != undefined && val != null && !/^_{1,}/.test(key)) {
                if (column.type == "date") {
                   val = new Date(val);
@@ -147,19 +147,14 @@ export default class Schema {
     * @param name
     * @returns
     */
-   protected getColumn(name: string) {
+   protected getColumn(name: string): ColumnConfig {
       let tableName = this.constructor.name;
       let map = this["_tableColumn"][tableName] || {};
       let schemaMap = this["_tableColumn"]["Schema"];
       return map[name] || schemaMap[name];
    }
    protected getColumns(): {
-      [key: string]: {
-         column: string;
-         type: "date" | "string" | "boolean" | "number" | "array" | "map";
-         default?: any;
-         xss: boolean;
-      };
+      [key: string]: ColumnConfig;
    } {
       let tableName = this.constructor.name;
       let map = this["_tableColumn"][tableName];
@@ -199,24 +194,11 @@ function errorCheck(tableName: string, list: any[]) {
    }
    return tableName + "=>" + p.join(", ");
 }
-export function setObject(object?: Object) {
-   if (typeof object === "object") {
-      let tableColumns = this.getColumns(); // this["_entityColumns"];
-      for (let key in tableColumns) {
-         let val = object[key];
-         let column = tableColumns[key];
-         if (val === undefined || val === null) val = column.default;
-         if (val != undefined && val != null && !/^_{1,}/.test(key)) {
-            if (column.type == "date") {
-               val = new Date(val);
-            } else if (typeof val === "string") {
-               val = val.trim();
-            }
-            this[key] = handleValue(column, val);
-         }
-      }
-   }
+
+function makeColumnDefault(target: object, column: ColumnConfig) {
+   return typeof column.default === "function" ? column.default(target) : column.default;
 }
+
 function handleValue(column, val) {
    return typeof val === "string" && column?.xss != false ? xss(val) : val;
 }
