@@ -50,10 +50,11 @@ export default class Schema {
             if (val === undefined || val === null) val = makeColumnDefault(object, column);
             if (val != undefined && val != null && !/^_{1,}/.test(key)) {
                if (column.type == "date") {
-                  val = new Date(val);
+                  val = val instanceof Date ? val : new Date(val);
                } else if (typeof val === "string") {
                   val = val.trim();
                }
+               if (column.format) val = column.format(val, object);
                this[key] = handleValue(column, val);
             }
          }
@@ -104,7 +105,6 @@ export default class Schema {
                } else if (typeof val === "string") {
                   val = val.trim();
                }
-               //res[key] = val;
                this[key] = handleValue(column, val);
             }
          }
@@ -199,26 +199,6 @@ function makeColumnDefault(target: object, column: ColumnConfig) {
    return typeof column.default === "function" ? column.default(target) : column.default;
 }
 
-function handleValue(column, val) {
-   return typeof val === "string" && column?.xss != false ? xss(val) : val;
+function handleValue(column: ColumnConfig, val: any) {
+   return typeof val === "string" && column?.xss == true ? xss(val) : val;
 }
-/* @Entity
-class Us extends Schema {
-   @Column({ column: "name", type: "string" })
-   name: string;
-
-   @Column({ column: "name", type: "number" })
-   age: number;
-
-   constructor(data?) {
-      super(data);
-   }
-}
-let u = {
-   name: "asdf",
-   tree: "tree",
-};
-let us = new Us(u);
-let us1 = new Us();
-console.info("-===v", us, us1.tidy(u));
- */

@@ -18,6 +18,12 @@ export type ColumnConfig = {
    default?: string | Array<any> | number | boolean | object | HandleDefault;
    /** 处理跨站脚本攻击 */
    xss: boolean;
+   /**
+    * 格式输入值
+    * @param val
+    * @returns
+    */
+   format?: (val: any, target?: any) => any;
    [key: string]: any;
 };
 const TableColumn: { [key: string]: ColumnConfig } = {};

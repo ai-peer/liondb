@@ -9,11 +9,16 @@ class User extends Schema {
    @IsNotEmpty()
    title: string;
 
-   @Column
+   @Column({})
    @Max(200)
    age: number;
 
-   @Column({})
+   @Column({
+      format(val, target) {
+         console.info("format", val, target);
+         return val.trim() + ">>>>ok|<";
+      },
+   })
    @IsNotEmpty()
    addr: number;
 
@@ -36,7 +41,7 @@ class UserDAO extends Model<User> {
       let user = {
          title: "chenkun",
          age: Math.ceil(Math.random() * 50 + 10),
-         //addr: "sun two 10",
+         addr: "sun two 10",
          sex: "man",
          pwds: ["a", "b", "c"],
       };
@@ -77,15 +82,15 @@ class UserDAO extends Model<User> {
    async function update() {
       const id = "1q0I33zzy";
       let nv = await userDAO.save(id, {
-         pwds: ["ax", "b13"],
-         age: 19,
+         pwds: ["ax===", "b13"],
+         age: 39,
          mdi: "mdi",
       });
       let en = await userDAO.get(id);
       console.info("update ", en, nv);
       console.info("===", nv.toColumnValue("updateAt", "2022/01/01"));
    }
-   await save();
-   //await search();
-   //await update();
+   //await save();
+   await search();
+   await update();
 })();
