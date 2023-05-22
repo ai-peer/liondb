@@ -8,30 +8,20 @@ class User extends Schema {
    @Column({ type: "string", default: "" })
    @IsNotEmpty()
    title: string;
-   @Column({
-      format(val, { row, update }) {
-         return (parseInt(row.age) || 0) + val;
-      },
-   })
+
+   @Column({ default: 11, type: "number", index: (v) => "m-" + v })
    @Max(200)
    age: number;
 
-   @Column({})
+   @Column({ type: "string" })
    @IsNotEmpty()
    addr: string;
 
-   @Column({
-      default: [],
-   })
+   @Column({ type: "array" })
    @IsNotEmpty()
    pwds: string[];
 
-   @Column({
-      default: 0,
-      index(val, target) {
-         return val + "<<==>>";
-      },
-   })
+   @Column({ type: "number", default: 1 })
    score: number;
 
    mobile: string;
@@ -46,6 +36,8 @@ class UserDAO extends Model<User> {
          ],
          SchemaClass: User,
       });
+      //this.masterdb.clear();
+      //this.indexdb.clear();
    }
 }
 (async () => {
@@ -53,9 +45,10 @@ class UserDAO extends Model<User> {
 
    let userDAO = new UserDAO();
    async function save() {
+      const v = 8;// Math.ceil(Math.random() * 50 + 10);
       let user = {
-         title: "chenkun33",
-         age: Math.ceil(Math.random() * 50 + 10),
+         title: "chenkun",
+         age: v,
          addr: "sun two 10",
          sex: "man",
          pwds: ["a", "b", "c"],
@@ -71,6 +64,7 @@ class UserDAO extends Model<User> {
          filter: async (entity, key) => {
             return entity.age < 100;
          },
+         limit: 100,
       });
       console.info("list by index", list);
       let count = await userDAO.count({
@@ -91,7 +85,7 @@ class UserDAO extends Model<User> {
       count = await userDAO.count({});
       console.info("count total", count);
 
-      let v = await userDAO.get("ruttmwzzw4FVu1");
+      let v = await userDAO.get("1q1ESUzzy");
       console.info("v", v);
    }
    async function update() {
@@ -108,5 +102,5 @@ class UserDAO extends Model<User> {
    }
    await save();
    await search();
-   await update();
+   //await update();
 })();

@@ -99,7 +99,7 @@ export interface ILionDB {
     * @returns 
     */
    batch(ops: { type: "del" | "put"; key: string; value?: any; ttl?: number }[]): Promise<void>;
-   clear(ops?): Promise<void>;
+   clear(): Promise<void>;
    close(): Promise<void>;
    count(key: string, filter?: Filter): Promise<number>;
    /** 总条数 */

@@ -9,15 +9,14 @@ export function Entity(constructor: Function) {
    Object.seal(constructor.prototype);
 }
 type HandleDefault = (target) => any;
+
 export type ColumnConfig = {
-   /** 列名 */
-   column: string;
-   /** 类型 */
    type: "date" | "string" | "boolean" | "number" | "array" | "map";
-   /** 默认值 */
-   default?: string | Array<any> | number | boolean | object | HandleDefault;
+   /** 列名 */
+   column?: string;
+   /** 类型 */
    /** 处理跨站脚本攻击 */
-   xss: boolean;
+   //xss?: boolean;
    /**
     * 格式输入值
     * @param val
@@ -27,39 +26,45 @@ export type ColumnConfig = {
     * @returns
     */
    format?: (val: any, db: { row?: any; update: any }) => any;
+
+   /** 默认值 */
+   default?: string | Array<any> | number | boolean | object | HandleDefault;
    /**
     * 字段索引值生成
     * @param val 值
     * @param target 数据对象
     * @returns
     */
-   index?: (val: any, target: any) => string;
+   index?: (val: any) => string;
    [key: string]: any;
 };
 const TableColumn: { [key: string]: ColumnConfig } = {};
-export function Column(config: ColumnConfig | object, name: string | void) {
-   let conf: any = {};
-   if (arguments.length == 1) {
-      conf = { ...config };
-      let r: any = (target, name) => {
-         conf.column = conf.column || name;
-         handle(target, name);
-      };
-      return r;
+export function Column(config: ColumnConfig) {
+   //, name: string | void
+   let columnConfig: ColumnConfig = {} as any;
+   /*    if (arguments.length == 1) {
+ 
    } else {
-      conf = {
+      columnConfig = {
          column: name,
          type: "string",
-      };
+      } as any;
       handle(arguments[0], name);
-   }
+   } */
    function handle(target, name) {
       //TableColumn[target.constructor.name] = TableColumn[target.constructor.name] || [];
       //TableColumn[target.constructor.name][name] = conf;
       //target._tableColumn = TableColumn;
+      columnConfig.type = (columnConfig.type || "string").toLowerCase() as any;
       target.constructor._columns = target.constructor._columns || Object.create({});
-      target.constructor._columns[name] = conf;
+      target.constructor._columns[name] = columnConfig;
    }
+   columnConfig = { ...config } as any;
+   let r: any = (target, name: string) => {
+      columnConfig.column = columnConfig.column || name;
+      handle(target, name);
+   };
+   return r;
 }
 /* function getFormat(target: any, propertyKey: string) {
    console.info("getFormat", target, propertyKey)

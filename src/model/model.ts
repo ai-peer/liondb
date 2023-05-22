@@ -35,12 +35,97 @@ export class Model<T extends Schema> {
       const { masterdb, indexdb } = createModel(Model._app, this.table);
       this.masterdb = masterdb;
       this.indexdb = indexdb;
+      this.checkDefine();
+      this.initDB();
    }
    static setApp(app: string) {
       Model._app = app;
    }
    static get app() {
       return Model._app;
+   }
+   /**
+    * 检测定义是否合法
+    */
+   private checkDefine() {
+      let instance: T = new this.SchemaClass();
+      const schemaName = instance.constructor.name;
+      instance.patch();
+      console.info("in", instance);
+      this.indexs.forEach((item) => {
+         assert.ok(typeof item.name === "string", `index name type must be a string`);
+         for (let field of item.fields) {
+            let column = instance.getColumn(field);
+            let val = instance[field];
+            //let type = typeof val;
+            assert.ok(val != undefined && val != null, `Defined index fields[${schemaName}.${field}] must set default values`);
+            assert.ok(["string", "number"].includes(column.type), `Define the index field[${schemaName}.${field}] type to only allow [string, number]`);
+            //assert.ok(["string", "number"].includes(type), `Define index field[${schemaName}.${field}] values ​​only allow [string, number]`);
+         }
+      });
+   }
+   /**
+    * 初始化数据库
+    * @returns
+    */
+   private async initDB() {
+      let instance: T = new this.SchemaClass();
+      const schemaName = instance.constructor.name;
+      instance.patch();
+      const sysId = "0000zzzz";
+      let entity = await this.indexdb.get(sysId);
+      if (entity === null || entity === undefined) {
+         //不存在
+         entity = {};
+         let columns = instance.getColumns();
+         for (let field in columns) {
+            let column = columns[field];
+            if (typeof column.index === "function") {
+               let v = column.index(instance[field]);
+               entity[field] = v;
+            }
+         }
+         await this.indexdb.set(sysId, entity);
+         return;
+      }
+      let columns = instance.getColumns();
+      const changeIndexs: Set<string> = new Set();
+      for (let field in columns) {
+         let column = columns[field];
+         if (typeof column.index === "function") {
+            let v = column.index(instance[field]);
+            if (v != entity[field]) {
+               entity[field] = v;
+               //生成索引方式发生变更, 必须生成新的索引纪录
+               changeIndexs.add(field);
+            }
+         }
+      }
+      //需要重建索引
+      if (changeIndexs.size > 0) {
+         await this.indexdb.clear();
+         let start = Date.now();
+         let count = 0;
+         console.info(`============= start rebuild index[${this.table}] =============`);
+         //创建新索引
+         await this.masterdb.iterator(
+            {
+               key: this.masterKey("") + "*",
+            },
+            async (key, item) => {
+               count++;
+               await this.saveIndexs(item);
+            },
+         );
+         let ttl = Math.ceil((Date.now() - start) / 1000);
+         let h = Math.floor(ttl / 3600);
+         let m = Math.floor((ttl % 3600) / 60);
+         let s = ttl % 60;
+         console.info(`============= end rebuild index[${this.table}] ok =============`);
+         console.info(`============= total=${count} ttl=${h}:${m}:${s} =============`);
+      }
+
+      await this.indexdb.set(sysId, entity);
    }
    protected toSchema(data: { [key: string]: any }): T {
       return !!data ? new this.SchemaClass(data) : undefined;
@@ -49,9 +134,10 @@ export class Model<T extends Schema> {
     * 生成索引 key
     * @param args
     */
-   protected indexKey(...args: string[]) {
+   protected indexKey(indexName: string, ...args: string[]) {
       args = args.filter((v) => !!v);
-      return `t-${this.table}-` + args.join("-");
+      //return `t-${this.table}-${indexName}-` + args.join("-");
+      return `t-${indexName}-` + args.join("-");
    }
    /**
     * 生成主key
@@ -200,12 +286,7 @@ export class Model<T extends Schema> {
       let list = await this.find(opts);
       return list[0];
    }
-   /**
-    * 保存数据
-    * @param data
-    * @param ttl
-    */
-   async create(data: T): Promise<T> {
+   async insert(data: T): Promise<T> {
       if (!data.id) data.id = uuidSeq();
       data = data instanceof this.SchemaClass ? data : this.toSchema(data);
       this.patch(data);
@@ -220,6 +301,32 @@ export class Model<T extends Schema> {
    }
    /**
     * 保存数据
+    * @deprecated
+    * @param data
+    * @param ttl
+    */
+   async create(data: T): Promise<T> {
+      return this.insert(data);
+   }
+   /**
+    * 更新数据
+    * @param id
+    * @param data
+    * @returns
+    */
+   async update(id: string, data: { [key: string]: any }): Promise<T> {
+      let video = await this.get(id);
+      if (!video) return video;
+      await this.deleteIndexs(video);
+      let masterKey = this.masterKey(id);
+      this.patch(video, data);
+      video.updateAt = new Date();
+      await this.masterdb.set(masterKey, video);
+      await this.saveIndexs(video);
+      return video;
+   }
+   /**
+    * 保存数据, 不存在就插入新的
     * @param data
     * @param ttl
     */
@@ -244,7 +351,11 @@ export class Model<T extends Schema> {
     * @param indexs
     */
    async delete(...ids: string[]) {
-      let list = await this.deleteIndexs(...ids);
+      let list: T[] = [];
+      for (let id of ids) {
+         let item = await this.deleteIndexs(id);
+         list.push(item);
+      }
       let masterKeys: string[] = ids.map((id) => this.masterKey(id));
       await this.masterdb.del(...masterKeys);
       return list;
@@ -254,15 +365,17 @@ export class Model<T extends Schema> {
     * @param data
     * @param ttl
     */
-   protected async saveIndexs(data: T, ttl: number = 0) {
+   protected async saveIndexs(data: T, indexs: Index[] = []) {
+      data = data instanceof this.SchemaClass ? data : new this.SchemaClass(data);
+      indexs = indexs.length < 1 ? this.indexs : indexs;
       const id = data.id;
       let batchs: { type: "put"; key: string; value: any; ttl: number }[] = [];
-      this.indexs.forEach((index) => {
+      indexs.forEach((index) => {
          let vals = index.fields.map((v) => {
             let column = data.getColumn(v);
             if (!column) throw new Error(`[${data.constructor.name}][${v}] is not exist`);
             let rv = data[v];
-            if (typeof column.index == "function") rv = column.index(rv, data) || rv;
+            if (typeof column.index == "function") rv = column.index(rv) || rv;
             return rv;
          });
          if (vals.length > 0) {
@@ -270,55 +383,59 @@ export class Model<T extends Schema> {
                type: "put",
                key: this.indexKey(index.name, ...vals, id),
                value: id,
-               ttl: ttl,
+               ttl: 0,
             });
          }
       });
       await this.indexdb.batch(batchs);
    }
 
-   protected async deleteIndexs(...ids: (string | T)[]) {
-      let strids = ids.filter((v: any) => {
-         return typeof v === "string";
-      }) as string[];
-      let items = await this.gets(...strids);
-      ids.forEach((v) => typeof v != "string" && items.push(v));
+   protected async deleteIndexs(id: string | T, indexs: Index[] = []) {
+      indexs = indexs.length < 1 ? this.indexs : indexs;
+      let item: T = typeof id === "string" ? await this.get(id) : id;
+      if (!item) return item;
       //let items = await this.gets(...ids.filter((v) => typeof v === "string"));
       let batchs: { type: "del"; key: string }[] = [];
-      items.forEach((item) => {
-         if (!item) return;
-         this.indexs.forEach((index) => {
-            //let vals = index.fields.map((v) => item[v]);
-            let vals = index.fields.map((v) => {
-               let column = item.getColumn(v);
-               if (!column) throw new Error(`[${item.constructor.name}][${v}] is not exist`);
-               let rv = item[v];
-               if (typeof column.index == "function") rv = column.index(rv, item) || rv;
-               return rv;
-            });
-            batchs.push({
-               type: "del",
-               key: this.indexKey(index.name, ...vals, item.id),
-            });
+      this.indexs.forEach((index) => {
+         //let vals = index.fields.map((v) => item[v]);
+         let vals = index.fields.map((v) => {
+            let column = item.getColumn(v);
+            if (!column) throw new Error(`[${item.constructor.name}][${v}] is not exist`);
+            let rv = item[v];
+            if (typeof column.index == "function") rv = column.index(rv) || rv;
+            return rv;
+         });
+         batchs.push({
+            type: "del",
+            key: this.indexKey(index.name, ...vals, item.id),
          });
       });
       await this.indexdb.batch(batchs);
-      return items;
+      return item;
    }
+
+   async clear() {
+      let isDev = process.env.NODE_ENV == "development";
+      if (!isDev) {
+         console.warn(`The database can only be cleared in development mode`);
+         return;
+      }
+      this.masterdb.clear();
+      this.indexdb.clear();
+   }
+
    private patch(target: T, updateData?: { [key: string]: any }): Schema {
       updateData = updateData || target;
       if (!updateData) return updateData;
-      if (!!globalThis.document) {
+      let tableColumns = target.getColumns(); // this["_entityColumns"];
+      if (!tableColumns.id) {
          if (updateData === target) return target;
          for (let key of Object.keys(updateData)) {
             let val = updateData[key];
-            if (val != undefined && val != null) {
-               target[key] = val;
-            }
+            if (val != undefined && val != null) target[key] = val;
          }
          return target;
       } else if (typeof updateData === "object") {
-         let tableColumns = target.getColumns(); // this["_entityColumns"];
          for (let key in tableColumns) {
             //let val = updateData[key];
             let column = tableColumns[key];

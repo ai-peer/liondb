@@ -1,7 +1,7 @@
 import assert from "assert";
 import { Entity, Column, ColumnConfig } from "./orm";
 import { Contains, IsInt, Length, IsEmail, IsFQDN, IsDate, Min, Max, IsNotEmpty, IsEmpty, validateSync } from "class-validator";
-import xss from "xss";
+//import xss from "xss";
 export default class Schema {
    private static readonly _columns: { [key: string]: ColumnConfig } = Object.create({});
    @Column({ column: "id", type: "string" })
@@ -34,19 +34,16 @@ export default class Schema {
     */
    patch(object?: { [key: string]: any }): this {
       object = object || this;
-      if (!!globalThis.document) {
+      let tableColumns = this.getColumns(); // this["_entityColumns"];
+      if (!tableColumns.id) {
          if (object === this) return this;
          for (let key of Object.keys(object)) {
             let val = object[key];
-            if (val != undefined && val != null) {
-               this[key] = val;
-            }
+            if (val != undefined && val != null) this[key] = val;
          }
          return this;
       } else if (typeof object === "object") {
-         let tableColumns = this.getColumns(); // this["_entityColumns"];
          for (let key in tableColumns) {
-            //let val = object[key];
             let column = tableColumns[key];
             this.updateColumnValue({ column, field: key, updateData: object });
          }
@@ -75,13 +72,12 @@ export default class Schema {
       //let TS: any = this.constructor;
       //let res = new TS();
       object = object || this;
-      if (!!globalThis.document) {
+      let tableColumns = this.getColumns(); // this["_entityColumns"];
+      if (!tableColumns.id) {
          if (object === this) return this;
          for (let key of Object.keys(object)) {
             let val = object[key];
-            if (val != undefined && val != null) {
-               this[key] = val;
-            }
+            if (val != undefined && val != null) this[key] = val;
          }
          return this;
       } else if (typeof object === "object") {
@@ -95,21 +91,21 @@ export default class Schema {
       }
       return this;
    }
-   xss(fieldName: string) {
+   /*    xss(fieldName: string) {
       let v = this[fieldName];
       return typeof v === "string" ? xss(this[fieldName]) : v;
-   }
+   } */
    /**
     * 字段是否处理xss脚本， 默认都有， 不需要的话，要在@Column({xss: false}) 指定
     * @param fieldName
     * @returns
     */
-   isXss(fieldName: string) {
+ /*   isXss(fieldName: string) {
       let tableColumns = this.getColumns(); // this["_entityColumns"];
       let column = tableColumns[fieldName];
       return column?.xss != false;
    }
-
+ */
    /**
     * 是否是定义的字段
     * @param name
@@ -193,5 +189,6 @@ function errorCheck(tableName: string, list: any[]) {
 }
 
 function handleValue(column: ColumnConfig, val: any) {
-   return typeof val === "string" && column?.xss == true ? xss(val) : val;
+   //return typeof val === "string" && column?.xss == true ? xss(val) : val;
+   return val;
 }

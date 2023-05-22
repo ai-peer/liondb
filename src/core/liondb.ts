@@ -195,13 +195,16 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
       let batchs: { type: "del"; key: string; value?: any }[] = [];
       keys = keys.filter((v) => v != undefined);
       for (let key of keys) {
-         if (key.indexOf("*") >= 0) {
+         if (key.endsWith("*")) {
             await this.iterator(
                {
                   key: key,
                },
                async (skey, val): Promise<any> => {
-                  if (batchs.length > 999) return LionDB.Break;
+                  if (batchs.length > 999) {
+                     await this.batch(batchs);
+                     batchs = [];
+                  }
                   batchs.push({ type: "del", key: skey });
                },
             );
@@ -234,8 +237,8 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
       }
       await new Promise((resolve) => this.db.batch(ops, DefaultOptions, () => resolve(undefined)));
    }
-   async clear(ops?) {
-      return this.db.clear(ops);
+   async clear() {
+      return this.db.clear();
    }
    async close(): Promise<undefined> {
       return new Promise((resolve) => {
