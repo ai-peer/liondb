@@ -5,15 +5,20 @@ class User extends Schema {
    constructor(data?) {
       super(data);
    }
-   @Column({ type: "string", default: "" })
+   @Column({ type: "string" })
    @IsNotEmpty()
    title: string;
 
-   @Column({ default: 11, type: "number", index: (v) => "m-" + v })
+   @Column({ default: 11, type: "number", index: (v) => "mx-" + v })
    @Max(200)
    age: number;
 
-   @Column({ type: "string" })
+   @Column({
+      type: "string",
+      format(val, db) {
+         return val + "->";
+      },
+   })
    @IsNotEmpty()
    addr: string;
 
@@ -45,7 +50,7 @@ class UserDAO extends Model<User> {
 
    let userDAO = new UserDAO();
    async function save() {
-      const v = 8;// Math.ceil(Math.random() * 50 + 10);
+      const v = 8; // Math.ceil(Math.random() * 50 + 10);
       let user = {
          title: "chenkun",
          age: v,
@@ -53,8 +58,8 @@ class UserDAO extends Model<User> {
          sex: "man",
          pwds: ["a", "b", "c"],
       };
-      let euser = await userDAO.create(user as any);
-      console.info("save user", euser);
+      let euser = await userDAO.insert(user as any);
+      console.info("save user", user, euser);
    }
    async function search() {
       //let list = await userDAO.find({});
@@ -101,6 +106,6 @@ class UserDAO extends Model<User> {
       console.info("===", nv.toColumnValue("updateAt", "2022/01/01"));
    }
    await save();
-   await search();
+   //await search();
    //await update();
 })();

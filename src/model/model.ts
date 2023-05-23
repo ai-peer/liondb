@@ -57,7 +57,7 @@ export class Model<T extends Schema> {
             let column = instance.getColumn(field);
             let val = instance[field];
             //let type = typeof val;
-            assert.ok(val != undefined && val != null, `Defined index fields[${schemaName}.${field}] must set default values`);
+            //assert.ok(val != undefined && val != null, `Defined index fields[${schemaName}.${field}] must set default values`);
             assert.ok(["string", "number"].includes(column.type), `Define the index field[${schemaName}.${field}] type to only allow [string, number]`);
             //assert.ok(["string", "number"].includes(type), `Define index field[${schemaName}.${field}] values ​​only allow [string, number]`);
          }
@@ -69,19 +69,20 @@ export class Model<T extends Schema> {
     */
    private async initDB() {
       let instance: T = new this.SchemaClass();
-      const schemaName = instance.constructor.name;
       instance.patch();
       const sysId = "0000zzzz";
       let entity = await this.indexdb.get(sysId);
       if (entity === null || entity === undefined) {
          //不存在
-         entity = {};
-         let columns = instance.getColumns();
-         for (let field in columns) {
-            let column = columns[field];
-            if (typeof column.index === "function") {
-               let v = column.index(instance[field]);
-               entity[field] = v;
+         entity = new this.SchemaClass();
+         if (entity.hasColumns()) {
+            let columns = instance.getColumns();
+            for (let field in columns) {
+               let column = columns[field];
+               if (typeof column.index === "function") {
+                  let val = column.index(instance[field] || "0") || "";
+                  entity[field] = val;
+               }
             }
          }
          await this.indexdb.set(sysId, entity);
@@ -92,9 +93,10 @@ export class Model<T extends Schema> {
       for (let field in columns) {
          let column = columns[field];
          if (typeof column.index === "function") {
-            let v = column.index(instance[field]);
-            if (v != entity[field]) {
-               entity[field] = v;
+            let v0 = entity[field];
+            let v1 = column.index(instance[field]);
+            if (v0 != v1) {
+               entity[field] = v1;
                //生成索引方式发生变更, 必须生成新的索引纪录
                changeIndexs.add(field);
             }
@@ -123,7 +125,6 @@ export class Model<T extends Schema> {
          console.info(`============= end rebuild index[${this.table}] ok =============`);
          console.info(`============= total=${count} ttl=${h}:${m}:${s} =============`);
       }
-
       await this.indexdb.set(sysId, entity);
    }
    protected toSchema(data: { [key: string]: any }): T {
@@ -288,7 +289,7 @@ export class Model<T extends Schema> {
    async insert(data: T): Promise<T> {
       if (!data.id) data.id = uuidSeq();
       data = data instanceof this.SchemaClass ? data : this.toSchema(data);
-      this.patch(data);
+      this.patch(data, data);
       data.valid();
       const id = data.id;
       let masterKey = this.masterKey(id);
@@ -423,22 +424,27 @@ export class Model<T extends Schema> {
       this.indexdb.clear();
    }
 
-   private patch(target: T, updateData?: { [key: string]: any }): Schema {
+   private patch(target: T, updateData: { [key: string]: any }): Schema {
+      if (!updateData) return target;
       updateData = updateData || target;
-      if (!updateData) return updateData;
-      let tableColumns = target.getColumns(); // this["_entityColumns"];
-      if (!tableColumns.id) {
+      if (typeof updateData != "object") return target;
+      if (target.hasColumns()) {
+         let tableColumns = target.getColumns();
+         for (let field in tableColumns) {
+            let value = updateData[field];
+            let column = target.getColumn(field);
+            if (value === undefined || value === null) value = target.getDefaultValue(column);
+            //输入格式化
+            if (column.format) value = column.format(value, { row: target, update: updateData });
+            target.updateColumn(field, value);
+         }
+      } else {
          if (updateData === target) return target;
+         if (updateData instanceof Array) return target;
+         if (updateData === this) return target;
          for (let key of Object.keys(updateData)) {
             let val = updateData[key];
-            if (val != undefined && val != null) target[key] = typeof val === "function" ? val(target[key]) : val;
-         }
-         return target;
-      } else if (typeof updateData === "object") {
-         for (let key in tableColumns) {
-            //let val = updateData[key];
-            let column = tableColumns[key];
-            target.updateColumnValue({ column, updateData, field: key });
+            if (val != undefined && val != null) target[key] = val;
          }
       }
       return target;

@@ -34,60 +34,42 @@ export default class Schema {
     */
    patch(object?: { [key: string]: any }): this {
       object = object || this;
-      let tableColumns = this.getColumns(); // this["_entityColumns"];
-      if (!tableColumns.id) {
+      if (this.hasColumns()) {
+         let tableColumns = this.getColumns();
+         for (let field in tableColumns) {
+            let value = object[field];
+            if (value === undefined || value === null) value = this.getDefaultValue(this.getColumn(field));
+            this.updateColumn(field, value);
+         }
+      } else {
+         if (typeof object != "object") return this;
+         if (object instanceof Array) return this;
          if (object === this) return this;
          for (let key of Object.keys(object)) {
             let val = object[key];
             if (val != undefined && val != null) this[key] = val;
          }
-         return this;
-      } else if (typeof object === "object") {
-         for (let key in tableColumns) {
-            let column = tableColumns[key];
-            this.updateColumnValue({ column, field: key, updateData: object });
-         }
       }
       return this;
    }
 
-   toColumnValue(field: string, val: any) {
-      let tableColumns = this.getColumns(); // this["_entityColumns"];
-      let column = tableColumns[field];
-      if (!column) return val;
-      if (column.type == "date") {
-         val = new Date(val);
-      } else if (typeof val === "string") {
-         val = val.trim();
-      }
-      return val;
-   }
    /**
     * schema, 清除非定义字段
     * @param object
     * @returns
     */
    reduce(object?: { [key: string]: any }): this {
-      //let tableName = this.constructor.name;
-      //let TS: any = this.constructor;
-      //let res = new TS();
       object = object || this;
-      let tableColumns = this.getColumns(); // this["_entityColumns"];
-      if (!tableColumns.id) {
-         if (object === this) return this;
-         for (let key of Object.keys(object)) {
-            let val = object[key];
-            if (val != undefined && val != null) this[key] = val;
-         }
-         return this;
-      } else if (typeof object === "object") {
-         //let entityColumns = this["_entityColumns"];
-         for (let key of Object.keys(object)) {
-            //let val = object[key];
-            let column = this.getColumn(key); //entityColumns[key];
+      if (this.hasColumns()) {
+         if (typeof object != "object") return this;
+         if (object instanceof Array) return this;
+         for (let field of Object.keys(object)) {
+            let column = this.getColumn(field);
             if (!column) continue;
-            this.updateColumnValue({ column, field: key, updateData: object });
+            this.updateColumn(field, object[field]);
          }
+      } else {
+         this.updateColumns(object);
       }
       return this;
    }
@@ -100,32 +82,33 @@ export default class Schema {
     * @param fieldName
     * @returns
     */
- /*   isXss(fieldName: string) {
+   /*   isXss(fieldName: string) {
       let tableColumns = this.getColumns(); // this["_entityColumns"];
       let column = tableColumns[fieldName];
       return column?.xss != false;
    }
+   
  */
+   /**
+    * 是否有定义列, 在ts模式下会有, 在编译的js包浏览器直接引用, 会不存在
+    * @returns
+    */
+   hasColumns() {
+      let columns = this.constructor["_columns"];
+      return !!columns.id && !!columns.createAt;
+   }
    /**
     * 是否是定义的字段
     * @param name
     * @returns
     */
    getColumn(name: string): ColumnConfig {
-      /*    let tableName = this.constructor.name;
-      let map = this["_tableColumn"][tableName] || {};
-      let schemaMap = this["_tableColumn"]["Schema"];
-      return map[name] || schemaMap[name]; */
       let columns = this.constructor["_columns"];
       return columns[name];
    }
    getColumns(): {
       [key: string]: ColumnConfig;
    } {
-      //let tableName = this.constructor.name;
-      //let map = this["_tableColumn"][tableName];
-      //let schemaMap = this["_tableColumn"]["Schema"];
-      //return { ...schemaMap, ...map };
       let columns = this.constructor["_columns"];
       return { ...columns };
    }
@@ -162,22 +145,53 @@ export default class Schema {
    getDefaultValue(column: ColumnConfig) {
       return typeof column.default === "function" ? column.default(this) : column.default;
    }
-   updateColumnValue({ column, field, updateData }: { column: ColumnConfig; field: string; updateData: any }) {
-      let value = updateData[field];
-      if (value === undefined || value === null) value = this.getDefaultValue(column);
-      if (typeof value === "function") value = value(this[field]);
-      if (value != undefined && value != null && !/^_{1,}/.test(field)) {
-         if (column.type == "date") {
+   toColumnValue(field: string, value: any) {
+      if (value === undefined || value === null) return;
+      if (!this.hasColumns()) return value;
+      let column = this.getColumn(field);
+      switch (column.type) {
+         case "number":
+            value = Number(value);
+            break;
+         case "boolean":
+            value = Boolean(value);
+            break;
+         case "date":
             value = value instanceof Date ? value : new Date(value);
-         } else if (typeof value === "string") {
-            value = value.trim();
-         }
-         if (typeof column.format === "function") {
-            let v = column.format(value, { update: updateData, row: this });
-            if (!(v === undefined || v === null)) value = v;
-         }
-         this[field] = handleValue(column, value);
+            break;
+         case "array":
+            value = value instanceof Array ? value : [value];
+            break;
+         case "map":
+            let tf = typeof value;
+            if (tf == "object") {
+               if (value instanceof Array) {
+                  value = Object.create({});
+               }
+            } else value = Object.create({});
+            value = Object.keys(value).length > 0 ? value : Object.create({});
+         default:
+            value = String(value).trim();
+            break;
       }
+      return value;
+   }
+   updateColumns(updateData: { [Key: string]: any }) {
+      if (typeof updateData != "object") return;
+      if (updateData instanceof Array) return;
+      for (let field of Object.keys(updateData)) {
+         this.updateColumn(field, updateData[field]);
+      }
+   }
+   updateColumn(field: string, value: any) {
+      if (/^_{1,}/.test(field)) return value;
+      value = typeof value === "function" ? value(this[field]) : value;
+      if (this.hasColumns()) {
+         this[field] = this.toColumnValue(field, value);
+      } else {
+         this[field] = value;
+      }
+      return this[field];
    }
 }
 function errorCheck(tableName: string, list: any[]) {
@@ -186,9 +200,4 @@ function errorCheck(tableName: string, list: any[]) {
       for (let key in item.constraints || {}) p.push(item.constraints[key]);
    }
    return tableName + "=>" + p.join(", ");
-}
-
-function handleValue(column: ColumnConfig, val: any) {
-   //return typeof val === "string" && column?.xss == true ? xss(val) : val;
-   return val;
 }
