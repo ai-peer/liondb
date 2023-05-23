@@ -19,7 +19,7 @@ async function execr() {
    let v0 = await db.get("aa2");
    console.info("v0", v0);
 
-   let refVal = await db.find({ key: "ref_a*", query: {}});
+   let refVal = await db.find({ key: "ref_a*", query: {} });
    console.info("===refVal", refVal);
 
    let list = await db.find({
@@ -29,8 +29,8 @@ async function execr() {
       limit: 3,
       query: { name: "*2", $gt: { age: 13 } },
    });
-   console.info("list==", list);
-/* 
+   console.info("list==", cluster.worker?.id, list);
+   /* 
    let list2: any[] = [];
    await db.iterator(
       {
@@ -47,7 +47,7 @@ async function execr() {
    console.info("list2==", list2);
  */
    //////////////////////////
- /*   let itCount = 0,
+   /*   let itCount = 0,
       start = 0;
    while (true) {
       start = Date.now();
@@ -65,8 +65,8 @@ async function wait(ttl) {
    });
 }
 if (cluster.isPrimary) {
-   console.info("===master");
-   cluster.fork();
+   console.info("===master", os.cpus().length);
+   for (let i = 0; i < os.cpus().length; i++) cluster.fork();
 } else {
    console.info("worker run", cluster.worker?.id);
    execr();

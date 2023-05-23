@@ -25,13 +25,13 @@ function isNode() {
 function createLiondb(app: string, name: string): LionDB {
    if (isNode()) {
       let filename = path.join(os.homedir(), app, `${name}`);
-      console.info("create liondb", filename);
+      //console.info("create liondb", filename);
       mkdirs(filename);
       let master: LionDB = LionDB.worker({
          filename: filename,
          env: "cluster",
-         isMaster: cluster.isMaster,
-         thread: cluster.isMaster ? cluster : cluster.worker,
+         isMaster: cluster.isPrimary,
+         thread: cluster.isPrimary ? cluster : cluster.worker,
       });
       return master;
    } else {

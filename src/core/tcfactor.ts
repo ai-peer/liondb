@@ -3,7 +3,7 @@
  * 前后台封装
  *
  */
-import { EventEmitter } from "events";
+//import { EventEmitter } from "events";
 //const { EventEmitter } = require("events");
 // interface Options {
 //   /** 应用标记, 防止冲突 */
@@ -16,6 +16,9 @@ import { EventEmitter } from "events";
 //   isMaster: boolean;
 //   /** 获取方法创建实体对象 */
 //   executor: Function;
+
+import { EventEmitter } from "eventemitter3";
+
 // }
 function makeSend2WorkerFun(env, event) {
    //let send = this.env == 'electron' ? event.reply : this.env == 'cluster' ? event.send : self.postMessage;
@@ -90,7 +93,6 @@ class TCFactor<T> extends EventEmitter {
    taskCallback = {}; //任务回调
    constructor({ thread, isMaster, executor, env, app }: { isMaster: boolean; env: "cluster" | "electron" | "egg" | "browser"; thread: any; app: string; executor: Function }) {
       super();
-      this.setMaxListeners(9999);
       this.env = env;
       this.app = app;
       if (TCFactor.___apps[this.app]) throw new Error(`已经存在应用${this.app}`);
@@ -106,6 +108,9 @@ class TCFactor<T> extends EventEmitter {
       if (!thread) throw new Error("工作线程或进程都不存在");
       if (this.isMaster) {
          let executor = this.executor;
+         if (typeof thread.setMaxListeners === "function") {
+            thread.setMaxListeners(999);
+         }
          thread.on("message", async (event, data) => {
             let { app, task, method, args, pid, isCallback } = data || event;
             if (app != this.app) return;

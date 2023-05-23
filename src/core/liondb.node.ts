@@ -74,7 +74,7 @@ export function worker({
             }
             setTimeout(() => {
                res.emit("open");
-            }, 1000);
+            }, 10);
             return res;
          }
       },
