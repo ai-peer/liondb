@@ -3,8 +3,10 @@ import { isMap, isNull } from "./helper";
 import { Entity, Column, ColumnConfig } from "./orm";
 import { Contains, IsInt, Length, IsEmail, IsFQDN, IsDate, Min, Max, IsNotEmpty, IsEmpty, validateSync } from "class-validator";
 //import xss from "xss";
+
+const TablesColumn: { [key: string]: { [key: string]: ColumnConfig } } = {};
+
 export default class Schema {
-   private static readonly _columns: { [key: string]: ColumnConfig } = Object.create({});
    @Column({ column: "id", type: "string" })
    public id: string;
 
@@ -25,9 +27,9 @@ export default class Schema {
    updateAt: Date;
 
    constructor(data?: { [key: string]: any }) {
+      this.getColumns();
       data && this.reduce(data);
    }
-
    /**
     * 补丁， 补充内容的缺失字段， 填充默认值，
     * 主要应用在数据入库阶段
@@ -97,7 +99,7 @@ export default class Schema {
     * @returns
     */
    hasColumns() {
-      let columns = this.constructor["_columns"];
+      let columns = TablesColumn[this.constructor.name];
       return !!columns.id && !!columns.createAt;
    }
    /**
@@ -106,14 +108,20 @@ export default class Schema {
     * @returns
     */
    getColumn(name: string): ColumnConfig {
-      let columns = this.constructor["_columns"];
+      let columns = TablesColumn[this.constructor.name];
       return columns[name];
    }
    getColumns(): {
       [key: string]: ColumnConfig;
    } {
-      let columns = this.constructor["_columns"];
-      return { ...columns };
+      const className = this.constructor.name;
+      let columns = TablesColumn[className];
+      if (columns) return columns;
+      let schema = this["_tablesColumn"].Schema;
+      let thisSchema = this["_tablesColumn"][className];
+      columns = { ...schema, ...thisSchema };
+      TablesColumn[className] = columns;
+      return columns;
    }
    /**
     * 是不是列

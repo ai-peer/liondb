@@ -38,26 +38,29 @@ export type ColumnConfig = {
    index?: (val: any) => string;
    [key: string]: any;
 };
-const TableColumn: { [key: string]: ColumnConfig } = {};
+const TablesColumn: { [key: string]: { [key: string]: ColumnConfig } } = {};
+/* const CacheTablesColumn: { [key: string]: { [key: string]: ColumnConfig } } = {};
+export function getColumns(className: string) {
+   let columns = CacheTablesColumn[className];
+   if (columns) return columns;
+
+   let schema = TablesColumn.Schema;
+   let tableSchema = TablesColumn[className];
+   let allSchema = { ...schema, ...tableSchema };
+   CacheTablesColumn[className] = allSchema;
+   return allSchema;
+} */
 export function Column(config: ColumnConfig) {
    //, name: string | void
    let columnConfig: ColumnConfig = {} as any;
-   /*    if (arguments.length == 1) {
- 
-   } else {
-      columnConfig = {
-         column: name,
-         type: "string",
-      } as any;
-      handle(arguments[0], name);
-   } */
    function handle(target, name) {
-      //TableColumn[target.constructor.name] = TableColumn[target.constructor.name] || [];
-      //TableColumn[target.constructor.name][name] = conf;
-      //target._tableColumn = TableColumn;
       columnConfig.type = (columnConfig.type || "string").toLowerCase() as any;
+      TablesColumn[target.constructor.name] = TablesColumn[target.constructor.name] || Object.create({});
+      TablesColumn[target.constructor.name][name] = columnConfig;
+      target._tablesColumn = TablesColumn;
+      /*      columnConfig.type = (columnConfig.type || "string").toLowerCase() as any;
       target.constructor._columns = target.constructor._columns || Object.create({});
-      target.constructor._columns[name] = columnConfig;
+      target.constructor._columns[name] = columnConfig; */
    }
    columnConfig = { ...config } as any;
    let r: any = (target, name: string) => {

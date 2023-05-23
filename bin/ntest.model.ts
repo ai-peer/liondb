@@ -1,6 +1,12 @@
 import { Model, Schema, IsNotEmpty, Max, Column } from "../src";
 Model.setApp("demo-app");
-
+class Persion extends Schema {
+   constructor(data?) {
+      super(data);
+   }
+   @Column({ type: "string" })
+   sex: string;
+}
 class User extends Schema {
    constructor(data?) {
       super(data);
@@ -47,7 +53,8 @@ class UserDAO extends Model<User> {
 }
 (async () => {
    //console.info("model", Model, Schema);
-
+   console.info("user",new User().getColumns());
+   console.info("persion",new Persion().getColumns());
    let userDAO = new UserDAO();
    async function save() {
       const v = 8; // Math.ceil(Math.random() * 50 + 10);
@@ -69,7 +76,7 @@ class UserDAO extends Model<User> {
          filter: async (entity, key) => {
             return entity.age < 100;
          },
-         limit: 100,
+         limit: 3,
       });
       console.info("list by index", list);
       let count = await userDAO.count({
@@ -108,7 +115,7 @@ class UserDAO extends Model<User> {
       console.info("n1", new User({ id: "33", age: 11, mok: "ss" }).reduce());
       console.info("n2", new User({ id: "33", age: 11, mok: "ss" }).patch());
    }
-   await save();
-   await search();
-   await update();
+   //await save();
+   //await search();
+   //await update();
 })();
