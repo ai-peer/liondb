@@ -59,7 +59,7 @@ class UserDAO extends Model<User> {
          pwds: ["a", "b", "c"],
       };
       let euser = await userDAO.insert(user as any);
-      console.info("save user", user, euser);
+      console.info("insert user", user, euser);
    }
    async function search() {
       //let list = await userDAO.find({});
@@ -105,11 +105,10 @@ class UserDAO extends Model<User> {
       let en = await userDAO.get(id);
       console.info("update ", en, nv);
       console.info("===", nv.toColumnValue("updateAt", "2022/01/01"));
-      console.info("n1", new User({"id":"33", age:11, mok: "ss"}).reduce());
-      console.info("n2", new User({"id":"33", age:11, mok: "ss"}).patch());
-
+      console.info("n1", new User({ id: "33", age: 11, mok: "ss" }).reduce());
+      console.info("n2", new User({ id: "33", age: 11, mok: "ss" }).patch());
    }
-   //await save();
+   await save();
    await search();
    await update();
 })();

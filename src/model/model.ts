@@ -334,13 +334,9 @@ export class Model<T extends Schema> {
       let video = await this.get(id);
       if (video) {
          video.id = id;
-         console.info("s1", id, video.id, video);
          await this.deleteIndexs(video);
-         console.info("s2", video.id);
-
          let masterKey = this.masterKey(id);
          this.patch(video, data);
-         console.info("s3", video.id);
          video.updateAt = new Date();
          await this.masterdb.set(masterKey, video);
          await this.saveIndexs(video);
@@ -392,7 +388,6 @@ export class Model<T extends Schema> {
             });
          }
       });
-      console.info("update===", batchs, data);
       await this.indexdb.batch(batchs);
    }
 
@@ -434,7 +429,6 @@ export class Model<T extends Schema> {
       if (!updateData) return target;
       updateData = updateData || target;
       if (typeof updateData != "object") return target;
-      console.info("pid", target.id);
       if (target.hasColumns()) {
          let tableColumns = target.getColumns();
          for (let field in tableColumns) {
