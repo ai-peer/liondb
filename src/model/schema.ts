@@ -1,4 +1,5 @@
 import assert from "assert";
+import { isMap, isNull } from "./helper";
 import { Entity, Column, ColumnConfig } from "./orm";
 import { Contains, IsInt, Length, IsEmail, IsFQDN, IsDate, Min, Max, IsNotEmpty, IsEmpty, validateSync } from "class-validator";
 //import xss from "xss";
@@ -37,17 +38,20 @@ export default class Schema {
       if (this.hasColumns()) {
          let tableColumns = this.getColumns();
          for (let field in tableColumns) {
+            if ("id" === field) continue;
             let value = object[field];
-            if (value === undefined || value === null) value = this.getDefaultValue(this.getColumn(field));
+            if (isNull(value) && !isNull(this[field])) continue;
+            if (isNull(value)) value = this.getDefaultValue(this.getColumn(field));
             this.updateColumn(field, value);
          }
       } else {
-         if (typeof object != "object") return this;
-         if (object instanceof Array) return this;
          if (object === this) return this;
-         for (let key of Object.keys(object)) {
-            let val = object[key];
-            if (val != undefined && val != null) this[key] = val;
+         if (!isMap(object)) return this;
+         for (let field of Object.keys(object)) {
+            if ("id" == field) continue;
+            let value = object[field];
+            if (isNull(value) && !isNull(this[field])) continue;
+            this[field] = value;
          }
       }
       return this;
@@ -61,8 +65,7 @@ export default class Schema {
    reduce(object?: { [key: string]: any }): this {
       object = object || this;
       if (this.hasColumns()) {
-         if (typeof object != "object") return this;
-         if (object instanceof Array) return this;
+         if (!isMap(object)) return this;
          for (let field of Object.keys(object)) {
             let column = this.getColumn(field);
             if (!column) continue;
@@ -177,8 +180,7 @@ export default class Schema {
       return value;
    }
    updateColumns(updateData: { [Key: string]: any }) {
-      if (typeof updateData != "object") return;
-      if (updateData instanceof Array) return;
+      if (!isMap(updateData)) return;
       for (let field of Object.keys(updateData)) {
          this.updateColumn(field, updateData[field]);
       }

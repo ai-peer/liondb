@@ -24,6 +24,14 @@ export function uuidSeq(): string {
    return id;
 }
 
+export function isNull(v) {
+   return v === undefined || v === null || Number.isNaN(v);
+}
+export function isMap(v) {
+   if (typeof v != "object") return false;
+   if (v instanceof Array) return false;
+   return true;
+}
 function num10to62(val: number) {
    var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".split(""),
       radix = chars.length,

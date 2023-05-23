@@ -3,7 +3,7 @@ import LionDB, { Filter } from "../index";
 import assert from "assert";
 import Schema from "./schema";
 import { validateSync } from "class-validator";
-import { uuid, uuidSeq } from "./helper";
+import { uuid, uuidSeq, isNull, isMap } from "./helper";
 
 export type Index = {
    name: string;
@@ -333,9 +333,14 @@ export class Model<T extends Schema> {
    async save(id: string, data: { [key: string]: any }): Promise<T> {
       let video = await this.get(id);
       if (video) {
+         video.id = id;
+         console.info("s1", id, video.id, video);
          await this.deleteIndexs(video);
+         console.info("s2", video.id);
+
          let masterKey = this.masterKey(id);
          this.patch(video, data);
+         console.info("s3", video.id);
          video.updateAt = new Date();
          await this.masterdb.set(masterKey, video);
          await this.saveIndexs(video);
@@ -387,6 +392,7 @@ export class Model<T extends Schema> {
             });
          }
       });
+      console.info("update===", batchs, data);
       await this.indexdb.batch(batchs);
    }
 
@@ -428,23 +434,26 @@ export class Model<T extends Schema> {
       if (!updateData) return target;
       updateData = updateData || target;
       if (typeof updateData != "object") return target;
+      console.info("pid", target.id);
       if (target.hasColumns()) {
          let tableColumns = target.getColumns();
          for (let field in tableColumns) {
+            if ("id" === field) continue;
             let value = updateData[field];
+            if (isNull(value) && !isNull(target[field])) continue;
             let column = target.getColumn(field);
-            if (value === undefined || value === null) value = target.getDefaultValue(column);
+            if (isNull(value)) value = target.getDefaultValue(column);
             //输入格式化
             if (column.format) value = column.format(value, { row: target, update: updateData });
             target.updateColumn(field, value);
          }
       } else {
          if (updateData === target) return target;
-         if (updateData instanceof Array) return target;
-         if (updateData === this) return target;
-         for (let key of Object.keys(updateData)) {
-            let val = updateData[key];
-            if (val != undefined && val != null) target[key] = val;
+         if (!isMap(updateData)) return target;
+         for (let field of Object.keys(updateData)) {
+            if ("id" == field) continue;
+            let val = updateData[field];
+            if (!isNull(val)) target[field] = val;
          }
       }
       return target;

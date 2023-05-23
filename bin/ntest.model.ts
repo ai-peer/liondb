@@ -81,9 +81,9 @@ class UserDAO extends Model<User> {
       console.info("count by index com", count);
 
       //      master
-      list = await userDAO.find({ filter: async (user) => user.title.startsWith("chenkun") });
+      list = await userDAO.find({ filter: async (user) => user.title?.startsWith("chenkun") });
       //console.info("list by master", list);
-      count = await userDAO.count({ filter: async (user) => user.title.startsWith("chenkun") });
+      count = await userDAO.count({ filter: async (user) => user.title?.startsWith("chenkun") });
       //console.info("count by master", count);
       //console.info("==list", await userDAO.gets("rusgdbzzwK4UE"))
 
@@ -94,18 +94,22 @@ class UserDAO extends Model<User> {
       console.info("v", v);
    }
    async function update() {
-      const id = "1q0I33zzy";
+      const id = "1q1ESUzzy";
       let nv = await userDAO.save(id, {
          pwds: ["ax===", "b13"],
-         age: 18,
-         mdi: "mdi",
+         age: (v) => v + 18,
+         mdi: "mdixx",
          score: (v) => v + 2,
+         addr: "0",
       });
       let en = await userDAO.get(id);
       console.info("update ", en, nv);
       console.info("===", nv.toColumnValue("updateAt", "2022/01/01"));
+      console.info("n1", new User({"id":"33", age:11, mok: "ss"}).reduce());
+      console.info("n2", new User({"id":"33", age:11, mok: "ss"}).patch());
+
    }
-   await save();
-   //await search();
-   //await update();
+   //await save();
+   await search();
+   await update();
 })();

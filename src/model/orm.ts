@@ -19,13 +19,13 @@ export type ColumnConfig = {
    //xss?: boolean;
    /**
     * 格式输入值
-    * @param val
+    * @param value 输入的值
     * @param data
     * @param data.row 数据库里的值(行纪录),只有在更新时才有
     * @param data.update 要更新的的值(行对象),只有在更新时才有
-    * @returns
+    * @returns 返回入库的值
     */
-   format?: (val: any, db: { row?: any; update: any }) => any;
+   format?: (value: any, db: { row?: any; update: any }) => any;
 
    /** 默认值 */
    default?: string | Array<any> | number | boolean | object | HandleDefault;
