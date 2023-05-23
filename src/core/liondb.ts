@@ -266,7 +266,7 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
                next();
             });
          })();
-      }).catch((err) => console.warn("countQuick error", err.message));
+      }).catch((err) => console.warn("countQuick error", err));
       return count;
    }
    /**
@@ -372,7 +372,7 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
                try {
                   if (!bufKey || error) {
                      //console.info("end===", !bufKey, error?.message);
-                     iterator.end((err) => err && console.error("liondb err", err.message));
+                     iterator.end((err) => err && console.error("liondb err", err));
                      return resolve();
                   }
                   itIndex++;
@@ -381,20 +381,20 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
                   let sKey = String(bufKey);
                   if (!isFuzzy) {
                      if (sKey != searchKey) {
-                        iterator.end((err) => err && console.error("liondb err", err.message));
+                        iterator.end((err) => err && console.error("liondb err", err));
                         return resolve();
                      }
                   } else {
                      if (limit > 0 && itSize >= limit) {
                         //如果限制条数， 超出刚好返回
-                        iterator.end((err) => err && console.error("liondb err", err.message));
+                        iterator.end((err) => err && console.error("liondb err", err));
                         return resolve();
                      }
                      //不是顺流查询
                      if (!flow) {
                         //不是全局搜索， 发现开头不匹配，返回
                         if (!isSearchAll && !sKey.startsWith(searchKey)) {
-                           iterator.end((err) => err && console.error("err", err.message));
+                           iterator.end((err) => err && console.error("err1", err));
                            return resolve();
                         }
                      }
@@ -421,15 +421,15 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
                      itSize++;
                      let callbackResult = await callback(sKey, value);
                      if (callbackResult === LionDB.Break) {
-                        iterator.end((err) => err && console.error("liondb err break", err.message));
+                        iterator.end((err) => err && console.error("liondb err break", err));
                         return resolve();
                      }
                   }
 
                   next();
                } catch (err) {
-                  console.info("err", err.stack);
-                  iterator.end((err) => err && console.error("err", err.message));
+                  console.info("err2", err);
+                  iterator.end((err) => err && console.error("err3"));
                   resolve();
                }
             });
@@ -515,7 +515,7 @@ function mergeFilter(query: { [key: string]: any }, filter?: Filter) {
                isTrue = await filter(value, key, db);
             }
          } catch (err) {
-            console.warn("filter error ", filter.toString(), err.message);
+            console.warn("filter error ", filter.toString(), err);
          }
          if (!isTrue) return false;
       } else {

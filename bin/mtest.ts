@@ -64,9 +64,10 @@ async function wait(ttl) {
       setTimeout(() => resolve(undefined), ttl);
    });
 }
-if (cluster.isMaster) {
+if (cluster.isPrimary) {
    console.info("===master");
    cluster.fork();
 } else {
+   console.info("worker run", cluster.worker?.id);
    execr();
 }

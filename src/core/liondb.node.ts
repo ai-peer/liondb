@@ -62,6 +62,7 @@ export function worker({
                "iterator",
                "count",
                "exist",
+               "has",
                "getProperty",
             ]) {
                let target = LionDB.prototype[key];
