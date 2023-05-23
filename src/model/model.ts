@@ -51,7 +51,6 @@ export class Model<T extends Schema> {
       let instance: T = new this.SchemaClass();
       const schemaName = instance.constructor.name;
       instance.patch();
-      console.info("in", instance);
       this.indexs.forEach((item) => {
          assert.ok(typeof item.name === "string", `index name type must be a string`);
          for (let field of item.fields) {
@@ -342,7 +341,7 @@ export class Model<T extends Schema> {
          return video;
       } else {
          data.id = id;
-         return this.create(this.toSchema(data));
+         return this.insert(this.toSchema(data));
       }
    }
    /**
@@ -432,7 +431,7 @@ export class Model<T extends Schema> {
          if (updateData === target) return target;
          for (let key of Object.keys(updateData)) {
             let val = updateData[key];
-            if (val != undefined && val != null) target[key] = val;
+            if (val != undefined && val != null) target[key] = typeof val === "function" ? val(target[key]) : val;
          }
          return target;
       } else if (typeof updateData === "object") {
