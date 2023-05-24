@@ -247,7 +247,7 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
    }
    async count(key: string): Promise<number> {
       let count = 0;
-      await this.iterator({ key: key, start: 0, limit: -1 }, async (key, val) => {
+      await this.iterator({ key: key, start: 0, limit: -1, values: false }, async (key, val) => {
          count++;
       });
       return count;
@@ -375,7 +375,10 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
                      iterator.end((err) => err && console.error("liondb err", err));
                      return resolve();
                   }
-                  if (values === false) return next();
+                  if (values === false) {
+                     await resolve();
+                     return next();
+                  }
 
                   itIndex++;
                   if (start > itIndex) return next();
