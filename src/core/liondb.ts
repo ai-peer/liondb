@@ -326,8 +326,6 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
          key,
          limit = 100,
          start = 0,
-         //filter,
-         //isRef = false,
          reverse = false,
          values = true,
          flow = false,
@@ -336,8 +334,6 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
          key: string;
          limit?: number;
          start?: number;
-         //filter?: Filter;
-         //isRef?: boolean;
          reverse?: boolean;
          values?: boolean;
          flow?: boolean;
@@ -375,15 +371,21 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
                      iterator.end((err) => err && console.error("liondb err", err));
                      return resolve();
                   }
-                  if (values === false) {
-                     await resolve();
-                     return next();
-                  }
 
                   itIndex++;
                   if (start > itIndex) return next();
-
                   let sKey = String(bufKey);
+
+                  // 不显示值
+                  if(values === false){ 
+                     let callbackResult = await callback(sKey);
+                     if (callbackResult === LionDB.Break) {
+                        iterator.end((err) => err && console.error("liondb err break", err));
+                        return resolve();
+                     }
+                     return next();
+                  }
+
                   if (!isFuzzy) {
                      if (sKey != searchKey) {
                         iterator.end((err) => err && console.error("liondb err", err));
