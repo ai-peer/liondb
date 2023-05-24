@@ -4,13 +4,21 @@ import assert from "assert";
 import Schema from "./schema";
 import { validateSync } from "class-validator";
 import { uuid, uuidSeq, isNull, isMap } from "./helper";
+import { EventEmitter } from "eventemitter3";
 
 export type Index = {
    name: string;
    fields: string[];
 };
 
-export class Model<T extends Schema> {
+type EventType = {
+   /** 清空数据库 */
+   clear: () => void;
+   /** 构建索引完成  */
+   index: (data: { table: string; total: number; ttl: number }) => void;
+};
+
+export class Model<T extends Schema> extends EventEmitter<EventType> {
    private static _app: string;
    //static createSchema = createModel;
    readonly masterdb: LionDB;
@@ -27,6 +35,7 @@ export class Model<T extends Schema> {
     * @param opts.SchemaClass Schema类
     */
    constructor(opts: { readonly table: string; readonly indexs: Index[]; readonly SchemaClass }) {
+      super();
       assert(!!Model._app, "app is null");
       assert(!!opts.table, "table is null");
       this.SchemaClass = opts.SchemaClass;
@@ -68,11 +77,13 @@ export class Model<T extends Schema> {
     * @returns
     */
    private async initDB() {
+      let rebuildIndex = false;
       let instance: T = new this.SchemaClass();
       instance.patch();
       const sysId = "0000zzzz";
       let entity = await this.indexdb.get(sysId);
       if (entity === null || entity === undefined) {
+         rebuildIndex = true;
          //不存在
          entity = new this.SchemaClass();
          if (entity.hasColumns()) {
@@ -85,33 +96,38 @@ export class Model<T extends Schema> {
                }
             }
          }
-         await this.indexdb.set(sysId, entity);
-         return;
+         //await this.indexdb.set(sysId, entity);
       }
-      let columns = instance.getColumns();
-      const changeIndexs: Set<string> = new Set();
-      for (let field in columns) {
-         let column = columns[field];
-         if (typeof column.index === "function") {
-            let v0 = entity[field];
-            let v1 = column.index(instance[field]);
-            if (v0 != v1) {
-               entity[field] = v1;
-               //生成索引方式发生变更, 必须生成新的索引纪录
-               changeIndexs.add(field);
+      if (!rebuildIndex) {
+         let columns = instance.getColumns();
+         const changeIndexs: Set<string> = new Set();
+         for (let field in columns) {
+            let column = columns[field];
+            if (typeof column.index === "function") {
+               let v0 = entity[field];
+               let v1 = column.index(instance[field]);
+               if (v0 != v1) {
+                  entity[field] = v1;
+                  //生成索引方式发生变更, 必须生成新的索引纪录
+                  changeIndexs.add(field);
+               }
             }
          }
+         rebuildIndex = changeIndexs.size > 0;
       }
+
       //需要重建索引
-      if (changeIndexs.size > 0) {
+      if (rebuildIndex) {
          await this.indexdb.clear();
+         this.emit("clear");
          let start = Date.now();
          let count = 0;
-         console.info(`============= start rebuild index[${this.table}] =============`);
+         console.info(`============= build index[${this.table}] =============`);
          //创建新索引
          await this.masterdb.iterator(
             {
                key: this.masterKey("") + "*",
+               limit: -1,
             },
             async (key, item) => {
                count++;
@@ -122,8 +138,12 @@ export class Model<T extends Schema> {
          let h = Math.floor(ttl / 3600);
          let m = Math.floor((ttl % 3600) / 60);
          let s = ttl % 60;
-         console.info(`============= end rebuild index[${this.table}] ok =============`);
-         console.info(`============= total=${count} ttl=${h}:${m}:${s} =============`);
+         this.emit("index", {
+            table: this.table,
+            total: count,
+            ttl: ttl,
+         });
+         //console.info(`============= end build index[${this.table}] total=${count} ttl=${h}:${m}:${s} =============`);
       }
       await this.indexdb.set(sysId, entity);
    }
