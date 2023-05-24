@@ -72,6 +72,100 @@ function makeSend2MainFun(env, thread) {
          };
    }
 }
+//const WorkerEvents: {[key:string]: (...args)=>void} = {};
+type EventsOpts = {
+   thread;
+   env: "electron" | "egg" | "cluster" | "browser";
+};
+type WorkerHandleData = {
+   app: string;
+   task: string;
+   code: string;
+   value: any;
+   key: string;
+};
+/**
+ * 子线程通知事件单例处理
+ */
+class WorkerEvents {
+   private static _instance: WorkerEvents;
+   private _apps: { [key: string]: (...args) => void } = {};
+   private constructor(opts: EventsOpts) {
+      const { thread, env } = opts;
+      if (env == "egg") {
+         thread.sendMessage = (data) => {
+            data.pid = thread.pid;
+            thread.sendToAgent("message", data);
+         };
+      }
+      thread.on("message", async (...args) => {
+         //{ task, code, value }
+         let data: any = {};
+         if (env == "electron") {
+            data = args[1];
+         } else if (env == "cluster" || env == "egg") {
+            data = args[0];
+         } else {
+            data = args[0] ? args[0].data : {};
+         }
+         let { app, task, code, value, key } = data;
+         let handle = this._apps[app];
+         handle && handle(data);
+      });
+   }
+
+   static getInstance(opts: EventsOpts) {
+      if (!WorkerEvents._instance) {
+         WorkerEvents._instance = new WorkerEvents(opts);
+      }
+      return WorkerEvents._instance;
+   }
+
+   register(app: string, handle: (data: WorkerHandleData) => void) {
+      this._apps[app] = handle;
+   }
+}
+
+type MasterHandleData = {
+   app: string;
+   task: string;
+   method: string;
+   args: any[];
+   pid: string;
+   isCallback: boolean;
+};
+/**
+ * 子线程通知事件单例处理
+ */
+class MasterEvents {
+   private static _instance: MasterEvents;
+   private _apps: { [key: string]: (...args) => void } = {};
+   private constructor(opts: EventsOpts) {
+      const { thread, env } = opts;
+
+      thread.on("message", async (event, data) => {
+         let { app, task, method, args, pid, isCallback } = data || event;
+         if (env == "egg") {
+            event = {
+               send: (datax) => thread.sendTo(pid, "message", datax),
+            };
+         }
+         let handle = this._apps[app];
+         handle && handle({ app, task, method, args, pid, isCallback }, event);
+      });
+   }
+
+   static getInstance(opts: EventsOpts) {
+      if (!MasterEvents._instance) {
+         MasterEvents._instance = new MasterEvents(opts);
+      }
+      return MasterEvents._instance;
+   }
+
+   register(app: string, handle: (data: MasterHandleData, event: { send: (data) => void; [key: string]: any }) => void) {
+      this._apps[app] = handle;
+   }
+}
 /**
   * 装饰主副线程(进程)通信, 把应用封装进来, 让api使用都感觉不到主副线程的差异,<br/> 可以像正常使用api一样使用(否则就会涉及到主进程有api,子进程没有)
   *
@@ -106,12 +200,53 @@ class TCFactor<T> extends EventEmitter {
    async initEvent(thread) {
       let _this = this;
       if (!thread) throw new Error("工作线程或进程都不存在");
+      if (typeof thread.setMaxListeners === "function") {
+         thread.setMaxListeners(99);
+      }
       if (this.isMaster) {
          let executor = this.executor;
-         if (typeof thread.setMaxListeners === "function") {
-            thread.setMaxListeners(999);
-         }
-         thread.on("message", async (event, data) => {
+         MasterEvents.getInstance({ thread, env: this.env }).register(this.app, async (data: MasterHandleData, event) => {
+            let { app, task, method, args, pid, isCallback } = data;
+            if (app != this.app) return;
+            /*             if (this.env == "egg") {
+               event = {
+                  send: (datax) => thread.sendTo(pid, "message", datax),
+               };
+            } */
+            if (isCallback == true) {
+               _this.emit(task);
+               return;
+            }
+            //let send = this.env == 'electron' ? event.reply : this.env == 'cluster' ? event.send : self.postMessage;
+            let send = makeSend2WorkerFun(this.env, event);
+            let isLastCallback = args[args.length - 1] === "[function]";
+            if (isLastCallback) {
+               //最后一位是回调函数
+               args[args.length - 1] = async (key, value) => {
+                  if (key) {
+                     return new Promise((resolve) => {
+                        send({ app, task: task, code: 2, key, value });
+                        _this.once(task, () => resolve(undefined));
+                     });
+                  } else {
+                     send({ app, task: task, code: 1, key: undefined, value: undefined });
+                  }
+               };
+            }
+
+            if (args[0].filter) {
+               args[0].filter = eval(args[0].filter);
+            }
+            let target = executor[method];
+            let value = undefined;
+            if (target instanceof Function) {
+               value = await target.apply(executor, args);
+            } else {
+               value = target;
+            }
+            if (!isCallback) send ? send({ app, task: task, code: 1, value }) : console.warn(`主线程环境${this.env}不存在发送方法`);
+         });
+         /* thread.on("message", async (event, data) => {
             let { app, task, method, args, pid, isCallback } = data || event;
             if (app != this.app) return;
             if (this.env == "egg") {
@@ -151,15 +286,21 @@ class TCFactor<T> extends EventEmitter {
                value = target;
             }
             if (!isCallback) send ? send({ app, task: task, code: 1, value }) : console.warn(`主线程环境${this.env}不存在发送方法`);
-         });
+         }); */
       } else {
-         if (this.env == "egg") {
+         /*      if (this.env == "egg") {
             thread.sendMessage = (data) => {
                data.pid = thread.pid;
                thread.sendToAgent("message", data);
             };
-         }
-         thread.on("message", async (...args) => {
+         } */
+         WorkerEvents.getInstance({ thread, env: this.env }).register(this.app, (data: WorkerHandleData) => {
+            let { app, task, code, value, key } = data;
+            //if (app != this.app) return;
+            this.emit(task, { code, value, key });
+         });
+
+         /*   thread.on("message", async (...args) => {
             //{ task, code, value }
             let data: any = {};
             if (this.env == "electron") {
@@ -170,8 +311,9 @@ class TCFactor<T> extends EventEmitter {
                data = args[0] ? args[0].data : {};
             }
             let { app, task, code, value, key } = data;
+            if (app != this.app) return;
             this.emit(task, { code, value, key });
-         });
+         }); */
          for (let key in this.executor) {
             if (key.startsWith("_") || ["on", "emit", "once", "off", "removeAllListeners", "removeAllListener"].includes(key)) continue;
             let targetFun = this.executor[key];

@@ -53,8 +53,8 @@ class UserDAO extends Model<User> {
 }
 (async () => {
    //console.info("model", Model, Schema);
-   console.info("user",new User().getColumns());
-   console.info("persion",new Persion().getColumns());
+   console.info("user", new User().getColumns());
+   console.info("persion", new Persion().getColumns());
    let userDAO = new UserDAO();
    async function save() {
       const v = 8; // Math.ceil(Math.random() * 50 + 10);
@@ -116,6 +116,6 @@ class UserDAO extends Model<User> {
       console.info("n2", new User({ id: "33", age: 11, mok: "ss" }).patch());
    }
    //await save();
-   //await search();
-   //await update();
+   await search();
+   await update();
 })();

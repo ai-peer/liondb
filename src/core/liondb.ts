@@ -245,9 +245,9 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
          this.db.close(() => setTimeout(() => resolve(undefined), 150));
       });
    }
-   async count(key: string, filter?: Filter): Promise<number> {
+   async count(key: string): Promise<number> {
       let count = 0;
-      await this.iterator({ key: key, start: 0, limit: -1, filter }, async (key, val) => {
+      await this.iterator({ key: key, start: 0, limit: -1 }, async (key, val) => {
          count++;
       });
       return count;
@@ -271,17 +271,15 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
    }
    /**
     * 查询
-    * @param param0 
-    * {
-    *    key,
-         limit = 100,
-         start = 0,
-         reverse = false,
-         keys = true,
-         filter,
-         flow: boolean, 顺流查找(模糊搜索才有效), 在查询关键字不匹配时,自动往下查询,默认false
-         query = {},
-    * }
+    * @param param
+    * @param param.key: 查询词, 结尾*表示模糊搜索
+    * @param param.limit: 查询限制条数,默认100条
+    * @param param.start: 查询起始位置,默认0
+    * @param param.reverse: boolean, 逆转,默认false true=逆转 false=正常
+    * @param param.flow: boolean, 顺流查找(模糊搜索才有效), 在查询关键字不匹配时,自动往下查询,默认false
+    * @param param.keys: 是否带key输出, 默认false
+    *
+    * @param callback
     */
    async find({
       key,
@@ -290,24 +288,22 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
       reverse = false,
       keys = false,
       flow = false,
-      filter,
-      //isRef = false,
-      query = {},
-   }: {
+   }: //filter,
+   //query = {},
+   {
       key: string;
       limit?: number;
       start?: number;
       values?: boolean;
       reverse?: boolean;
-      filter?: Filter;
+      //filter?: Filter;
       keys?: boolean;
-      //isRef?: boolean;
       flow?: boolean;
       query?: { [key: string]: any };
    }): Promise<{ key: string; value: any }[] | any[]> {
       let list: any[] = [];
-      let nfilter = mergeFilter(query || {}, filter);
-      await this.iterator({ key, limit, start, flow, filter: nfilter, reverse }, (skey, svalue) => {
+      //let nfilter = mergeFilter(query || {}, () => true);
+      await this.iterator({ key, limit, start, flow, reverse }, (skey, svalue) => {
          if (svalue !== undefined) keys ? list.push({ key: skey, value: svalue }) : list.push(svalue);
       });
       //return reverse ? list.reverse() : list;
@@ -315,50 +311,54 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
    }
    /**
     *
-    * @param param0 {
-    *    key: 查询词, 结尾*表示模糊搜索
-    *    limit: 查询限制条数,默认100条
-    *    filter: 过滤器 (value: any, key: string) => boolean || Promise<boolean>
-    *    reverse: boolean, 逆转,默认false true=逆转 false=正常
-    *    flow: boolean, 顺流查找(模糊搜索才有效), 在查询关键字不匹配时,自动往下查询,默认false
-    * }
+    * @param param
+    * @param param.key: 查询词, 结尾*表示模糊搜索
+    * @param param.limit: 查询限制条数,默认100条
+    * @param param.reverse: boolean, 逆转,默认false true=逆转 false=正常
+    * @param param.flow: boolean, 顺流查找(模糊搜索才有效), 在查询关键字不匹配时,自动往下查询,默认false
+    * @param param.values: boolean 输出value, 默认true, 设置为false时可以提高查询效率
+    *
     * @param callback
     */
+   //@param param.filter: 过滤器 (value: any, key: string) => boolean || Promise<boolean>
    async iterator(
       {
          key,
          limit = 100,
          start = 0,
-         filter,
+         //filter,
          //isRef = false,
          reverse = false,
-         //values = true,
+         values = true,
          flow = false,
+         query = {},
       }: {
          key: string;
          limit?: number;
          start?: number;
-         filter?: Filter;
+         //filter?: Filter;
          //isRef?: boolean;
          reverse?: boolean;
-         //values?: boolean;
+         values?: boolean;
          flow?: boolean;
+         query?: { [key: string]: any };
       },
       callback: IteratorCallback,
    ): Promise<void> {
       let _this = this;
       const db = this.db;
       let searchKey = String(key).trim();
+      let filter = mergeFilter(query || {}, () => true);
 
       /** 模糊搜索 */
       let isFuzzy = searchKey.endsWith("*");
       let isSearchAll = searchKey === "*";
       searchKey = isSearchAll ? searchKey : searchKey.replace(/^\*|\*$/g, "");
-
       let endKey = searchKey.replace(/[\*]+$/, "").trim();
       endKey = endKey.length < 1 ? "" : endKey.slice(0, endKey.length - 1) + String.fromCharCode(endKey[endKey.length - 1].charCodeAt(0) + 1); // endKey[endKey.length -1]
       //if (start > 100) values = false;
-      let options: any = Object.assign({}, { key, limit: -1, values: true, reverse, gte: searchKey }); //{ gte: searchKey, reverse: reverse, lt: endKey }
+      values = values != false ? true : false;
+      let options: any = Object.assign({}, { key, limit: -1, values: values, reverse, gte: searchKey }); //{ gte: searchKey, reverse: reverse, lt: endKey }
 
       let iterator = this.db.iterator(options);
 
@@ -375,6 +375,8 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
                      iterator.end((err) => err && console.error("liondb err", err));
                      return resolve();
                   }
+                  if (values === false) return next();
+
                   itIndex++;
                   if (start > itIndex) return next();
 
@@ -399,7 +401,6 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
                         }
                      }
                   }
-
                   //if (!values) bufVal = await db.get(bufKey).catch((err) => undefined);
                   let res: any = analyzeValue(bufVal);
                   if (res === undefined) return next();
@@ -410,7 +411,6 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
                      await wait(5);
                   } else {
                      let value = res.value();
-                     //if (isRef) value = await _this.get(value);
                      if (filter) {
                         let v = await filter(value, sKey, {
                            get: async (k) => _this.get(k),

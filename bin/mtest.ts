@@ -8,28 +8,33 @@ console.info("init==========");
 let db = LionDB.worker({
    filename: path.resolve("_local/1"),
    env: "cluster",
-   isMaster: cluster.isMaster,
-   thread: cluster.isMaster ? cluster : cluster.worker,
+   isMaster: cluster.isPrimary,
+   thread: cluster.isPrimary ? cluster : cluster.worker,
 });
-async function execr() {
-   console.info("execr===========", db.find);
-   await db.set("ref_a", "aa2");
-   await db.set("ba2", { name: "ba2", age: 19 });
+let db1 = LionDB.worker({
+   filename: path.resolve("_local/2"),
+   env: "cluster",
+   isMaster: cluster.isPrimary,
+   thread: cluster.isPrimary ? cluster : cluster.worker,
+});
+async function execr(db: LionDB, name: string) {
+   //await db.set("ref_a", "aa2");
+   await db.set("am", {app: `${name}`, name: `db-${name}-${cluster.worker?.id || "master"}`, age: Math.ceil(Math.random() * 100) });
 
-   let v0 = await db.get("aa2");
+   /*let v0 = await db.get("aa2");
    console.info("v0", v0);
 
    let refVal = await db.find({ key: "ref_a*", query: {} });
-   console.info("===refVal", refVal);
+   console.info("===refVal", refVal); */
 
    let list = await db.find({
       key: "a*",
       flow: true,
       //index: "code",
       limit: 3,
-      query: { name: "*2", $gt: { age: 13 } },
+      query: { $gt: { age: 13 } },
    });
-   console.info("list==", cluster.worker?.id, list);
+   console.info("list==", name, cluster.worker?.id, list);
    /* 
    let list2: any[] = [];
    await db.iterator(
@@ -69,5 +74,6 @@ if (cluster.isPrimary) {
    for (let i = 0; i < os.cpus().length; i++) cluster.fork();
 } else {
    console.info("worker run", cluster.worker?.id);
-   execr();
+   execr(db, "db");
+   execr(db1, "db1");
 }

@@ -18,7 +18,6 @@ let config: any = program
  */
 import LionDB from "../src";
 import path from "path";
-import { ILionDB } from "../src/types";
 import cluster from "cluster";
 import { Buffer } from "buffer";
 //let db: ILionDB = new lionDB(path.resolve("_local/1"));

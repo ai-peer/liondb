@@ -83,7 +83,7 @@ const config = {
          //store: path.join(root, 'src/store'),
          "@": path.join(root, "src"),
          "~": root,
-         "../core/liondb.node": path.join(root, "src/core/liondb.browser.ts"),
+         "@/core/liondb.node": path.join(root, "src/core/liondb.browser.ts"),
          "liondb": path.join(root, "src/core/liondb.browser.ts")
       },
       fallback: {

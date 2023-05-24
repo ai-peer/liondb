@@ -6,6 +6,8 @@ import LionDB, { Event } from "./liondb";
 import cluster from "cluster";
 import EventEmitter from "eventemitter3";
 
+const factors: { [key: string]: TcFactor<LionDB> } = {};
+
 export function worker({
    filename,
    env, //: "cluster" | "electron" | "egg";
@@ -29,56 +31,62 @@ export function worker({
    env = env || "cluster";
    isMaster = isMaster === false ? false : true;
    thread = thread || cluster;
-   return new TcFactor<LionDB>({
-      app: app || "localdb",
-      env: env,
-      isMaster: isMaster,
-      thread: thread,
-      executor: () => {
-         if (isMaster) {
-            return new LionDBNode(filename);
-         } else {
-            class Sub extends EventEmitter<Event> {}
-            let res = new Sub();
-            for (let key of [
-               "set",
-               "get",
-               "getMany",
-               "put",
-               "getSet",
-               "getIntSet",
-               "getStringSet",
-               "getFloatSet",
-               "getString",
-               "getInt",
-               "getFloat",
-               "expire",
-               "increment",
-               "del",
-               "batch",
-               "clear",
-               "close",
-               "find",
-               "iterator",
-               "count",
-               "exist",
-               "has",
-               "getProperty",
-            ]) {
-               let target = LionDB.prototype[key];
-               if (key.startsWith("_")) continue;
-               if (target instanceof Function) {
-                  //res[key] = target;
-                  res[key] = () => {};
+   let uid = (isMaster ? "master" : thread.id + "") + app;
+   let factor = factors[uid];
+   if (!factor) {
+      factor = new TcFactor<LionDB>({
+         app: app || "localdb",
+         env: env,
+         isMaster: isMaster,
+         thread: thread,
+         executor: () => {
+            if (isMaster) {
+               return new LionDBNode(filename);
+            } else {
+               class Sub extends EventEmitter<Event> {}
+               let res = new Sub();
+               for (let key of [
+                  "set",
+                  "get",
+                  "getMany",
+                  "put",
+                  "getSet",
+                  "getIntSet",
+                  "getStringSet",
+                  "getFloatSet",
+                  "getString",
+                  "getInt",
+                  "getFloat",
+                  "expire",
+                  "increment",
+                  "del",
+                  "batch",
+                  "clear",
+                  "close",
+                  "find",
+                  "iterator",
+                  "count",
+                  "exist",
+                  "has",
+                  "getProperty",
+               ]) {
+                  let target = LionDB.prototype[key];
+                  if (key.startsWith("_")) continue;
+                  if (target instanceof Function) {
+                     //res[key] = target;
+                     res[key] = () => {};
+                  }
                }
+               setTimeout(() => {
+                  res.emit("open");
+               }, 10);
+               return res;
             }
-            setTimeout(() => {
-               res.emit("open");
-            }, 10);
-            return res;
-         }
-      },
-   }).executor;
+         },
+      });
+      factors[uid] = factor;
+   }
+   return factor.executor;
 }
 //levelup.prototype.set = levelup.prototype.put;
 /**

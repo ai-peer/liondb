@@ -168,27 +168,29 @@ export class Model<T extends Schema> {
    async count(opts: { id?: string; index?: Index; filter?: (entity: T, key: string) => Promise<boolean> }): Promise<number> {
       let count = 0;
       let index = opts.index;
-      let ids: Set<string> = new Set();
+      const hasFilter = typeof opts.filter === "function";
       if (index) {
          await this.indexdb.iterator(
             {
                key: this.indexKey(index.name, ...index.fields) + "*",
                limit: -1,
-               filter: async (id, key) => {
-                  if (ids.has(id)) return false;
-                  if (!opts.filter) return true;
-                  let entity = await this.get(id);
-                  if (!entity) {
-                     this.indexdb.del(key);
-                     return false;
-                  }
-                  let check = await opts.filter(entity, key);
-                  return check;
-               },
             },
-            (k, id) => {
-               ids.add(id);
-               count++;
+            async (key, id) => {
+               if (!id) {
+                  this.indexdb.del(key);
+                  return;
+               }
+               if (!hasFilter) {
+                  count++;
+                  return;
+               }
+               let entity = await this.get(id);
+               if (!entity) {
+                  this.indexdb.del(key);
+                  return;
+               }
+               let check = hasFilter && opts.filter ? await opts.filter(entity, key) : true;
+               if (check) count++;
             },
          );
       } else {
@@ -196,18 +198,15 @@ export class Model<T extends Schema> {
             {
                key: this.masterKey(opts.id || "") + "*",
                limit: -1,
-               filter: async (entity, key) => {
-                  if (!opts.filter) return true;
-                  if (!entity) {
-                     this.masterdb.del(key);
-                     return false;
-                  }
-                  let check = await opts.filter(entity, key);
-                  return check;
-               },
+               values: hasFilter,
             },
-            (k, item) => {
-               count++;
+            async (key, entity) => {
+               if (hasFilter && !entity) {
+                  this.masterdb.del(key);
+                  return;
+               }
+               let check = hasFilter && opts.filter ? await opts.filter(entity, key) : true;
+               check && count++;
             },
          );
       }
@@ -231,53 +230,62 @@ export class Model<T extends Schema> {
       start?: number;
       limit?: number; //
       reverse?: boolean;
-      filter?: (entity: T, key: string) => Promise<boolean>;
+      filter?: (entity: T, key: string) => boolean | Promise<boolean>;
    }): Promise<T[]> {
       let index = opts.index;
+      const limit = opts.limit || 24;
       const reverse = opts.reverse != false ? true : false;
       let ids: Set<string> = new Set();
       let list: T[] = [];
+      const hasFilter = typeof opts.filter === "function";
       if (index) {
          await this.indexdb.iterator(
             {
                key: this.indexKey(index.name, ...index.fields) + "*",
                start: opts.start || 0,
-               limit: opts.limit || 24,
+               limit: -1, //opts.limit || 24,
                reverse: reverse,
-               filter: async (id, key) => {
-                  if (ids.has(id)) return false;
-                  let entity = await this.get(id);
-                  if (!entity) {
-                     this.indexdb.del(key);
-                     return false;
-                  }
-                  let check = opts.filter ? await opts.filter(entity, key) : true;
-                  if (check) list.push(entity);
-                  return check;
-               },
             },
-            (k, id) => {
-               ids.add(id);
+            async (key, id) => {
+               if (ids.size >= limit) return "break";
+               if (!id) {
+                  this.indexdb.del(key);
+                  return;
+               }
+               if (ids.has(id)) return;
+               let entity = await this.get(id);
+               if (!entity) {
+                  this.indexdb.del(key);
+                  return;
+               }
+               let check = hasFilter && opts.filter ? await opts.filter(entity, key) : true;
+               if (check) {
+                  ids.add(id);
+                  list.push(entity);
+               }
+               if (ids.size >= limit) return "break";
             },
          );
          //list = await this.gets(...ids);
          return list;
       } else {
-         list = (await this.masterdb.find({
-            key: this.masterKey(opts.id || "") + "*",
-            start: opts.start || 0,
-            limit: opts.limit || 24,
-            reverse: reverse,
-            filter: async (entity, key) => {
-               if (!opts.filter) return true;
+         await this.masterdb.iterator(
+            {
+               key: this.masterKey(opts.id || "") + "*",
+               start: opts.start || 0,
+               limit: -1,
+            },
+            async (key, entity) => {
+               if (list.length >= limit) return "break";
                if (!entity) {
                   this.masterdb.del(key);
-                  return false;
+                  return;
                }
-               let check = await opts.filter(entity, key);
-               return check;
+               let check = hasFilter && opts.filter ? await opts.filter(entity, key) : true;
+               check && list.push(entity);
+               if (list.length >= limit) return "break";
             },
-         })) as T[];
+         );
       }
 
       return list.map((v) => this.toSchema(v));
