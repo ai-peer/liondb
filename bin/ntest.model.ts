@@ -28,7 +28,9 @@ class User extends Schema {
    @IsNotEmpty()
    addr: string;
 
-   @Column({ type: "array" })
+   @Column({ type: "array" , format(value) {
+      return ["oksdf"];
+   },})
    @IsNotEmpty()
    pwds: string[];
 
@@ -103,7 +105,7 @@ class UserDAO extends Model<User> {
    async function update() {
       const id = "1q1ESUzzy";
       let nv = await userDAO.save(id, {
-         pwds: ["ax===", "b13"],
+         pwds: ["ax===", "b13", "xxmmdd"],
          age: (v) => v + 18,
          mdi: "mdixx",
          score: (v) => v + 2,
@@ -112,8 +114,8 @@ class UserDAO extends Model<User> {
       let en = await userDAO.get(id);
       console.info("update ", en, nv);
       console.info("===", nv.toColumnValue("updateAt", "2022/01/01"));
-      console.info("n1", new User({ id: "33", age: 11, mok: "ss" }).reduce());
-      console.info("n2", new User({ id: "33", age: 11, mok: "ss" }).patch());
+      //console.info("n1", new User({ id: "33", age: 11, mok: "ss" }).reduce());
+      //console.info("n2", new User({ id: "33", age: 11, mok: "ss" }).patch());
    }
    //await save();
    await search();

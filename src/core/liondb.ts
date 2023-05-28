@@ -376,16 +376,6 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
                   if (start > itIndex) return next();
                   let sKey = String(bufKey);
 
-                  // 不显示值
-                  if(values === false){ 
-                     let callbackResult = await callback(sKey);
-                     if (callbackResult === LionDB.Break) {
-                        iterator.end((err) => err && console.error("liondb err break", err));
-                        return resolve();
-                     }
-                     return next();
-                  }
-
                   if (!isFuzzy) {
                      if (sKey != searchKey) {
                         iterator.end((err) => err && console.error("liondb err", err));
@@ -405,6 +395,15 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
                            return resolve();
                         }
                      }
+                  }
+                  // 不显示值
+                  if(values === false){ 
+                     let callbackResult = await callback(sKey);
+                     if (callbackResult === LionDB.Break) {
+                        iterator.end((err) => err && console.error("liondb err break", err));
+                        return resolve();
+                     }
+                     return next();
                   }
                   //if (!values) bufVal = await db.get(bufKey).catch((err) => undefined);
                   let res: any = analyzeValue(bufVal);
