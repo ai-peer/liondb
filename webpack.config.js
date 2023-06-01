@@ -115,7 +115,7 @@ const config = {
             { from: "node_modules/leveldown/prebuilds", to: "dist/prebuilds" },
             { from: "package.dist.json", to: "package.json" },
             { from: "README.md", to: "README.md" },
-            { from: "index.d.ts", to: "index.d.ts" },
+            //{ from: "index.d.ts", to: "index.d.ts" },
          ],
       }),
    ],

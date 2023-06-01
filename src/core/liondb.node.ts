@@ -41,7 +41,7 @@ export function worker({
          thread: thread,
          executor: () => {
             if (isMaster) {
-               return new LionDBNode(filename);
+               return new LionDBNode({filename});
             } else {
                class Sub extends EventEmitter<Event> {}
                let res = new Sub();
@@ -98,10 +98,10 @@ export function worker({
  */
 export default class LionDBNode extends LionDB {
    static worker = worker;
-   constructor(filename: string) {
+   constructor(opts: { filename: string; [key: string]: any }) {
       super();
-      mkdirs(filename);
-      let ldb = leveldown(filename);
+      mkdirs(opts.filename);
+      let ldb = leveldown(opts.filename);
       this.db = new levelup(ldb, {}, async (err) => {
          if (err) {
             this.emit("error", err);

@@ -21,7 +21,7 @@ import path from "path";
 import cluster from "cluster";
 import { Buffer } from "buffer";
 //let db: ILionDB = new lionDB(path.resolve("_local/1"));
-let db = LionDB.worker({
+let db = new LionDB({
    filename: path.resolve("_local/1"),
    env: "cluster",
    isMaster: cluster.isMaster,
@@ -84,7 +84,7 @@ async function start() {
    let startTime = Date.now();
    let list0: any[] = [];
    //for (let i = 0; i < 10; i++) {
-   await db.iterator({ key: "task*", start: 130000 + 10, limit: 10 }, async (_key, val) => {
+   await db.iterator({ key: "*", start: 130000 + 10, limit: 10 }, async (_key, val) => {
       if (list0.length > 10) return "break";
       list0.push(val);
    });
