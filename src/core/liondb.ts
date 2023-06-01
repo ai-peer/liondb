@@ -354,7 +354,7 @@ export default class LionDB extends EventEmitter<Event> implements ILionDB {
       endKey = endKey.length < 1 ? "" : endKey.slice(0, endKey.length - 1) + String.fromCharCode(endKey[endKey.length - 1].charCodeAt(0) + 1); // endKey[endKey.length -1]
       //if (start > 100) values = false;
       values = values != false ? true : false;
-      let options: any = Object.assign({}, { key, limit: -1, values: values, reverse, gte: searchKey }); //{ gte: searchKey, reverse: reverse, lt: endKey }
+      let options: any = Object.assign({}, { key, limit: -1, values: values, reverse, gte: searchKey, lt: endKey }); //{ gte: searchKey, reverse: reverse, lt: endKey }
 
       let iterator = this.db.iterator(options);
 

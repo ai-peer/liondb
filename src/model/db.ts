@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import cluster from "cluster";
-import LionDB from "@/core/liondb.node";
+import LionDB from "../core/liondb.node";
 
 function mkdirs(dir) {
    if (!fs.existsSync(dir)) {

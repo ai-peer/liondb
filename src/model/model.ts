@@ -3,7 +3,7 @@ import LionDB, { Filter } from "../index";
 import assert from "assert";
 import Schema from "./schema";
 import { validateSync } from "class-validator";
-import { uuid, uuidSeq, isNull, isMap } from "./helper";
+import { uuid, uuidSeq, isNull, isMap, runtime, inBrowser } from "./helper";
 import { EventEmitter } from "eventemitter3";
 
 export type Index = {
@@ -64,7 +64,10 @@ export class Model<T extends Schema> extends EventEmitter<EventType> {
          assert.ok(typeof item.name === "string", `index name type must be a string`);
          for (let field of item.fields) {
             let column = instance.getColumn(field);
-            let val = instance[field];
+            if (!column) {
+               if (inBrowser()) continue;
+            }
+            //let val = instance[field];
             //let type = typeof val;
             //assert.ok(val != undefined && val != null, `Defined index fields[${schemaName}.${field}] must set default values`);
             assert.ok(["string", "number"].includes(column.type), `Define the index field[${schemaName}.${field}] type to only allow [string, number]`);
@@ -286,8 +289,6 @@ export class Model<T extends Schema> extends EventEmitter<EventType> {
                if (ids.size >= limit) return "break";
             },
          );
-         //list = await this.gets(...ids);
-         return list;
       } else {
          await this.masterdb.iterator(
             {
@@ -307,7 +308,6 @@ export class Model<T extends Schema> extends EventEmitter<EventType> {
             },
          );
       }
-
       return list.map((v) => this.toSchema(v));
    }
    async findOne(opts: { id?: string; index?: Index; start?: number; limit?: number; filter?: (entity: T, key: string) => Promise<boolean> }): Promise<T | undefined> {
@@ -318,10 +318,11 @@ export class Model<T extends Schema> extends EventEmitter<EventType> {
       if (!data.id) data.id = uuidSeq();
       data = data instanceof this.SchemaClass ? data : this.toSchema(data);
       this.patch(data, data);
+      data.createAt = data.updateAt || new Date();
+      data.updateAt = data.updateAt || new Date();
       data.valid();
       const id = data.id;
       let masterKey = this.masterKey(id);
-      data.updateAt = data.updateAt || new Date();
       //ttl = ttl > 0 ? ttl : 0;
       await this.masterdb.set(masterKey, data);
       await this.saveIndexs(data);
@@ -401,10 +402,14 @@ export class Model<T extends Schema> extends EventEmitter<EventType> {
       let batchs: { type: "put"; key: string; value: any; ttl: number }[] = [];
       indexs.forEach((index) => {
          let vals = index.fields.map((v) => {
-            let column = data.getColumn(v);
-            if (!column) throw new Error(`[${data.constructor.name}][${v}] is not exist`);
             let rv = data[v];
-            if (typeof column.index == "function") rv = column.index(rv) || rv;
+            let column = data.getColumn(v);
+            if (!column) {
+               if (!inBrowser()) {
+                  throw new Error(`[${data.constructor.name}][${v}] is not exist`);
+               }
+            }
+            if (typeof column?.index == "function") rv = column.index(rv) || rv;
             return rv;
          });
          if (vals.length > 0) {

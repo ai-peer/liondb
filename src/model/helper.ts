@@ -1,5 +1,5 @@
 import { customAlphabet } from "nanoid";
-
+import os from "os";
 const nanoid = customAlphabet("1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", 9);
 /**
  * 创建uuid
@@ -58,7 +58,30 @@ function num62to10(val: number | string) {
    }
    return origin_number;
 }
-
+/**
+ * 获取运行环境
+ */
+export function runtime(): "node" | "electron" | "browser" {
+   if (inElectron()) return "electron";
+   if (inBrowser()) return "browser";
+   return "node";
+}
+/**
+ * 是否在node运行环境
+ */
+export function inNode() {}
+export function inElectron() {
+   if (process.versions && process.versions.electron) return true;
+   if (process.env.ELECTRON_RUN_AS_NODE) return true;
+   return (
+      typeof globalThis.window !== "undefined" && //
+      globalThis.window?.process &&
+      (globalThis.window?.process as any)?.type === "renderer"
+   );
+}
+export function inBrowser() {
+   return typeof globalThis.window != "undefined" && typeof globalThis.navigator != "undefined";
+}
 function makePrefix() {
    let date = new Date();
    let yyyy = date.getFullYear();

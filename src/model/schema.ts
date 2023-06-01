@@ -1,5 +1,5 @@
 import assert from "assert";
-import { isMap, isNull } from "./helper";
+import { isMap, isNull, inBrowser } from "./helper";
 import { Entity, Column, ColumnConfig } from "./orm";
 import { Contains, IsInt, Length, IsEmail, IsFQDN, IsDate, Min, Max, IsNotEmpty, IsEmpty, validateSync } from "class-validator";
 //import xss from "xss";
@@ -68,7 +68,8 @@ export default class Schema {
       object = object || this;
       if (this.hasColumns()) {
          if (!isMap(object)) return this;
-         for (let field of Object.keys(object)) {
+         let fields = Object.keys(object);
+         for (let field of fields) {
             let column = this.getColumn(field);
             if (!column) continue;
             this.updateColumn(field, object[field]);
@@ -95,12 +96,12 @@ export default class Schema {
    
  */
    /**
-    * 是否有定义列, 在ts模式下会有, 在编译的js包浏览器直接引用, 会不存在
+    * 是否有定义自定义列, 在ts模式下会有
     * @returns
     */
    hasColumns() {
       let columns = TablesColumn[this.constructor.name];
-      return !!columns.id && !!columns.createAt;
+      return !!columns.id && !!columns.createAt && !!columns.updateAt && Object.keys(columns).length > 3;
    }
    /**
     * 是否是定义的字段
@@ -160,7 +161,7 @@ export default class Schema {
       if (value === undefined || value === null) return;
       if (!this.hasColumns()) return value;
       let column = this.getColumn(field);
-      switch (column.type) {
+      switch (column?.type) {
          case "number":
             value = Number(value);
             break;
