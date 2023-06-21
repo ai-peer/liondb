@@ -1,5 +1,8 @@
 import { Model, Schema, IsNotEmpty, Max, Column } from "../src";
 Model.setApp("demo-app");
+Model.onReady("user", ()=>{
+   console.info("ready user");
+});
 class Persion extends Schema {
    constructor(data?) {
       super(data);

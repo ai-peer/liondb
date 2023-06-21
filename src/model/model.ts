@@ -20,6 +20,7 @@ type EventType = {
 
 export class Model<T extends Schema> extends EventEmitter<EventType> {
    private static _app: string;
+   private static _tableReadys: Map<string, (() => void)[]> = new Map();
    //static createSchema = createModel;
    readonly masterdb: LionDB;
    readonly indexdb: LionDB;
@@ -45,13 +46,24 @@ export class Model<T extends Schema> extends EventEmitter<EventType> {
       this.masterdb = masterdb;
       this.indexdb = indexdb;
       this.checkDefine();
-      this.initDB();
+      this.initDB().then(() => {
+         Model.emitReady(this.table);
+      });
    }
    static setApp(app: string) {
       Model._app = app;
    }
    static get app() {
       return Model._app;
+   }
+   static onReady(table: string, handle: () => void) {
+      let events = Model._tableReadys.get(table) || ([] as (() => void)[]);
+      events.push(() => handle());
+      Model._tableReadys.set(table, events);
+   }
+   private static async emitReady(table: string) {
+      let events = Model._tableReadys.get(table);
+      if (events && events.length > 0) events.forEach((handle) => handle());
    }
    /**
     * 检测定义是否合法
