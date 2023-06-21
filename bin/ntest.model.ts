@@ -1,7 +1,7 @@
 import { Model, Schema, IsNotEmpty, Max, Column } from "../src";
 Model.setApp("demo-app");
-Model.onReady("user", ()=>{
-   console.info("ready user");
+Model.onReady(() => {
+   console.info("ready modal");
 });
 class Persion extends Schema {
    constructor(data?) {
@@ -31,9 +31,12 @@ class User extends Schema {
    @IsNotEmpty()
    addr: string;
 
-   @Column({ type: "array" , format(value) {
-      return ["oksdf"];
-   },})
+   @Column({
+      type: "array",
+      format(value) {
+         return ["oksdf"];
+      },
+   })
    @IsNotEmpty()
    pwds: string[];
 

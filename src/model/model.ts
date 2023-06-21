@@ -20,8 +20,7 @@ type EventType = {
 
 export class Model<T extends Schema> extends EventEmitter<EventType> {
    private static _app: string;
-   private static _tableOnReadys: Map<string, (() => void)[]> = new Map();
-   private static _tableReadys: { [key: string]: boolean } = {};
+   private static _Readys: (() => void)[] = [];
    //static createSchema = createModel;
    readonly masterdb: LionDB;
    readonly indexdb: LionDB;
@@ -47,26 +46,18 @@ export class Model<T extends Schema> extends EventEmitter<EventType> {
       this.masterdb = masterdb;
       this.indexdb = indexdb;
       this.checkDefine();
-      this.initDB().then(() => {
-         Model._tableReadys[this.table] = true;
-         Model.emitReady(this.table);
-      });
+      this.initDB();
    }
    static setApp(app: string) {
       Model._app = app;
+      Model._Readys.forEach((handle) => handle());
    }
    static get app() {
       return Model._app;
    }
-   static onReady(table: string, handle: () => void) {
-      if (Model._tableReadys[table]) return handle();
-      let events = Model._tableOnReadys.get(table) || ([] as (() => void)[]);
-      events.push(() => handle());
-      Model._tableOnReadys.set(table, events);
-   }
-   private static async emitReady(table: string) {
-      let events = Model._tableOnReadys.get(table);
-      if (events && events.length > 0) events.forEach((handle) => handle());
+   static onReady(handle: () => void) {
+      if (Model._app) return handle();
+      Model._Readys.push(() => handle());
    }
    /**
     * 检测定义是否合法
