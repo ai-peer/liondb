@@ -39,14 +39,20 @@ export class Model<T extends Schema> extends EventEmitter<EventType> {
       super();
       assert(!!Model._app, "app is null");
       assert(!!opts.table, "table is null");
-      this.SchemaClass = opts.SchemaClass;
-      this.table = opts.table;
-      this.indexs = opts.indexs;
-      const { masterdb, indexdb } = createModel(Model._app, this.table);
-      this.masterdb = masterdb;
-      this.indexdb = indexdb;
-      this.checkDefine();
-      this.initDB();
+      try {
+         this.SchemaClass = opts.SchemaClass;
+         this.table = opts.table;
+         this.indexs = opts.indexs;
+         const { masterdb, indexdb } = createModel(Model._app, this.table);
+         this.masterdb = masterdb;
+         this.indexdb = indexdb;
+         this.checkDefine();
+         this.initDB().catch((err) => {
+            console.error(`init model[${opts.table}] db error`, err);
+         });
+      } catch (err) {
+         console.error(`new model[${opts.table}] error`, err);
+      }
    }
    static setApp(app: string) {
       Model._app = app;
