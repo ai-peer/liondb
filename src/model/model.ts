@@ -3,7 +3,7 @@ import LionDB, { Filter } from "../index";
 import assert from "assert";
 import Schema from "./schema";
 import { validateSync } from "class-validator";
-import { uuid, uuidSeq, isNull, isMap, runtime, inBrowser } from "./helper";
+import { uuid, uuidSeq, isNull, isMap, runtime } from "./helper";
 import { EventEmitter } from "eventemitter3";
 
 export type Index = {
@@ -77,7 +77,7 @@ export class Model<T extends Schema> extends EventEmitter<EventType> {
          for (let field of item.fields) {
             let column = instance.getColumn(field);
             if (!column) {
-               if (inBrowser()) continue;
+               if (!instance.hasColumns()) continue;
             }
             //let val = instance[field];
             //let type = typeof val;
@@ -417,7 +417,7 @@ export class Model<T extends Schema> extends EventEmitter<EventType> {
             let rv = data[v];
             let column = data.getColumn(v);
             if (!column) {
-               if (!inBrowser()) {
+               if (data.hasColumns()) {
                   throw new Error(`[${data.constructor.name}][${v}] is not exist`);
                }
             }

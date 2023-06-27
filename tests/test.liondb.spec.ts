@@ -2,7 +2,7 @@ import assert from "assert";
 import LionDB from "../src";
 import path from "path";
 
-let liondb: LionDB = new LionDB(path.resolve("_local/1"));
+let liondb: LionDB = new LionDB({ filename: path.resolve("_local/1") });
 liondb.once("open", () => {
    console.info("open==========");
 });
@@ -140,17 +140,15 @@ describe("单进程比较取值", function () {
       let total = await liondb.total();
       console.info("start====total", total, Date.now() - startTime, (startTime = Date.now()));
 
-
       let item = {
          name: "zhanli",
-         age: 12
+         age: 12,
       };
-      let checked = await liondb.filter(item, {name: "zhanli", $lt: {age: 13}}, (item)=>{
+      let checked = await liondb.filter(item, { name: "zhanli", $lt: { age: 13 } }, (item) => {
          console.info("item", item);
          return true;
       });
       console.info("check", checked);
-
    });
 });
 async function wait(ttl) {

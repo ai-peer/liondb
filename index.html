@@ -43,13 +43,12 @@
                sn: Date.now(),
             });
             user.age = 18;
-            console.info("==user>>", user, user.title);
-            //await userDAO.insert(user);
-            console.info("user", user);
+            user = await userDAO.insert(user);
+            console.info("insert user", user);
          }
          async function search() {
             //let list = await userDAO.find({});
-            let list = await userDAO.find({ index: { name: "com", fields: ["lij"] } });
+            let list = await userDAO.find({ index: { name: "com", fields: ["li"] } });
             console.info("list", list);
             let en = await userDAO.get("1q4Z0kzzy");
             console.info("en", en);
