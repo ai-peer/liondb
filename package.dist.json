@@ -1,6 +1,6 @@
 {
    "name": "@ai-lion/liondb",
-   "version": "6.1.19",
+   "version": "6.1.20",
    "main": "dist/node.js",
    "browser": "dist/browser.js",
    "types": "types/index.d.ts",
@@ -27,5 +27,5 @@
    },
    "description": "liondb是一个基于leveldb的本地磁盘存储数据库， 数据可以持久存储， 性能高效， 容量受限于磁盘大小",
 
-   "files": ["dist", "esm", "package.json", "index.d.ts", "README.md"]
+   "files": ["dist", "types", "package.json", "index.d.ts", "README.md"]
 }
