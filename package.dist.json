@@ -1,6 +1,6 @@
 {
    "name": "@ai-lion/liondb",
-   "version": "6.1.20",
+   "version": "6.1.21",
    "main": "dist/node.js",
    "browser": "dist/browser.js",
    "types": "types/index.d.ts",
